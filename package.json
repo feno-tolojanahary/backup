@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/feno-tolojanahary/backup#readme",
   "dependencies": {
+    "aws-sdk": "^2.1692.0",
     "node-cron": "^3.0.3"
   }
 }
