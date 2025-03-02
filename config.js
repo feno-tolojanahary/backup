@@ -1,6 +1,6 @@
-export const config = {
+module.exports.config = {
     workingDirectory: `${__dirname}/../output`,
-    dbName: "arh_dashboard_live",
+    dbName: "arh_dashboard_dev",
     wasabi: {
         accessKey: "",
         secretKey: "",
