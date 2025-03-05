@@ -23,23 +23,23 @@ async function init() {
 init();
 
 // running every day for default
-const task = cron.schedule('0 0 * * *', () => { 
+// const task = cron.schedule('0 0 * * *', () => { 
     // call backup task
     (async () => {
         try {
             const backupName = await dumpDatabase();        
-            const resUpload = await copyBackupToS3(backupName);
+            // const resUpload = await copyBackupToS3(backupName);
             await log(backupName);
-            if (resUpload) {
-                console.log("backup to s3 successfully")
-            }
+                    // if (resUpload) {
+                    //     console.log("backup to s3 successfully")
+                    // }
         } catch(error) {
             console.log(error)
         }
     })()
-})
+// })
 
-task.start();
+// task.start();
 
 function getFormattedName (name, date = new Date()) {
     const year = date.getFullYear(), month = date.getMonth(), day = date.getDay(),
@@ -108,6 +108,27 @@ async function copyBackupToS3 (fileName) {
         console.log("error backup to wasabi: ", error.message);
         process.exit(1);
     }
+}
+
+async function removeBackupOnS3 (name) {
+    try {
+        const key = name;
+        const res = await s3Wasabi.deleteFile(key);
+        if (res) {
+            console.log(`Removing ${key} on S3 - ok`);
+        }
+    } catch (error) {
+        console.log("error when removing backup on s3");
+    }
+}
+
+async function readLogFile(callback = () => {}) {
+    const readLog = util.promisify((callback) => {
+        const logPath = path.join(config.backupLog, "backup.log");
+        fs.readFile(logPath, "utf-8", callback);
+    })
+    const data = await readLog();
+    return data;
 }
 
 async function log(text) {
