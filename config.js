@@ -6,5 +6,6 @@ module.exports.config = {
         secretKey: "",
         bucketName: ""
     },
-    backupLog: `${__dirname}/../log/`
+    backupLog: `${__dirname}/../log/`,
+    retentionTime: 24 * 3600
 }
