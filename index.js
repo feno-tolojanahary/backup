@@ -25,23 +25,23 @@ async function init() {
 init();
 
 // running every day for default
-// const task = cron.schedule('0 0 * * *', () => { 
+const task = cron.schedule('0 0 * * *', () => { 
     // call backup task
     (async () => {
         try {
             const backupName = await dumpDatabase();        
-            // const resUpload = await copyBackupToS3(backupName);
+            const resUpload = await copyBackupToS3(backupName);
             await log(backupName);
-                    // if (resUpload) {
-                    //     console.log("backup to s3 successfully")
-                    // }
+                    if (resUpload) {
+                        console.log("backup to s3 successfully")
+                    }
         } catch(error) {
             console.log(error)
         }
     })()
-// })
+})
 
-// task.start();
+task.start();
 
 function getFormattedName (name, date = new Date()) {
     const year = date.getFullYear(), month = date.getMonth(), day = date.getDay(),
