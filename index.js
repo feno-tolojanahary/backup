@@ -8,6 +8,23 @@ const s3Wasabi = require('./lib/s3');
 const { config } = require("./config");
 const exec = util.promisify(require('node:child_process').exec);
 const { createInterface } = require("node:readline");
+const { Command } = require('commander');
+
+const program = new Command();
+
+program
+    .name("backupdb")
+    .description("Backup mongoose db into wasabi s3")
+    .version("1.0.0");
+
+program.command("now")
+    .description("Run a backup of a database now")
+    .option("--name", "set the name of the database backup")
+    .action(function(cmd, opts) {
+        console.log("name: ", opts.name);
+    });
+
+program.parse();
 
 async function init() {
     try {
@@ -42,6 +59,10 @@ const task = cron.schedule('0 0 * * *', () => {
 })
 
 task.start();
+
+function backupManually (cmd, opts) { 
+    console.log("launch the backup  of: ", opts.options)
+}
 
 function getFormattedName (name, date = new Date()) {
     const year = date.getFullYear(), month = date.getMonth(), day = date.getDay(),
@@ -107,9 +128,10 @@ async function getArchiveToRemove(date) {
             crlfDelay: Infinity
         })
         rl.on("line", (line) => {
-            if (indexOfRemoving.localeCompare(line) === 1) {
-                archives.push(archives)
-            }
+            // console.log("line: ", line);
+            // if (indexOfRemoving.localeCompare(line) === 1) {
+                archives.push(line)
+            // }
         })
         await once(rl, "close");
     } catch(error) {
