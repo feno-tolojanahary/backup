@@ -19,10 +19,9 @@ program
 
 program.command("now")
     .description("Run a backup of a database now")
-    .option("--name", "set the name of the database backup")
-    .action(function(cmd, opts) {
-        console.log("name: ", opts.name);
-    });
+    .option("-n, --name <value>", "set the name of the database backup")
+    .option("-w, --wasabi", "also send a backup to wasabi")
+    .action(backupManually);
 
 program.parse();
 
@@ -46,7 +45,8 @@ const task = cron.schedule('0 0 * * *', () => {
     // call backup task
     (async () => {
         try {
-            const backupName = await dumpDatabase();        
+            const formattedName = getFormattedName(config.dbName)
+            const backupName = await dumpDatabase(formattedName);        
             const resUpload = await copyBackupToS3(backupName);
             await log(backupName);
                     if (resUpload) {
@@ -61,7 +61,16 @@ const task = cron.schedule('0 0 * * *', () => {
 task.start();
 
 function backupManually (cmd, opts) { 
-    console.log("launch the backup  of: ", opts.options)
+    (async () => {
+        const dbName = opts.opts().name;
+        const backupName = await dumpDatabase(dbName);
+        await log(backupName);
+        if (opts.opts().wasabi) {   
+            const res = await copyBackupToS3(backupName);
+            if (res) console.log("sending backup to s3 done")
+        }
+        process.exit();
+    })()
 }
 
 function getFormattedName (name, date = new Date()) {
@@ -71,10 +80,10 @@ function getFormattedName (name, date = new Date()) {
     return `${name}_${year}-${month}-${day}-${hour}-${minutes}-${seconds}`;
 }
 
-async function dumpDatabase() {
-    const formattedName = getFormattedName(config.dbName)
-    const { stdout, stderr } = await exec(`mongodump --db ${config.dbName} -o ${formattedName}`, 
+async function dumpDatabase(outName) {
+    const { stdout, stderr } = await exec(`mongodump --db ${config.dbName} -o ${outName}`, 
                                     { cwd: config.workingDirectory })
+    console.log("start dumping database")
     if (stderr) {
         console.log("database backup done ");
         // process.exit(1);
@@ -85,14 +94,14 @@ async function dumpDatabase() {
     // if (!stdout) return "";
     
     const archiveBackup = () => {
-        const archiveName = `${formattedName}.zip`;
+        const archiveName = `${outName}.zip`;
         return new Promise((resolve, _reject) => {
            // write backup into archive
             console.log("archive start")
            
             const output = fs.createWriteStream(path.join(config.workingDirectory, archiveName));
             const archive = archiver("zip", { zlib: { level: 9 } });
-            archive.directory(path.join(config.workingDirectory, formattedName), formattedName);
+            archive.directory(path.join(config.workingDirectory, outName), outName);
             output.on("close", () => {
                 console.log("archiving file done: " + archiveName)
                 resolve(archiveName);
