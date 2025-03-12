@@ -127,6 +127,11 @@ async function dumpDatabase(outName) {
     return archiveName;
 }
 
+async function removeArchives() {
+    const lastDateTmp = new Date().getTime() - config.retentionTime*1000;
+    const archives = await getArchiveToRemove(new Date(lastDateTmp));
+}
+
 async function getArchiveToRemove(date) {
     const archives = [];
     try {
@@ -138,9 +143,9 @@ async function getArchiveToRemove(date) {
         })
         rl.on("line", (line) => {
             // console.log("line: ", line);
-            // if (indexOfRemoving.localeCompare(line) === 1) {
+            if (indexOfRemoving.localeCompare(line) === 1) {
                 archives.push(line)
-            // }
+            }
         })
         await once(rl, "close");
     } catch(error) {
@@ -176,20 +181,20 @@ async function removeBackupOnS3 (name) {
     }
 }
 
-async function readLogFile() {
-    const readLog = util.promisify((callback) => {
-        const logPath = path.join(config.backupLog, "backup.log");
-        fs.readFile(logPath, "utf-8", callback);
-    })
-    const data = await readLog();
-    return data;
-}
+// async function readLogFile() {
+//     const readLog = util.promisify((callback) => {
+//         const logPath = path.join(config.backupLog, "backup.log");
+//         fs.readFile(logPath, "utf-8", callback);
+//     })
+//     const data = await readLog();
+//     return data;
+// }
 
-async function log(text) {
-    const logPath = path.join(config.backupLog, "backup.log");
-    await fs.appendFile(logPath, text + '\n', err => {
-        if (err) throw err;
-    });
-}
+// async function log(text) {
+//     const logPath = path.join(config.backupLog, "backup.log");
+//     await fs.appendFile(logPath, text + '\n', err => {
+//         if (err) throw err;
+//     });
+// }
 
 
