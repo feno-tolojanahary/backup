@@ -9,6 +9,7 @@ const { config } = require("./config");
 const exec = util.promisify(require('node:child_process').exec);
 const { createInterface } = require("node:readline");
 const { Command } = require('commander');
+const Log = require("./lib/log");
 
 const program = new Command();
 
@@ -29,7 +30,7 @@ async function init() {
     try {
         if (!fs.existsSync(config.workingDirectory)) {
             fs.mkdirSync(config.workingDirectory);
-        }
+        }  
         if (!fs.existsSync(config.backupLog)) {
             fs.mkdirSync(config.backupLog);
         }
@@ -40,15 +41,17 @@ async function init() {
 
 init();
 
+const logFile = new Log("backup.log")
+
 // running every day for default
 const task = cron.schedule('0 0 * * *', () => { 
     // call backup task
     (async () => {
-        try {
+        try {            
             const formattedName = getFormattedName(config.dbName)
             const backupName = await dumpDatabase(formattedName);        
             const resUpload = await copyBackupToS3(backupName);
-            await log(backupName);
+            await logFile.log(backupName);
                     if (resUpload) {
                         console.log("backup to s3 successfully")
                     }
@@ -64,7 +67,7 @@ function backupManually (cmd, opts) {
     (async () => {
         const dbName = opts.opts().name;
         const backupName = await dumpDatabase(dbName);
-        await log(backupName);
+        await logFile.log(backupName);
         if (opts.opts().wasabi) {   
             const res = await copyBackupToS3(backupName);
             if (res) console.log("sending backup to s3 done")
@@ -180,21 +183,4 @@ async function removeBackupOnS3 (name) {
         console.log("error when removing backup on s3");
     }
 }
-
-// async function readLogFile() {
-//     const readLog = util.promisify((callback) => {
-//         const logPath = path.join(config.backupLog, "backup.log");
-//         fs.readFile(logPath, "utf-8", callback);
-//     })
-//     const data = await readLog();
-//     return data;
-// }
-
-// async function log(text) {
-//     const logPath = path.join(config.backupLog, "backup.log");
-//     await fs.appendFile(logPath, text + '\n', err => {
-//         if (err) throw err;
-//     });
-// }
-
 
