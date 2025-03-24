@@ -6,6 +6,7 @@
     - list all backup on wasabi
 
 
+    
     - restore database from a backup
     - manually launch a backup with name
 
@@ -14,7 +15,10 @@
         - list all backup in a specified disk
         - launch backup as a independant service => spawn a child process
 
- */ 
+    SOLUTION SEARCH
+    - incrementally save backup data
+    
+*/ 
 
 
 module.exports.config = {

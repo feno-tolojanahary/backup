@@ -55,6 +55,8 @@ const task = cron.schedule('0 0 * * *', () => {
                     if (resUpload) {
                         console.log("backup to s3 successfully")
                     }
+            // remove archive
+            await removeArchives();
         } catch(error) {
             console.log(error)
         }
@@ -132,30 +134,11 @@ async function dumpDatabase(outName) {
 
 async function removeArchives() {
     const lastDateTmp = new Date().getTime() - config.retentionTime*1000;
-    const archives = await getArchiveToRemove(new Date(lastDateTmp));
+    const archives = await logFile.getArchiveToRemove(new Date(lastDateTmp));
+    const deleteArchiveFunc = archives.map(archive => removeBackupOnS3(archive));
+    await Promise.all(deleteArchiveFunc);
 }
 
-async function getArchiveToRemove(date) {
-    const archives = [];
-    try {
-        const indexOfRemoving = getFormattedName(date);
-        const logPath = path.join(config.backupLog, "backup.log");
-        const rl = createInterface({
-            input: fs.createReadStream(logPath),
-            crlfDelay: Infinity
-        })
-        rl.on("line", (line) => {
-            // console.log("line: ", line);
-            if (indexOfRemoving.localeCompare(line) === 1) {
-                archives.push(line)
-            }
-        })
-        await once(rl, "close");
-    } catch(error) {
-        console.log("error reading file line by line: ", error.message);
-    }
-    return archives;
-}
 
 async function copyBackupToS3 (fileName) {
     try {
