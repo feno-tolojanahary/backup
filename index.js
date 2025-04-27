@@ -60,23 +60,24 @@ async function init() {
     }
 }
 
-init();
+// init();
 
 const logFile = new Log("backup.log");
 
 async function startDaemon() {
     try {
         const daemonOut = fs.openSync('./log/daemon.log', 'a');
-        const daemonErr = fs.openSync('./log/daemon.error');
+        const daemonErr = fs.openSync('./log/daemon.error', 'a');
         const daemon = spawn("node", [ "./lib/daemon" ], {
             detached: true,
             stdio: [ 'ignore', daemonOut, daemonErr ]
         });
         daemon.unref();
-        localData.save(daemon.pid);
+        localData.save(daemon.pid.toString());
     } catch (error) {
         console.log("Error starting daemon: ", error.message)
     }
+    process.exit(0);
 }
 
 async function statusDaemon() {
@@ -85,11 +86,12 @@ async function statusDaemon() {
         if (!pid) {
             throw Error("not active")
         }
-        process.kill(pid, 0);
+        process.kill(parseInt(pid), 0);
         console.log("Service backup status: [active]");
     } catch(_err) {
         console.log("Service backup status: [not active]");
     }
+    process.exit(0);
 }
 
 async function stopDaemon() {
@@ -98,10 +100,13 @@ async function stopDaemon() {
         if (!pid) {
             console.log("The backup service is not running")
         }
-        process.kill(pid, "SIGTERM");
+        process.kill(pid, 'SIGTERM');
+        // empty log file
+        localData.empty();
     } catch(_err) { 
         console.log("Error when trying to stop service backup");
     }
+    process.exit(0);
 }
 
 // running every day for default
