@@ -3,6 +3,7 @@ const program = new Command();
 const fs = require('node:fs');
 const Action = require("./lib/action");
 const { spawn } = require('node:child_process');
+const readline = require("node:readline");
 const cron = require("node-cron");
 
 
@@ -16,6 +17,12 @@ program.command("now")
     .option("-n, --name <value>", "set the name of the database backup")
     .option("-w, --wasabi", "also send a backup to wasabi")
     .action(backupManually);
+
+program.command("start")
+    .description("Start the backup daemon")
+    .action(start);
+
+
 
 program.parse();
 
@@ -55,5 +62,19 @@ function start() {
         stdio: [ 'ignore', outFile, errFile ]
     })
     daemon.unref();
+    fs.writeFileSync("log/pid.log", `0 ${daemon.pid} start`, { flag: 'a' });
+}
+
+async function stop() {
+    try {
+        const streamPid = fs.createReadStream("log/pid.log");
+        const rl = readline.createInterface({
+            input: streamPid,
+            crlDelay: Infinity
+        })
+        rl.on()
+    } catch (error) {
+        console.log("error stopping the process: ", error.message);
+    }
 }
 

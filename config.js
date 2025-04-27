@@ -25,9 +25,9 @@ module.exports.config = {
     workingDirectory: `${__dirname}/../output`,
     dbName: "arh_dashboard_dev",
     wasabi: {
-        accessKey: "",
-        secretKey: "",
-        bucketName: ""
+        accessKey: process.env.WS3_ACCESS_KEY,
+        secretKey: process.env.WS3_SECRET_KEY,
+        bucketName: process.env.WS3_BUCKET_NAME
     },
     backupLog: `${__dirname}/../log/`,
     retentionTime: 24 * 3600

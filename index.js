@@ -1,17 +1,19 @@
 const cron = require("node-cron");
 const util = require('node:util');
 const path = require('node:path');
-const { once } = require("node:events");
+require("dotenv").config();
 const archiver = require("archiver");
 const fs = require('node:fs');
 const s3Wasabi = require('./lib/s3');
 const { config } = require("./config");
 const exec = util.promisify(require('node:child_process').exec);
-const { createInterface } = require("node:readline");
 const { Command } = require('commander');
 const Log = require("./lib/log");
+const { spawn } = require("node:child_process");
+const LocalData = require("./lib/localData");
 
 const program = new Command();
+const localData = new LocalData();
 
 program
     .name("backupdb")
@@ -23,6 +25,18 @@ program.command("now")
     .option("-n, --name <value>", "set the name of the database backup")
     .option("-w, --wasabi", "also send a backup to wasabi")
     .action(backupManually);
+
+program.command("start")
+    .description("Start the service backup")
+    .action(startDaemon);
+
+program.command("status")
+    .description("Check status of service backup")
+    .action(statusDaemon);
+
+program.command("stop")
+    .description("Stop the service backup")
+    .action(stopDaemon);
 
 program.parse();
 
@@ -37,11 +51,58 @@ async function init() {
     } catch(error) {
         console.log("Error creating system backup directories: ", error.message);
     }
+    try {
+        const createBucket = await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
+        if (createBucket) 
+            console.log("Creating wasabi bucket with success");
+    } catch(error) {
+        console.log("Error creating Wasabi bucket: ", error.message);
+    }
 }
 
 init();
 
-const logFile = new Log("backup.log")
+const logFile = new Log("backup.log");
+
+async function startDaemon() {
+    try {
+        const daemonOut = fs.openSync('./log/daemon.log', 'a');
+        const daemonErr = fs.openSync('./log/daemon.error');
+        const daemon = spawn("node", [ "./lib/daemon" ], {
+            detached: true,
+            stdio: [ 'ignore', daemonOut, daemonErr ]
+        });
+        daemon.unref();
+        localData.save(daemon.pid);
+    } catch (error) {
+        console.log("Error starting daemon: ", error.message)
+    }
+}
+
+async function statusDaemon() {
+    try {
+        const pid = localData.read();
+        if (!pid) {
+            throw Error("not active")
+        }
+        process.kill(pid, 0);
+        console.log("Service backup status: [active]");
+    } catch(_err) {
+        console.log("Service backup status: [not active]");
+    }
+}
+
+async function stopDaemon() {
+    try {
+        const pid = localData.read();
+        if (!pid) {
+            console.log("The backup service is not running")
+        }
+        process.kill(pid, "SIGTERM");
+    } catch(_err) { 
+        console.log("Error when trying to stop service backup");
+    }
+}
 
 // running every day for default
 const task = cron.schedule('0 0 * * *', () => { 
