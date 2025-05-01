@@ -23,7 +23,7 @@
 
 module.exports.config = {
     workingDirectory: `${__dirname}/../output`,
-    dbName: "arh_dashboard_dev",
+    dbName: "arh_dev_16_avril",
     wasabi: {
         accessKey: process.env.WS3_ACCESS_KEY,
         secretKey: process.env.WS3_SECRET_KEY,
