@@ -24,6 +24,11 @@
 module.exports.config = {
     workingDirectory: `${__dirname}/../output`,
     dbName: "arh_dev_16_avril",
+    mysql: {
+        user: "root",
+        password: "Hello123!",
+        database: "sys"
+    },
     wasabi: {
         accessKey: process.env.WS3_ACCESS_KEY,
         secretKey: process.env.WS3_SECRET_KEY,
