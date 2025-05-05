@@ -34,6 +34,7 @@ module.exports.config = {
         secretKey: process.env.WS3_SECRET_KEY,
         bucketName: process.env.WS3_BUCKET_NAME
     },
+    directory: "",
     backupLog: `${__dirname}/../log/`,
     retentionTime: 24 * 3600
 }
