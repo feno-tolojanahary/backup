@@ -23,6 +23,7 @@
 
 module.exports.config = {
     workingDirectory: `${__dirname}/../output`,
+    dataDirectory: `${__dirname}/../log/data`,
     dbName: "arh_dev_16_avril",
     mysql: {
         user: "root",
@@ -34,7 +35,7 @@ module.exports.config = {
         secretKey: process.env.WS3_SECRET_KEY,
         bucketName: process.env.WS3_BUCKET_NAME
     },
-    directory: "",
+    directory: "/media/feno/DATA2/PROJECT/THEBACKUP/sample",
     backupLog: `${__dirname}/../log/`,
     retentionTime: 24 * 3600
 }

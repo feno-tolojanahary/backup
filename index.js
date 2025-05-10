@@ -19,6 +19,9 @@ async function init() {
         if (!fs.existsSync(config.backupLog)) {
             fs.mkdirSync(config.backupLog);
         }
+        if (!fs.existsSync(config.dataDirectory)) {
+            fs.mkdirSync(config.dataDirectory);
+        }
     } catch(error) {
         console.log("Error creating system backup directories: ", error.message);
     }
