@@ -5,11 +5,11 @@ const { config } = require("./config");
 const { Command } = require('commander');
 const Log = require("./lib/log");
 const { spawn } = require("node:child_process");
-const LocalData = require("./lib/localData");
+const { ProcessData } = require("./lib/localData");
 const Action = require("./lib/action");
 
 const program = new Command();
-const localData = new LocalData();
+const processData = new ProcessData();
 
 async function init() {
     try {
@@ -58,7 +58,7 @@ const logFile = new Log("backup.log");
 
 function isDaemonActive () {
     try {
-        const pid = localData.read();
+        const pid = processData.read();
         if (!pid) {
             throw Error("not active")
         }
@@ -100,13 +100,13 @@ async function statusDaemon() {
 
 async function stopDaemon() {
     try {
-        const pid = localData.read();
+        const pid = processData.read();
         if (!pid) {
             console.log("The backup service is not running")
         }
         process.kill(pid, 'SIGTERM');
         // empty log file
-        localData.empty();
+        processData.empty();
         const pidDaemon = isDaemonActive();
         if (!pidDaemon) {
             console.log("Service backup stoped.")
