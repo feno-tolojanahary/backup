@@ -23,7 +23,7 @@
 
 module.exports.config = {
     workingDirectory: `${__dirname}/../output`,
-    dataDirectory: `${__dirname}/../log/data`,
+    dataDirectory: `${__dirname}/../data`,
     dbName: "arh_dev_16_avril",
     mysql: {
         user: "root",
