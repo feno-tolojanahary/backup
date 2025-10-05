@@ -4,8 +4,6 @@
     - delete outdated backup
     - support command as an argument
     - list all backup on wasabi
-
-
     
     - restore database from a backup
     - manually launch a backup with name
@@ -20,8 +18,7 @@
     
 */ 
 
-
-module.exports.config = {
+exports.config = {
     workingDirectory: `${__dirname}/../output`,
     dataDirectory: `${__dirname}/../data`,
     dbName: "arh_dev_16_avril",
