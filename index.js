@@ -8,6 +8,7 @@ const Log = require("./lib/log");
 const { spawn } = require("node:child_process");
 const { ProcessData } = require("./lib/localData");
 const Action = require("./lib/action");
+const s3Wasabi = require("./lib/s3");
 const dbDriver = require("./lib/dbdriver");
 
 const program = new Command();
@@ -17,11 +18,7 @@ function createEnvFile () {
     return new Promise((resolve, reject) => {
         try {
             const envPath = path.join(__dirname, ".env");
-            const baseEnvContent = `
-                WS3_ACCESS_KEY= 
-                WS3_SECRET_KEY=
-                WS3_BUCKET_NAME=
-            `
+            const baseEnvContent = `WS3_ACCESS_KEY=\nWS3_SECRET_KEY=\nWS3_BUCKET_NAME=`
             if (!fs.existsSync(envPath)) {
                 fs.writeFile(envPath, baseEnvContent, (error) => { 
                     if (error)
@@ -62,12 +59,13 @@ program
 
 program.command("now")
     .description("Run a backup of a database now")
-    .option("-n, --name <value>", "set the name of the database backup")
+    .argument("[name]", "database name")
     .option("-w, --wasabi", "also send a backup to wasabi")
     .action(backupManually);
 
 program.command("test")
-    .argument("[name]", "test the database connection")
+    .description("Launch a test of the mongodb database connection")
+    .argument("[name]", "database name")
     .action(testDatabaseConnection);
 
 program.command("start")
@@ -151,33 +149,40 @@ async function stopDaemon() {
 
 async function testDatabaseConnection(cmd, opts) {
     ((async () => {
-        let dbName = opts.opts().name;
+        let dbName = cmd;
         if (!dbName) {
             dbName = config.dbName;
         }
         const uri = "mongodb://localhost:27017";
         const exists = await dbDriver.databaseExists(uri, dbName);
         if (exists) {
-            console.log("Connected to the database");
+            console.log(`Connected to the database ${dbName}`);
         } else {
-            console.log("Could not connect to the database");
+            console.log(`Could not connect to the database ${dbName}`);
         }
+        process.exit(0);
     }))()
 }
 
-function backupManually (cmd, opts) { 
+function backupManually (cmd, opts) {   
     (async () => {
-        let dbName = opts.opts().name;
-        if (!dbName) {
-            dbName = config.dbName;
+        try {
+            let dbName = cmd;
+            if (!dbName) {
+                dbName = config.dbName;
+            }
+            const backupName = await Action.dumpMongoDb(dbName);
+            await logFile.log(backupName);
+            console.log(opts)
+            if (opts.wasabi) {   
+                await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
+                const res = await Action.copyBackupToS3(backupName);
+                if (res) console.log("sending backup to s3 done")
+            }
+            process.exit(0);
+        } catch (error) {
+            console.log(error);
+            process.exit(1)
         }
-        const backupName = await Action.dumpDatabase(dbName);
-        await logFile.log(backupName);
-        if (opts.opts().wasabi) {   
-            const res = await Action.copyBackupToS3(backupName);
-            if (res) console.log("sending backup to s3 done")
-        }
-        process.exit();
     })()
 }
-

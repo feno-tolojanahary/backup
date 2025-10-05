@@ -21,7 +21,7 @@
 exports.config = {
     workingDirectory: `${__dirname}/../output`,
     dataDirectory: `${__dirname}/../data`,
-    dbName: "arh_dev_16_avril",
+    dbName: "arh_dev_31_juillet",
     mysql: {
         user: "root",
         password: "Hello123!",
