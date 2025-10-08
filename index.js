@@ -8,8 +8,10 @@ const Log = require("./lib/log");
 const { spawn } = require("node:child_process");
 const { ProcessData } = require("./lib/localData");
 const Action = require("./lib/action");
-const s3Wasabi = require("./lib/s3");
+const s3Wasabi = require("./lib/helper/s3");
+const s3Handler = require("./lib/s3Handler");
 const dbDriver = require("./lib/dbdriver");
+const { getFormattedName } = require('./lib/utils');
 
 const program = new Command();
 const processData = new ProcessData();
@@ -79,6 +81,15 @@ program.command("status")
 program.command("stop")
     .description("Stop the service backup")
     .action(stopDaemon);
+
+program.command("list")
+    .description("Get list of backup")
+    .action(Action.backupList);
+
+program.command("restore <index>")
+    .option("--to", "Restore the backup as a database name")
+    .description("Restore a backup by specifying index")
+
 
 program.parse();
 
@@ -171,13 +182,16 @@ function backupManually (cmd, opts) {
             if (!dbName) {
                 dbName = config.dbName;
             }
-            const backupName = await Action.dumpMongoDb(dbName);
-            await logFile.log(backupName);
+            dbName = getFormattedName(dbName);
+            const backupName = await dbDriver.dumpMongoDb(dbName);
             console.log(opts)
             if (opts.wasabi) {   
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
-                const res = await Action.copyBackupToS3(backupName);
-                if (res) console.log("sending backup to s3 done")
+                const res = await s3Handler.copyBackupToS3(backupName);
+                if (res) {
+                    await logFile.log(backupName);
+                    console.log("sending backup to s3 done");
+                }
             }
             process.exit(0);
         } catch (error) {
