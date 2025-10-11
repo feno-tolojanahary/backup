@@ -184,7 +184,6 @@ function backupManually (cmd, opts) {
             }
             dbName = getFormattedName(dbName);
             const backupName = await dbDriver.dumpMongoDb(dbName);
-            console.log(opts)
             if (opts.wasabi) {   
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
                 const res = await s3Handler.copyBackupToS3(backupName);
