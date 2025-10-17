@@ -1,4 +1,3 @@
-const util = require('node:util');
 const path = require("node:path");
 require("dotenv").config();
 const fs = require('node:fs');
@@ -86,9 +85,9 @@ program.command("list")
     .description("Get list of backup")
     .action(Action.backupList);
 
-program.command("restore <index>")
+program.command("restore <name>")
     .option("--to", "Restore the backup as a database name")
-    .description("Restore a backup by specifying index")
+    .description("Restore a backup by specifying a name")
 
 
 program.parse();
@@ -188,7 +187,7 @@ function backupManually (cmd, opts) {
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
                 const res = await s3Handler.copyBackupToS3(backupName);
                 if (res) {
-                    await logFile.log(backupName);
+                    await logFile.lo    g(backupName);
                     console.log("sending backup to s3 done");
                 }
             }
