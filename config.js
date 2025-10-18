@@ -32,6 +32,20 @@ exports.config = {
         secretKey: process.env.WS3_SECRET_KEY,
         bucketName: process.env.WS3_BUCKET_NAME
     },
+    useRemoteServer: true,
+    hosts: [
+        {
+            host: "",
+            port: "",
+            username: "",
+            password: "",
+            privateKey: "",
+            passphrase: "",
+            destinationFolder: "",
+            parentFolder: "backupDB",
+            activeSync: true
+        }
+    ],
     directory: "/media/feno/DATA2/PROJECT/THEBACKUP/sample",
     backupLog: `${__dirname}/../log/`,
     retentionTime: 24 * 3600

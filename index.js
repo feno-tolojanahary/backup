@@ -10,6 +10,7 @@ const Action = require("./lib/action");
 const s3Wasabi = require("./lib/helper/s3");
 const s3Handler = require("./lib/s3Handler");
 const dbDriver = require("./lib/dbdriver");
+const { sendToRemoteServers, sendToRemoteServer } = require("./lib/remote/remoteHandler");
 const { getFormattedName } = require('./lib/utils');
 
 const program = new Command();
@@ -61,7 +62,8 @@ program
 program.command("now")
     .description("Run a backup of a database now")
     .argument("[name]", "database name")
-    .option("-w, --wasabi", "also send a backup to wasabi")
+    .option("-w, --wasabi", "send the backup to wasabi")
+    .option("-r, --remote", "send the backup to the remote servers")
     .action(backupManually);
 
 program.command("test")
@@ -186,10 +188,14 @@ function backupManually (cmd, opts) {
             if (opts.wasabi) {   
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
                 const res = await s3Handler.copyBackupToS3(backupName);
+
                 if (res) {
-                    await logFile.lo    g(backupName);
+                    await logFile.log(backupName);
                     console.log("sending backup to s3 done");
                 }
+            }
+            if (opts.remote) {
+                await sendToRemoteServers(backupName);
             }
             process.exit(0);
         } catch (error) {
