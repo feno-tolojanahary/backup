@@ -43,7 +43,8 @@ exports.config = {
             passphrase: "",
             destinationFolder: "",
             parentFolder: "backupDB",
-            activeSync: true
+            activeSync: true,
+            maxDiskUsage: 10
         }
     ],
     directory: "/media/feno/DATA2/PROJECT/THEBACKUP/sample",

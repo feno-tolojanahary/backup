@@ -88,8 +88,12 @@ program.command("list")
     .action(Action.backupList);
 
 program.command("restore <name>")
-    .option("--to", "Restore the backup as a database name")
+    .option("-w, --wasabi", "restore the backup file from wasabi")
+    .option("-r, --remote", "restore the backup file from a remote server")
+    .option("--to <restorename>", "Restore the backup as a database name")
+    .option("-h, --host <hostname>", "Host name to download the file for restoration")
     .description("Restore a backup by specifying a name")
+    .action(Action.restoreBackup)
 
 
 program.parse();
@@ -179,7 +183,12 @@ async function testDatabaseConnection(cmd, opts) {
 function backupManually (cmd, opts) {   
     (async () => {
         try {
-            let dbName = cmd;
+            let dbName = cmd, 
+            trackInfo = { 
+                wasabi: false, 
+                remote: false 
+            };
+
             if (!dbName) {
                 dbName = config.dbName;
             }
@@ -188,15 +197,16 @@ function backupManually (cmd, opts) {
             if (opts.wasabi) {   
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
                 const res = await s3Handler.copyBackupToS3(backupName);
-
-                if (res) {
-                    await logFile.log(backupName);
-                    console.log("sending backup to s3 done");
-                }
+                if (res)
+                    trackInfo.wasabi = true;
             }
             if (opts.remote) {
-                await sendToRemoteServers(backupName);
+                const remoteDone = await sendToRemoteServers(backupName);
+                if (remoteDone) 
+                    trackInfo.remote = false;
             }
+            await logFile.log(backupName, trackInfo);
+            console.log("sending backup to s3 done");
             process.exit(0);
         } catch (error) {
             console.log(error);
