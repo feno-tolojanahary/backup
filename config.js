@@ -44,7 +44,7 @@ exports.config = {
             destinationFolder: "",
             parentFolder: "backupDB",
             activeSync: true,
-            maxDiskUsage: 10
+            maxDiskUsage: 2048
         }
     ],
     directory: "/media/feno/DATA2/PROJECT/THEBACKUP/sample",

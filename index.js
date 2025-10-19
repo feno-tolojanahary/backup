@@ -10,7 +10,7 @@ const Action = require("./lib/action");
 const s3Wasabi = require("./lib/helper/s3");
 const s3Handler = require("./lib/s3Handler");
 const dbDriver = require("./lib/dbdriver");
-const { sendToRemoteServers, sendToRemoteServer } = require("./lib/remote/remoteHandler");
+const { sendToRemoteServers, removeOverFlowFileServers } = require("./lib/remote/remoteHandler");
 const { getFormattedName } = require('./lib/utils');
 
 const program = new Command();
@@ -193,19 +193,20 @@ function backupManually (cmd, opts) {
                 dbName = config.dbName;
             }
             dbName = getFormattedName(dbName);
-            const backupName = await dbDriver.dumpMongoDb(dbName);
+            const backupFile = await dbDriver.dumpMongoDb(dbName);
             if (opts.wasabi) {   
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
-                const res = await s3Handler.copyBackupToS3(backupName);
+                const res = await s3Handler.copyBackupToS3(backupFile.name);
                 if (res)
                     trackInfo.wasabi = true;
             }
             if (opts.remote) {
-                const remoteDone = await sendToRemoteServers(backupName);
+                await removeOverFlowFileServers({ newUploadSize: backupFile.size });
+                const remoteDone = await sendToRemoteServers(backupFile.name);
                 if (remoteDone) 
                     trackInfo.remote = false;
             }
-            await logFile.log(backupName, trackInfo);
+            await logFile.log(backupFile.name, trackInfo);
             console.log("sending backup to s3 done");
             process.exit(0);
         } catch (error) {
