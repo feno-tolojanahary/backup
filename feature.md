@@ -39,6 +39,9 @@ SSH:
 - define a quota of disk usage and delete old
 - specify a backup to restore
 
+GLOBAL:
+- Assure that the backup log is synchronised with the wasabi and on the server
+
 
 1 databasename wasabi
 restore 1 --to databasename

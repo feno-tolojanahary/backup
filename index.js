@@ -85,6 +85,8 @@ program.command("stop")
 
 program.command("list")
     .description("Get list of backup")
+    .option("-w, --wasabi", "Only the list of backup on wasabi")
+    .option("-r, --remote", "Only the list of backup on the remote server")
     .action(Action.backupList);
 
 program.command("restore <name>")
