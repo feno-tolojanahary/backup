@@ -35,13 +35,13 @@ exports.config = {
     useRemoteServer: true,
     hosts: [
         {
-            host: "",
-            port: "",
-            username: "",
+            host: "192.168.2.181",
+            port: "22",
+            username: "ubuntu",
             password: "",
-            privateKey: "",
+            privateKey: "local-ubuntu-server.pem",
             passphrase: "",
-            destinationFolder: "",
+            destinationFolder: "/home/ubuntu",
             parentFolder: "backupDB",
             activeSync: true,
             maxDiskUsage: 2048
