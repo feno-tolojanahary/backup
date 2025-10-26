@@ -14,7 +14,6 @@ const { sendToRemoteServers, removeOverFlowFileServers } = require("./lib/remote
 const { getFormattedName } = require('./lib/utils');
 
 const program = new Command();
-const processData = new ProcessData();
 
 function createEnvFile () {
     return new Promise((resolve, reject) => {
@@ -97,6 +96,10 @@ program.command("restore <name>")
     .description("Restore a backup by specifying a name")
     .action(Action.restoreBackup)
 
+program.command("logs")
+    .description("Show the log of the running deamon")
+    .action(Action.watchLogDaemon2)
+
 
 program.parse();
 
@@ -104,6 +107,7 @@ const logFile = new Log("backup.log");
 
 function isDaemonActive () {
     try {
+        const processData = new ProcessData();
         const pid = processData.read();
         if (!pid) {
             throw Error("not active")
@@ -117,18 +121,19 @@ function isDaemonActive () {
 
 async function startDaemon() {
     try {
+        const processData = new ProcessData();
         if (isDaemonActive()) {
             console.log("Service backup already active.");
             process.exit(0);
         }
-        const daemonOut = fs.openSync('./log/daemon.log', 'a');
-        const daemonErr = fs.openSync('./log/daemon.error', 'a');
+        const daemonOut = fs.openSync(config.daemonOut, 'a');
+        const daemonErr = fs.openSync(config.daemonErr, 'a');
         const daemon = spawn("node", [ "./lib/daemon" ], {
             detached: true,
             stdio: [ 'ignore', daemonOut, daemonErr ]
         });
         daemon.unref();
-        localData.save(daemon.pid.toString());
+        processData.save(daemon.pid.toString());
         console.log("Backup service started.");
     } catch (error) {
         console.log("Error starting daemon: ", error.message)
@@ -146,6 +151,7 @@ async function statusDaemon() {
 
 async function stopDaemon() {
     try {
+        const processData = new ProcessData();
         const pid = processData.read();
         if (!pid) {
             console.log("The backup service is not running")

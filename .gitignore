@@ -1,5 +1,7 @@
 node_modules
 log
+data
+output
 keys
 .env
 .lastIndex

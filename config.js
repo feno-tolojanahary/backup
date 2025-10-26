@@ -19,8 +19,8 @@
 */ 
 
 exports.config = {
-    workingDirectory: `${__dirname}/../output`,
-    dataDirectory: `${__dirname}/../data`,
+    workingDirectory: `${__dirname}/output`,
+    dataDirectory: `${__dirname}/data`,
     dbName: "local",
     mysql: {
         user: "root",
@@ -48,6 +48,8 @@ exports.config = {
         }
     ],
     directory: "/media/feno/DATA2/PROJECT/THEBACKUP/sample",
-    backupLog: `${__dirname}/../log/`,
+    backupLog: `${__dirname}/log/`,
+    daemonOut: `${__dirname}/log/daemon.log`,
+    daemonErr: `${__dirname}/log/daemon.log`,
     retentionTime: 24 * 3600
 }
