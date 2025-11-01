@@ -10,8 +10,6 @@ Operating system on linux:
 
 - get list of database backup
 
-RESTORE:
-- Possibility of restoring a specific selected version of database from wasabi or cloud
 
 add COMMAND:
 - delete specified backup (ssh, wasabi)
@@ -29,8 +27,10 @@ TODO:
 
 WASABI:
 - synchronise backup into local
-- remove old backup data
+- remove old backup data    
 - list all on wasabi
+s3:
+- migrate sdk2 to sdk3
 
 SSH:
 - synchronise info into local
@@ -41,6 +41,17 @@ SSH:
 
 GLOBAL:
 - Assure that the backup log is synchronised with the wasabi and on the server
+
+
+LOG/INTERFACE:
+- add a date for the process log
+- (impr) list all the configurations
+
+
+BACKUP MANAGEMENT:
+- create an archive file
+-    RESTORE:
+    - Possibility of restoring a specific selected version of database from wasabi or cloud
 
 
 1 databasename wasabi
