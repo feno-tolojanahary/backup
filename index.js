@@ -222,4 +222,4 @@ function backupManually (cmd, opts) {
             process.exit(1)
         }
     })()
-}
+}   
