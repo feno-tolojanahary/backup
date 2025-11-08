@@ -46,6 +46,7 @@ GLOBAL:
 LOG/INTERFACE:
 - add a date for the process log
 - (impr) list all the configurations
+- find a way to synchronise the log of local data with the online
 
 
 BACKUP MANAGEMENT:
