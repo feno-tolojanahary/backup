@@ -101,6 +101,11 @@ program.command("logs")
     .action(Action.watchLogDaemon2)
 
 
+program.command("health")
+    .description("Check all status of servers connections")
+    .action(Action.checkHealth)
+
+
 program.parse();
 
 const logFile = new Log("backup.log");

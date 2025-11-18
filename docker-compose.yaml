@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  s3mock:
+    image: adobe/s3mock:latest
+    ports:
+      - "9090:9090"
+    environment:
+      - initialBuckets=mybucket,testbucket
+    volumes:
+      - ./s3mock-data:/data

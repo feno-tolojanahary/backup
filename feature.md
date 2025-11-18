@@ -4,15 +4,12 @@ Operating system on linux:
 - send backup to wasabi
 
 - set up backup retention
-- detect if the application is running correctly
-    - send a notification if the app is down
-- If possible track cpu usage and detect which request is consuming ressources
 
 - get list of database backup
 
 
 add COMMAND:
-- delete specified backup (ssh, wasabi)
+- delete specified backup (ssh, wasabi) 
 
 LITLE FEATURE:
 - store all configuration inside a file
@@ -41,6 +38,7 @@ SSH:
 
 GLOBAL:
 - Assure that the backup log is synchronised with the wasabi and on the server
+- Health monitoring, check all status of server connexion
 
 
 LOG/INTERFACE:
@@ -54,6 +52,21 @@ BACKUP MANAGEMENT:
 -    RESTORE:
     - Possibility of restoring a specific selected version of database from wasabi or cloud
 
+- Add a specific scheduling time for backup
+- add a specific name of the output backup (--tag)
 
-1 databasename wasabi
-restore 1 --to databasename
+
+DUMP and RESTORE:
+- Encrypt backup before uploading using AES-256 or GPG.
+- Integrity check: Generate a checksum per backup
+
+
+- detect if the application is running correctly
+    - send a notification if the app is down
+- If possible track cpu usage and detect which request is consuming ressources
+
+
+
+NEXT MOVE:
+- Add a system tools administration
+
