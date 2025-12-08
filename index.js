@@ -13,6 +13,8 @@ const dbDriver = require("./lib/dbdriver");
 const { sendToRemoteServers, removeOverFlowFileServers, hasRemoteDefinedConfig } = require("./lib/remote/remoteHandler");
 const { getFormattedName } = require('./lib/utils');
 
+const backupLog = require("./lib/backupLog");
+
 const program = new Command();
 
 function createEnvFile () {
@@ -196,12 +198,7 @@ async function testDatabaseConnection(cmd, opts) {
 function backupManually (cmd, opts) {   
     (async () => {
         try {
-            let dbName = cmd, 
-            trackInfo = { 
-                wasabi: false, 
-                remote: false 
-            };
-
+            let dbName = cmd;
             if (!dbName) {
                 dbName = config.dbName;
             }
@@ -211,15 +208,14 @@ function backupManually (cmd, opts) {
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
                 const res = await s3Handler.copyBackupToS3(backupFile.name);
                 if (res)
-                    trackInfo.wasabi = true;
+                    backupLog.log(backupFile.name, "wasabi-s3")
             }
             if (opts.remote && hasRemoteDefinedConfig()) {
                 await removeOverFlowFileServers({ newUploadSize: backupFile.size });
                 const remoteDone = await sendToRemoteServers(backupFile.name);
                 if (remoteDone) 
-                    trackInfo.remote = false;
+                    backupLog.log(backupFile.name, "host1")
             }
-            await logFile.log(backupFile.name, trackInfo);
             console.log("sending backup to s3 done");
             process.exit(0);
         } catch (error) {

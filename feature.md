@@ -65,8 +65,9 @@ DUMP and RESTORE:
     - send a notification if the app is down
 - If possible track cpu usage and detect which request is consuming ressources
 
+SECURITY:
+- encrypting database
 
 
 NEXT MOVE:
 - Add a system tools administration
-
