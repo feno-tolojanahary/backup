@@ -13,7 +13,7 @@ const dbDriver = require("./lib/dbdriver");
 const { sendToRemoteServers, removeOverFlowFileServers, hasRemoteDefinedConfig } = require("./lib/remote/remoteHandler");
 const { getFormattedName } = require('./lib/utils');
 
-const backupLog = require("./lib/backupLog");
+const { backupLog } = require("./lib/backupLog");
 
 const program = new Command();
 
@@ -208,13 +208,13 @@ function backupManually (cmd, opts) {
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
                 const res = await s3Handler.copyBackupToS3(backupFile.name);
                 if (res)
-                    backupLog.log(backupFile.name, "wasabi-s3")
+                    backupLog.nameLog(backupFile.name, "wasabi-s3")
             }
             if (opts.remote && hasRemoteDefinedConfig()) {
                 await removeOverFlowFileServers({ newUploadSize: backupFile.size });
                 const remoteDone = await sendToRemoteServers(backupFile.name);
                 if (remoteDone) 
-                    backupLog.log(backupFile.name, "host1")
+                    backupLog.nameLog(backupFile.name, "host1")
             }
             console.log("sending backup to s3 done");
             process.exit(0);
