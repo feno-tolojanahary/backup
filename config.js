@@ -51,5 +51,10 @@ exports.config = {
     backupLog: `${__dirname}/log/`,
     daemonOut: `${__dirname}/log/daemon.log`,
     daemonErr: `${__dirname}/log/daemon.log`,
-    retentionTime: 24 * 3600
+    retentionTime: 24 * 3600,
+    granularSetup: {
+        day: 6,
+        week: 2,
+        month: 1
+    }
 }

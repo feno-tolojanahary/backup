@@ -89,6 +89,7 @@ program.command("list")
     .option("-w, --wasabi", "Only the list of backup on wasabi")
     .option("-r, --remote", "Only the list of backup on the remote server")
     .option("-a, --all", "Resume the list of all backup")
+    .option("-s, --syncAll", "Launch synchronisation of the backup list")
     .action(Action.backupList);
 
 program.command("restore <name>")
