@@ -37,7 +37,7 @@ function createEnvFile () {
 }
 
 async function init() {
-    try {
+        try {
         if (!fs.existsSync(config.workingDirectory)) {
             fs.mkdirSync(config.workingDirectory);
         }  
@@ -104,11 +104,16 @@ program.command("logs")
     .description("Show the log of the running deamon")
     .action(Action.watchLogDaemon2)
 
-
 program.command("health")
     .description("Check all status of servers connections")
     .action(Action.checkHealth)
 
+program.command("remove")
+    .argument("[name]", "backup name")
+    .description("Manually remove backup")
+    .option("-w, --wasabi", "Remove backup on wasabi")
+    .option("-r, --remote", "Remove backup on remote host")
+    .action(Action.removeBackup);
 
 program.parse();
 
