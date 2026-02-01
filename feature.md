@@ -71,3 +71,22 @@ SECURITY:
 
 NEXT MOVE:
 - Add a system tools administration
+
+GOAL:
+- Security of the data of an application
+-> add a incremental backup for the app
+- Monitore the app, which is launched in pm2 and served by Nginx
+- Send an alert if the cpu usage up
+- Identify which part of the app has trigger the cpu or the ram
+
+- Find a way to make an incremental backup using package
+
+- Create an alternative of pm2
+
+Futur:
+- Suggest an improvement if the app is a MongoDB: an usage of index and key
+- Generate a server architecture
+
+
+Suggest a securisation for the app:
+- Build a ready 
