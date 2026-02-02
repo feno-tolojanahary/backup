@@ -13,7 +13,7 @@ const dbDriver = require("./lib/dbdriver");
 const { sendToRemoteServers, removeOverFlowFileServers, hasRemoteDefinedConfig } = require("./lib/remote/remoteHandler");
 const { getFormattedName } = require('./lib/utils');
 
-const { backupLog } = require("./lib/backupLog");
+const { s3Log, hostLog } = require("./lib/backupLog");
 
 const program = new Command();
 
@@ -115,9 +115,12 @@ program.command("remove")
     .option("-r, --remote", "Remove backup on remote host")
     .action(Action.removeBackup);
 
-program.parse();
+program.command("reset")
+    .option("-w, --wasabi", "Reset all storage on wasabi")
+    .option("-r, --remote", "Reset all storage on the remote server")
+    .action(Action.resetStorage)
 
-const logFile = new Log("backup.log");
+program.parse();
 
 function isDaemonActive () {
     try {
@@ -214,14 +217,26 @@ function backupManually (cmd, opts) {
             if (opts.wasabi && s3Handler.wasabiConfigExists()) {   
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
                 const res = await s3Handler.copyBackupToS3(backupFile.name);
-                if (res)
-                    backupLog.nameLog(backupFile.name, "wasabi-s3")
+                if (res) {
+                    const dataLog = {
+                        name: backupFile.name,
+                        size: backupFile.size,
+                        storage: "wasabi"
+                    }
+                    await s3Log.objLog(dataLog);
+                }
             }
             if (opts.remote && hasRemoteDefinedConfig()) {
                 await removeOverFlowFileServers({ newUploadSize: backupFile.size });
                 const remoteDone = await sendToRemoteServers(backupFile.name);
-                if (remoteDone) 
-                    backupLog.nameLog(backupFile.name, "host1")
+                if (remoteDone) {
+                    const dataLog = {
+                        name: backupFile.name,
+                        size: backupFile.size,
+                        storage: "remote"
+                    }
+                    await hostLog.objLog(dataLog);
+                }
             }
             console.log("sending backup to s3 done");
             process.exit(0);
@@ -230,4 +245,4 @@ function backupManually (cmd, opts) {
             process.exit(1)
         }
     })()
-}   
+}
