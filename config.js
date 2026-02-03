@@ -53,6 +53,7 @@ exports.config = {
     daemonErr: `${__dirname}/log/daemon.log`,
     // retentionTime: 24 * 60 * 60 * 1000,         // milliseconds 1 days before
     retentionTime: 5 * 60 * 1000,
+    cronJob: "* * * * *",       // Every minutes
     granularSetup: {
         day: 6,
         week: 2,

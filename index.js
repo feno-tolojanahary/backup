@@ -10,6 +10,7 @@ const Action = require("./lib/action");
 const s3Wasabi = require("./lib/helper/s3");
 const s3Handler = require("./lib/s3Handler");
 const dbDriver = require("./lib/dbdriver");
+const { CronExpressionParser } = require("cron-parser");
 const { sendToRemoteServers, removeOverFlowFileServers, hasRemoteDefinedConfig } = require("./lib/remote/remoteHandler");
 const { getFormattedName } = require('./lib/utils');
 
@@ -28,6 +29,8 @@ function createEnvFile () {
                         console.log(error)
                     resolve()
                 })  
+            } else {
+                resolve()
             }
         } catch (error) {
             console.log("Error when creating .env file: ", error.message);
@@ -36,8 +39,18 @@ function createEnvFile () {
     })
 }
 
-async function init() {
+function validateConfig () {
+    if (config.cronJob) {
         try {
+            CronExpressionParser.parse(config.cronJob);
+        } catch {
+            throw new Error(`In the configuration file, cronJob don't have a valid cron expression value ${config.cronJob}`);
+        }
+    }
+}
+
+async function init() {
+    try {
         if (!fs.existsSync(config.workingDirectory)) {
             fs.mkdirSync(config.workingDirectory);
         }  
@@ -51,6 +64,7 @@ async function init() {
     } catch(error) {
         console.log("Error creating system backup directories: ", error.message);
     }
+    validateConfig();
 }
 
 init();
@@ -65,6 +79,7 @@ program.command("now")
     .argument("[name]", "database name")
     .option("-w, --wasabi", "send the backup to wasabi")
     .option("-r, --remote", "send the backup to the remote servers")
+    .option("-t, --tag <name>", "Specify the name of the compressed file")
     .action(backupManually);
 
 program.command("test")
@@ -212,7 +227,7 @@ function backupManually (cmd, opts) {
             if (!dbName) {
                 dbName = config.dbName;
             }
-            dbName = getFormattedName(dbName);
+            dbName = opts.tag || getFormattedName(dbName);
             const backupFile = await dbDriver.dumpMongoDb(dbName);
             if (opts.wasabi && s3Handler.wasabiConfigExists()) {   
                 await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
