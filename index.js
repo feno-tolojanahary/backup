@@ -3,7 +3,6 @@ require("dotenv").config();
 const fs = require('node:fs');
 const { config } = require("./config");
 const { Command } = require('commander');
-const Log = require("./lib/log");
 const { spawn } = require("node:child_process");
 const { ProcessData } = require("./lib/localData");
 const Action = require("./lib/action");
@@ -81,6 +80,10 @@ program.command("now")
     .option("-r, --remote", "send the backup to the remote servers")
     .option("-t, --tag <name>", "Specify the name of the compressed file")
     .action(backupManually);
+
+program.command("configure")
+    .description("Configure backup password for the global user")
+    .action(Action.setupPassword)
 
 program.command("test")
     .description("Launch a test of the mongodb database connection")

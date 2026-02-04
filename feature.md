@@ -81,7 +81,6 @@ APP MONITORING:
 SECURITY:
 - encrypting database
 
-
 NEXT MOVE:
 - Add a system tools administration
 
