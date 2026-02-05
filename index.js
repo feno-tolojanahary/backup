@@ -85,6 +85,17 @@ program.command("configure")
     .description("Configure backup password for the global user")
     .action(Action.setupPassword)
 
+program.command("unlock")
+    .description(`Unlocks the vault for the current session by prompting for the password.
+                The vault remains unlocked only while this process is running and
+                automatically locks on exit or after inactivity.`)
+    .action(Action.unlockVault)
+
+program.command("lock")
+        .description(`Locks the vault immediately by clearing encryption keys from memory.
+                    Any operation requiring access to the vault will require unlocking again.`)
+        .action(Action.lockVault);
+
 program.command("test")
     .description("Launch a test of the mongodb database connection")
     .argument("[name]", "database name")
