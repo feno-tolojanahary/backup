@@ -1,19 +1,13 @@
 const path = require("node:path");
 require("dotenv").config();
 const fs = require('node:fs');
+const net = require("net");
 const { config } = require("./config");
 const { Command } = require('commander');
 const { spawn } = require("node:child_process");
-const { ProcessData } = require("./lib/localData");
 const Action = require("./lib/action");
-const s3Wasabi = require("./lib/helper/s3");
-const s3Handler = require("./lib/s3Handler");
 const dbDriver = require("./lib/dbdriver");
 const { CronExpressionParser } = require("cron-parser");
-const { sendToRemoteServers, removeOverFlowFileServers, hasRemoteDefinedConfig } = require("./lib/remote/remoteHandler");
-const { getFormattedName } = require('./lib/utils');
-
-const { s3Log, hostLog } = require("./lib/backupLog");
 
 const program = new Command();
 
@@ -79,7 +73,7 @@ program.command("now")
     .option("-w, --wasabi", "send the backup to wasabi")
     .option("-r, --remote", "send the backup to the remote servers")
     .option("-t, --tag <name>", "Specify the name of the compressed file")
-    .action(backupManually);
+    .action(Action.backupManually);
 
 program.command("configure")
     .description("Configure backup password for the global user")
@@ -151,35 +145,32 @@ program.command("reset")
 
 program.parse();
 
-function isDaemonActive () {
-    try {
-        const processData = new ProcessData();
-        const pid = processData.read();
-        if (!pid) {
-            throw Error("not active")
-        }
-        process.kill(parseInt(pid), 0);
-        return pid;
-    } catch(_err) {
-        return null;
-    }
+function isDaemonStarted () {
+    return new Promise((resolve) => {
+        const socket = net.createConnection(IPC_PATH);
+        socket.once("connect", () => {
+            socket.destroy();
+            resolve(true);
+        })
+        socket.once("error", () => {
+            resolve(false)
+        })
+    })
 }
 
 async function startDaemon() {
     try {
-        const processData = new ProcessData();
-        if (isDaemonActive()) {
+        if (await isDaemonStarted()) {
             console.log("Service backup already active.");
             process.exit(0);
         }
         const daemonOut = fs.openSync(config.daemonOut, 'a');
         const daemonErr = fs.openSync(config.daemonErr, 'a');
-        const daemon = spawn("node", [ "./lib/daemon" ], {
+        const daemon = spawn("node", [ "./server/daemon" ], {
             detached: true,
             stdio: [ 'ignore', daemonOut, daemonErr ]
         });
         daemon.unref();
-        processData.save(daemon.pid.toString());
         console.log("Backup service started.");
     } catch (error) {
         console.log("Error starting daemon: ", error.message)
@@ -188,7 +179,7 @@ async function startDaemon() {
 }
 
 async function statusDaemon() {
-    if (isDaemonActive()) 
+    if (await isDaemonStarted()) 
         console.log("Service backup status: [active]");
     else 
         console.log("Service backup status: [not active]");
@@ -196,25 +187,14 @@ async function statusDaemon() {
 }
 
 async function stopDaemon() {
-    try {
-        const processData = new ProcessData();
-        const pid = processData.read();
-        if (!pid) {
-            console.log("The backup service is not running")
-        }
-        process.kill(pid, 'SIGTERM');
-        // empty log file
-        processData.empty();
-        const pidDaemon = isDaemonActive();
-        if (!pidDaemon) {
-            console.log("Service backup stoped.")
-        } else {
-            console.log(`Service backup still running, pid: [${pidDaemon}]`);
-        }
-    } catch(_err) { 
-        console.log("Error when trying to stop service backup");
-    }
-    process.exit(0);
+    const socket = net.createConnection(IPC_PATH);
+    socket.on("connect", () => {
+        socket.write(JSON.stringify({ action: "shutdown" }))
+        console.log("Service backup stopped.");
+    });
+    socket.on("error", () => {
+        console.log("The backup service is not running.");
+    })
 }
 
 async function testDatabaseConnection(cmd, opts) {
@@ -232,46 +212,4 @@ async function testDatabaseConnection(cmd, opts) {
         }
         process.exit(0);
     }))()
-}
-
-function backupManually (cmd, opts) {   
-    (async () => {
-        try {
-            let dbName = cmd;
-            if (!dbName) {
-                dbName = config.dbName;
-            }
-            dbName = opts.tag || getFormattedName(dbName);
-            const backupFile = await dbDriver.dumpMongoDb(dbName);
-            if (opts.wasabi && s3Handler.wasabiConfigExists()) {   
-                await s3Wasabi.createBucketIfNotExists({ bucket: config.wasabi.bucketName });
-                const res = await s3Handler.copyBackupToS3(backupFile.name);
-                if (res) {
-                    const dataLog = {
-                        name: backupFile.name,
-                        size: backupFile.size,
-                        storage: "wasabi"
-                    }
-                    await s3Log.objLog(dataLog);
-                }
-            }
-            if (opts.remote && hasRemoteDefinedConfig()) {
-                await removeOverFlowFileServers({ newUploadSize: backupFile.size });
-                const remoteDone = await sendToRemoteServers(backupFile.name);
-                if (remoteDone) {
-                    const dataLog = {
-                        name: backupFile.name,
-                        size: backupFile.size,
-                        storage: "remote"
-                    }
-                    await hostLog.objLog(dataLog);
-                }
-            }
-            console.log("sending backup to s3 done");
-            process.exit(0);
-        } catch (error) {
-            console.log(error);
-            process.exit(1)
-        }
-    })()
 }
