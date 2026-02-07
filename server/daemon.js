@@ -10,7 +10,7 @@ const { config } = require("../config");
 const { sendToRemoteServers, hasConnectedServers, removeOverFlowFileServers } = require("../lib/remote/remoteHandler");
 const { s3Log, hostLog } = require("../lib/backupLog");
 const vaultSession = require("../lib/encryption/vaultSession");
-const { derivePasswordKey, deriveMasterKey } = require("../lib/encryption/cryptoTools") 
+const { derivePasswordKey, deriveMasterKey, decryptDataPath } = require("../lib/encryption/cryptoTools") 
 
 // running every day for default
 
@@ -60,6 +60,13 @@ const handleRequest = (socket) => {
             const dataDump = await dbDriver.dumpMongoDb(dbName);
             reply({ success: true, payload: dataDump })
         }
+
+        if (action === "decrypt") {
+            const filePath = payload;
+            const decryptedFilePath = decryptDataPath(filePath);
+            reply({ success: true, payload: decryptedFilePath });
+        }
+
         reply({ error: "UNKOWN_COMMAND" })
     })
 }
