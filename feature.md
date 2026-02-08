@@ -84,7 +84,7 @@ SECURITY:
 NEXT MOVE:
 - Add a system tools administration
 
-GOAL:
+GOAL:   
 - Security of the data of an application
 -> add a incremental backup for the app
 - Monitore the app, which is launched in pm2 and served by Nginx

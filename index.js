@@ -120,12 +120,24 @@ program.command("restore <name>")
     .option("-r, --remote", "restore the backup file from a remote server")
     .option("--to <restorename>", "Restore the backup as a database name")
     .option("-h, --host <hostname>", "Host name to download the file for restoration")
-    .description("Restore a backup by specifying a name")
+    .description("Restore a backup directly into the database. Requires the vault to be unlocked and decrypts data in memory only.")
     .action(Action.restoreBackup)
 
 program.command("logs")
     .description("Show the log of the running deamon")
     .action(Action.watchLogDaemon2)
+
+program.command("download")
+    .argument("[name]", "backup name")
+    .description("Download an encrypted backup and its metadata to local storage. Does not require a password and never decrypts data.")
+    .requiredOption("-o, --output", "Where to save encrypted file")
+    .action(Action.download);
+
+program.command("export")
+    .argument("[name]", "backup name")
+    .description("Decrypt and export a backup as plaintext files to a specified directory. Requires the vault to be unlocked and writes decrypted data to disk.")
+    .requiredOption("-o, --output", "Where to save the decrypted file")
+    .action(Action.export);
 
 program.command("health")
     .description("Check all status of servers connections")
