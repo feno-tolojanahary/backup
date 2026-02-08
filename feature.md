@@ -66,6 +66,12 @@ LOG/INTERFACE:
 -----------
 IN PROGRESS
 
+SECURITY:
+- encrypting database
+
+---------- 
+
+TO DO:
 NOTIFICATION:
 - Add an history of successfull or failed backup
 
@@ -77,9 +83,6 @@ APP MONITORING:
 - detect if the application is running correctly
     - send a notification if the app is down
 - If possible track cpu usage and detect which request is consuming ressources
-
-SECURITY:
-- encrypting database
 
 NEXT MOVE:
 - Add a system tools administration
@@ -102,3 +105,7 @@ Futur:
 
 Suggest a securisation for the app:
 - Build a ready 
+
+FUTUR GOOD FEATURE:
+- Detect backup anomalie
+- Cost tracking

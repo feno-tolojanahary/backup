@@ -47,6 +47,22 @@ exports.config = {
             maxDiskUsage: 2048
         }
     ],
+    SMTP: {
+        host: "",
+        port: "",
+        secure: "",
+        auth: "",
+        from: "",
+        to: []
+    },
+    SES: {
+        from: "",
+        port: "",
+        region: "",
+        accessKeyId: "",
+        secretAccessKey: "",
+        to: []
+    },
     directory: "/media/feno/DATA2/PROJECT/THEBACKUP/sample",
     backupLog: `${__dirname}/log/`,
     daemonOut: `${__dirname}/log/daemon.log`,
