@@ -8,7 +8,6 @@ const dbDriver = require("../lib/dbdriver");
 const s3Handler = require("../lib/s3Handler");
 const { config } = require("../config");
 const { sendToRemoteServers, hasConnectedServers, removeOverFlowFileServers } = require("../lib/remote/remoteHandler");
-const { s3Log, hostLog } = require("../lib/backupLog");
 const vaultSession = require("../lib/encryption/vaultSession");
 const { derivePasswordKey, deriveMasterKey, decryptDataPath } = require("../lib/encryption/cryptoTools") 
 
@@ -94,30 +93,10 @@ const task = cron.schedule(cronJob, () => {
             const formattedName = getFormattedName(config.dbName);
             console.log("formattedName: ", formattedName)
             const backupFile = await dbDriver.dumpMongoDb(formattedName);        
-            const resUpload = await s3Handler.copyBackupToS3(backupFile.name);
-            if (resUpload) {
-                const dataLog = {
-                    name: backupFile.name,
-                    size: backupFile.size,
-                    storage: "wasabi",
-                    modifiedAt: new Date()
-                }
-                await s3Log.objLog(dataLog);
-                console.log("backing up file to wasabi done");
-            }
+            await s3Handler.copyBackupToS3(backupFile);
             if ((await hasConnectedServers())) {
                 await removeOverFlowFileServers({ newUploadSize: backupFile.size });
-                const resRemote = await sendToRemoteServers(backupFile.name);
-                if (resRemote) {
-                    const dataLogRemote = {
-                        name: backupFile.name,
-                        size: backupFile.size,
-                        storage: "remote",
-                        modifiedAt: new Date()
-                    }
-                    await hostLog.objLog(dataLogRemote);
-                    console.log("backing up file to a remote server done");
-                }
+                await sendToRemoteServers(backupFile);
             }
             // remove archive
             await Action.removeArchives();
@@ -145,9 +124,3 @@ const shutdown = () => {
 
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
-
-// function launch() {
-//     setTimeout(launch, 10000);
-// }
-
-// launch();  

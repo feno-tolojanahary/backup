@@ -63,6 +63,9 @@ exports.config = {
         secretAccessKey: "",
         to: []
     },
+    notification: {
+        mail: true
+    },
     directory: "/media/feno/DATA2/PROJECT/THEBACKUP/sample",
     backupLog: `${__dirname}/log/`,
     daemonOut: `${__dirname}/log/daemon.log`,
@@ -76,4 +79,4 @@ exports.config = {
         week: 2,
         month: 1
     }
-}
+}   
