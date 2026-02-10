@@ -92,6 +92,9 @@ DUMP and RESTORE:
 - Encrypt backup before uploading using AES-256 or GPG.
 - Integrity check: Generate a checksum per backup
 
+BACKUP:
+- Add a prevision of storage usage
+
 APP MONITORING:
 - detect if the application is running correctly
     - send a notification if the app is down
