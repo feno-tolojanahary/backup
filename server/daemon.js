@@ -116,7 +116,7 @@ const task = cron.schedule(cronJob, () => {
             }
             if ((await hasConnectedServers())) {
                 // await removeOverFlowFileServers({ newUploadSize: backupFile.size });
-                await sendToRemoteServers(backupFile);
+                await sendToRemoteServers(backupFile, { isDir: config.useEncryption });
             }
             // remove archive
             await Action.removeArchives();
