@@ -1,14 +1,12 @@
 const path = require("node:path");
 require("dotenv").config();
 const fs = require('node:fs');
-const net = require("net");
 const { config } = require("./config");
 const { Command } = require('commander');
-const { spawn } = require("node:child_process");
 const Action = require("./lib/action");
 const dbDriver = require("./lib/dbdriver");
 const { CronExpressionParser } = require("cron-parser");
-
+const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
 const program = new Command();
 
 function createEnvFile () {
@@ -77,7 +75,7 @@ program.command("now")
 
 program.command("configure")
     .description("Configure backup password for the global user")
-    .action(Action.setupPassword)
+    .action(Action.configure)
 
 program.command("unlock")
     .description(`Unlocks the vault for the current session by prompting for the password.
@@ -157,57 +155,6 @@ program.command("reset")
 
 program.parse();
 
-function isDaemonStarted () {
-    return new Promise((resolve) => {
-        const socket = net.createConnection(IPC_PATH);
-        socket.once("connect", () => {
-            socket.destroy();
-            resolve(true);
-        })
-        socket.once("error", () => {
-            resolve(false)
-        })
-    })
-}
-
-async function startDaemon() {
-    try {
-        if (await isDaemonStarted()) {
-            console.log("Service backup already active.");
-            process.exit(0);
-        }
-        const daemonOut = fs.openSync(config.daemonOut, 'a');
-        const daemonErr = fs.openSync(config.daemonErr, 'a');
-        const daemon = spawn("node", [ "./server/daemon" ], {
-            detached: true,
-            stdio: [ 'ignore', daemonOut, daemonErr ]
-        });
-        daemon.unref();
-        console.log("Backup service started.");
-    } catch (error) {
-        console.log("Error starting daemon: ", error.message)
-    }
-    process.exit(0);
-}
-
-async function statusDaemon() {
-    if (await isDaemonStarted()) 
-        console.log("Service backup status: [active]");
-    else 
-        console.log("Service backup status: [not active]");
-    process.exit(0);
-}
-
-async function stopDaemon() {
-    const socket = net.createConnection(IPC_PATH);
-    socket.on("connect", () => {
-        socket.write(JSON.stringify({ action: "shutdown" }))
-        console.log("Service backup stopped.");
-    });
-    socket.on("error", () => {
-        console.log("The backup service is not running.");
-    })
-}
 
 async function testDatabaseConnection(cmd, opts) {
     ((async () => {
@@ -225,3 +172,4 @@ async function testDatabaseConnection(cmd, opts) {
         process.exit(0);
     }))()
 }
+    

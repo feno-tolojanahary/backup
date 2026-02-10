@@ -7,9 +7,9 @@ const cron = require("node-cron");
 const dbDriver = require("../lib/dbdriver");
 const s3Handler = require("../lib/s3Handler");
 const { config } = require("../config");
-const { sendToRemoteServers, hasConnectedServers, removeOverFlowFileServers } = require("../lib/remote/remoteHandler");
+const { sendToRemoteServers, hasConnectedServers } = require("../lib/remote/remoteHandler");
 const vaultSession = require("../lib/encryption/vaultSession");
-const { derivePasswordKey, deriveMasterKey, decryptDataPath } = require("../lib/encryption/cryptoTools") 
+const { derivePasswordKey, deriveMasterKey, decryptDataPath, generateVaultFile } = require("../lib/encryption/cryptoTools") 
 
 // running every day for default
 
@@ -30,12 +30,14 @@ const handleRequest = (socket) => {
             try { 
                 const pk = await derivePasswordKey(payload.password);
                 const mk = await deriveMasterKey(pk);
-                pk.fill(0);
+                pk?.fill(0);
                 vaultSession.unlock(mk);
-                mk.fill(0);
-                reply({ success: true })
+                mk?.fill(0);
+                reply({ success: true });
+                return;
             } catch (err) {
-                reply({ success: false })
+                reply({ success: false });
+                return;
             }
         }
 
@@ -43,27 +45,31 @@ const handleRequest = (socket) => {
             const passwordKey = await generateVaultFile(payload.password);
             // unlock vault
             const masterKey = await deriveMasterKey(passwordKey);
-            passwordKey.fill(0);
+            passwordKey?.fill(0);
             vaultSession.unlock(masterKey);
-            masterKey.fill(0);
-            reply({ success: true })
+            masterKey?.fill(0);
+            reply({ success: true });
+            return;
         }
 
         if (action === "lock") {
             vaultSession.lock();
-            socket.end(JSON.stringify({ success: true }))
+            socket.end(JSON.stringify({ success: true }));
+            return;
         }
 
         if (action === "export") {
             const dbName = payload;
             const dataDump = await dbDriver.dumpMongoDb(dbName);
-            reply({ success: true, payload: dataDump })
+            reply({ success: true, payload: dataDump });
+            return;
         }
 
         if (action === "decrypt") {
             const filePath = payload;
             const decryptedFilePath = decryptDataPath(filePath);
             reply({ success: true, payload: decryptedFilePath });
+            return;
         }
 
         reply({ error: "UNKOWN_COMMAND" })
@@ -89,13 +95,27 @@ const task = cron.schedule(cronJob, () => {
     // call backup task
     (async () => {
         try {           
+            if (config.useEncryption) {
+                try {
+                    vaultSession.getMasterKey();
+                } catch (error) {
+                    console.log(error.message);
+                    return;
+                }
+            }
             console.log("start backup file")
             const formattedName = getFormattedName(config.dbName);
             console.log("formattedName: ", formattedName)
-            const backupFile = await dbDriver.dumpMongoDb(formattedName);        
-            await s3Handler.copyBackupToS3(backupFile);
+            let backupFile;
+            if (config.useEncryption) {
+                backupFile = await dbDriver.dumpMongoDb(formattedName);        
+                await s3Handler.encryptedBackupToS3(backupFile);
+            } else {
+                backupFile = await dbDriver.plainDumpMongoDb(formattedName);        
+                await s3Handler.copyBackupToS3(backupFile);
+            }
             if ((await hasConnectedServers())) {
-                await removeOverFlowFileServers({ newUploadSize: backupFile.size });
+                // await removeOverFlowFileServers({ newUploadSize: backupFile.size });
                 await sendToRemoteServers(backupFile);
             }
             // remove archive

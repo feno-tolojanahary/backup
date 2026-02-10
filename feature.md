@@ -42,6 +42,15 @@ BACKUP MANAGEMENT:
 - add a specific name of the output backup (--tag)
 - Add a specific scheduling time for backup
 - add a specific name of the output backup (--tag)
+-----------
+IN PROGRESS
+
+SECURITY:
+- encrypting database
+
+NOTIFICATION:
+- Add an history of successfull or failed backup
+
 
 -----------
 LATER
@@ -52,10 +61,11 @@ BACKUP MANAGEMENT:
 WASABI:
 s3:
 - migrate sdk2 to sdk3
+- lock uploaded object
 
 SSH:
 - define a quota of disk usage and delete old
-
+    
 GLOBAL:
 - Health monitoring, check all status of server connexion
 
@@ -63,17 +73,20 @@ LOG/INTERFACE:
 - add a command for local config
 - add an error handling
 
------------
-IN PROGRESS
+LATER 2:
+- A feature that duplicate the bucket in one wasabi into an another
+- Role based access management
+- Save multiple type of data for an enterprise
 
-SECURITY:
-- encrypting database
+FINDING SOLUTION:
+- Find a solution if it's possible to make an instant backup so we make a backup if the user try to add a script to the database
 
 ---------- 
 
 TO DO:
-NOTIFICATION:
-- Add an history of successfull or failed backup
+
+SECURITY:
+- Make data immutable
 
 DUMP and RESTORE:
 - Encrypt backup before uploading using AES-256 or GPG.
@@ -109,3 +122,13 @@ Suggest a securisation for the app:
 FUTUR GOOD FEATURE:
 - Detect backup anomalie
 - Cost tracking
+
+
+DIFFICULTY FOR AN ENTERPRISE:
+- Having track or their running systeme for simple mern app
+- Backup of database and file
+
+- Monitoring systeme - notification
+- Scan anomalie on a server
+- Scan anomalie in a app server, integration
+- Performance of app
