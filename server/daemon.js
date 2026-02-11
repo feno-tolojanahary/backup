@@ -42,13 +42,18 @@ const handleRequest = (socket) => {
         }
 
         if (action === "newpass_unlock") {
-            const passwordKey = await generateVaultFile(payload.password);
-            // unlock vault
-            const masterKey = await deriveMasterKey(passwordKey);
-            passwordKey?.fill(0);
-            vaultSession.unlock(masterKey);
-            masterKey?.fill(0);
-            reply({ success: true });
+            try {
+                const passwordKey = await generateVaultFile(payload.password);
+                // unlock vault
+                const masterKey = await deriveMasterKey(passwordKey);
+                passwordKey?.fill(0);
+                vaultSession.unlock(masterKey);
+                masterKey?.fill(0);
+                reply({ success: true });
+            } catch (err) {
+                console.log("Error 'newpass_unlock' event: ", err.message)
+                reply({ success: false });
+            }
             return;
         }
 
@@ -59,16 +64,26 @@ const handleRequest = (socket) => {
         }
 
         if (action === "export") {
-            const dbName = payload;
-            const dataDump = await dbDriver.dumpMongoDb(dbName);
-            reply({ success: true, payload: dataDump });
+            try {
+                const dbName = payload;
+                const dataDump = await dbDriver.dumpMongoDb(dbName);
+                reply({ success: true, payload: dataDump });
+            } catch (err) {
+                console.log("Error 'export' event: ", err.message);
+                reply({ success: false });
+            }
             return;
         }
 
         if (action === "decrypt") {
-            const filePath = payload;
-            const decryptedFilePath = decryptDataPath(filePath);
-            reply({ success: true, payload: decryptedFilePath });
+            try {
+                const filePath = payload;
+                const decryptedFilePath = await decryptDataPath(filePath);
+                reply({ success: true, payload: decryptedFilePath });
+            } catch (err) {
+                console.log("Error on 'decrypt': ", err.message)
+                reply({ success: false });
+            }
             return;
         }
 

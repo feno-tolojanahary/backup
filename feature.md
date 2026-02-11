@@ -85,6 +85,10 @@ FINDING SOLUTION:
 
 TO DO:
 
+USER MANAGEMENT:
+SSO - integration
+OIDC
+
 SECURITY:
 - Make data immutable
 
@@ -94,6 +98,7 @@ DUMP and RESTORE:
 
 BACKUP:
 - Add a prevision of storage usage
+- Exclude table for backup
 
 APP MONITORING:
 - detect if the application is running correctly
@@ -114,6 +119,10 @@ GOAL:
 
 - Create an alternative of pm2
 
+DATABASE:
+- Redis
+- InfluxDB
+
 Futur:
 - Suggest an improvement if the app is a MongoDB: an usage of index and key
 - Generate a server architecture
@@ -125,6 +134,7 @@ Suggest a securisation for the app:
 FUTUR GOOD FEATURE:
 - Detect backup anomalie
 - Cost tracking
+- Self backup
 
 
 DIFFICULTY FOR AN ENTERPRISE:
