@@ -52,6 +52,12 @@ NOTIFICATION:
 - Add an history of successfull or failed backup
 
 
+BACKUP:
+- Support of local storage
+- Synchronisation of wasabi file
+
+---> Add a dashboard
+
 -----------
 LATER
 
