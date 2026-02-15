@@ -103,13 +103,22 @@ server.listen(IPC_PATH, () => {
     console.log("backup daemon is running...");
 });
 
-
+const tempCodeUnlock = async () => {
+    const password = "this is the password of the backup";
+    const pk = await derivePasswordKey(password);
+    const mk = await deriveMasterKey(pk);
+    pk?.fill(0);
+    vaultSession.unlock(mk);
+}
 
 const cronJob = config.cronJob || '* * * * *';
-const task = cron.schedule(cronJob, () => { 
+// const task = cron.schedule(cronJob, () => { 
     // call backup task
     (async () => {
         try {           
+            // temporary code
+            await tempCodeUnlock();
+            // end temporary code
             if (config.useEncryption) {
                 try {
                     vaultSession.getMasterKey();
@@ -121,17 +130,17 @@ const task = cron.schedule(cronJob, () => {
             console.log("start backup file")
             const formattedName = getFormattedName(config.dbName);
             console.log("formattedName: ", formattedName)
-            let backupFile;
+            let metaBackup;
             if (config.useEncryption) {
-                backupFile = await dbDriver.dumpMongoDb(formattedName);        
-                await s3Handler.encryptedBackupToS3(backupFile);
+                metaBackup = await dbDriver.dumpMongoDb(formattedName);        
+                await s3Handler.encryptedBackupToS3(metaBackup);
             } else {
-                backupFile = await dbDriver.plainDumpMongoDb(formattedName);        
-                await s3Handler.copyBackupToS3(backupFile);
+                metaBackup = await dbDriver.plainDumpMongoDb(formattedName);        
+                await s3Handler.copyBackupToS3(metaBackup);
             }
             if ((await hasConnectedServers())) {
                 // await removeOverFlowFileServers({ newUploadSize: backupFile.size });
-                await sendToRemoteServers(backupFile, { isDir: config.useEncryption });
+                await sendToRemoteServers(metaBackup, { isDir: config.useEncryption });
             }
             // remove archive
             await Action.removeArchives();
@@ -139,9 +148,9 @@ const task = cron.schedule(cronJob, () => {
             console.log(error)
         }
     })()
-})
+// })
 
-task.start();
+// task.start();
 
 process.on("uncaughException", function (error) {
     console.error(err);

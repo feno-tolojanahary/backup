@@ -148,9 +148,12 @@ program.command("remove")
     .option("-r, --remote", "Remove backup on remote host")
     .action(Action.removeBackup);
 
+// This is used for development purpose
 program.command("reset")
     .option("-w, --wasabi", "Reset all storage on wasabi")
     .option("-r, --remote", "Reset all storage on the remote server")
+    .option("-t, --table", "Reset backups table")
+    .option("-a, --all", "Reset all backups data")
     .action(Action.resetStorage)
 
 program.parse();
