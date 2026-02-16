@@ -55,6 +55,7 @@ NOTIFICATION:
 BACKUP:
 - Support of local storage
 - Synchronisation of wasabi file
+- Support of multiple hosts
 
 ---> Add a dashboard
 

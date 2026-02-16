@@ -7,6 +7,7 @@ const Action = require("./lib/action");
 const dbDriver = require("./lib/dbdriver");
 const { CronExpressionParser } = require("cron-parser");
 const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
+const remoteHandler = require("./lib/remote/remoteHandler");
 const program = new Command();
 
 function createEnvFile () {
@@ -42,6 +43,9 @@ function validateConfig () {
 
 async function init() {
     try {
+        // ensure that the destination folder on the remote exist
+        await remoteHandler.ensureDestFolder();
+
         if (!fs.existsSync(config.workingDirectory)) {
             fs.mkdirSync(config.workingDirectory);
         }  

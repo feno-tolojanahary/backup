@@ -30,7 +30,8 @@ exports.config = {
     wasabi: {
         accessKey: process.env.WS3_ACCESS_KEY,
         secretKey: process.env.WS3_SECRET_KEY,
-        bucketName: process.env.WS3_BUCKET_NAME
+        bucketName: process.env.WS3_BUCKET_NAME,
+        backupPrefix: "backup-data/"
     },
     useRemoteServer: true,
     hosts: [
@@ -41,8 +42,7 @@ exports.config = {
             password: "",
             privateKey: "local-ubuntu-server.pem",
             passphrase: "",
-            destinationFolder: "/home/ubuntu",
-            parentFolder: "backupDB",
+            destinationFolder: "/home/ubuntu/backup-data",
             activeSync: true,
             maxDiskUsage: 2048
         }
