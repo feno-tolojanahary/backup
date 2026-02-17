@@ -129,7 +129,6 @@ const cronJob = config.cronJob || '* * * * *';
             }
             console.log("start backup file")
             const formattedName = getFormattedName(config.dbName);
-            console.log("formattedName: ", formattedName)
             let metaBackup;
             if (config.useEncryption) {
                 metaBackup = await dbDriver.dumpMongoDb(formattedName);        
