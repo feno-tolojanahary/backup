@@ -57,6 +57,12 @@ BACKUP:
 - Synchronisation of wasabi file
 - Support of multiple hosts
 
+- create a job: check source, check destination
+
+- granularity retention
+
+- add a local type of the destination storage
+
 ---> Add a dashboard
 
 -----------

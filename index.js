@@ -8,6 +8,7 @@ const dbDriver = require("./lib/dbdriver");
 const { CronExpressionParser } = require("cron-parser");
 const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
 const remoteHandler = require("./lib/remote/remoteHandler");
+const jobAction = require("./lib/db/jobService");
 const program = new Command();
 
 function createEnvFile () {
@@ -63,6 +64,10 @@ async function init() {
 }
 
 init();
+
+const collectArgs = (value, previous) {
+    return previous.concat(value);
+}
 
 program
     .name("backupdb")
@@ -159,6 +164,31 @@ program.command("reset")
     .option("-t, --table", "Reset backups table")
     .option("-a, --all", "Reset all backups data")
     .action(Action.resetStorage)
+
+const jobCmd = program.command("job")
+    .description("Manage job for the backup")
+
+jobCmd.command("create")
+    .description("Create a backup job")
+    .requiredOption("-n, --name <name>", "Job name")
+    .requiredOption("-s, --storage", "The storage destination of the backup (e.g. ssh, wasabi)", collectArgs, [])
+    .option("-i, --interval", "Run the job every interval (e.g. 1h, 24h)")
+    .option("-c, --cron", "Precise a cron string to schedule the backup job")
+    .action(jobAction.createJob)
+
+jobCmd.command("disable")
+    .option("-n, --name <name>", "Job name")
+    .option("--id", "Job id")
+    .action(jobAction.disableJob)
+
+jobCmd.command("enable")
+    .option("-n, --name <name>", "Job name")
+    .option("--id", "Job id")
+    .action(jobAction.enableJob)
+
+jobCmd.command("list")
+    .description("List all backup jobs")
+    .action(jobAction.listJob)
 
 program.parse();
 
