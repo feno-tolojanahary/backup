@@ -122,12 +122,12 @@ program.command("list")
     .option("-s, --syncAll", "Launch synchronisation of the backup list")
     .action(Action.backupList);
 
-program.command("restore <name>")
+program.command("restore <backup>")
+    .description("Restore a backup by id or name directly into the database. Requires the vault to be unlocked and decrypts data in memory only.")
     .option("-w, --wasabi", "restore the backup file from wasabi")
     .option("-r, --remote", "restore the backup file from a remote server")
     .option("--to <restorename>", "Restore the backup as a database name")
     .option("-h, --host <hostname>", "Host name to download the file for restoration")
-    .description("Restore a backup directly into the database. Requires the vault to be unlocked and decrypts data in memory only.")
     .action(Action.restoreBackup)
 
 program.command("logs")
@@ -135,13 +135,13 @@ program.command("logs")
     .action(Action.watchLogDaemon2)
 
 program.command("download")
-    .argument("[name]", "backup name")
+    .argument("[backup]", "Id or name of the backup")
     .description("Download an encrypted backup and its metadata to local storage. Does not require a password and never decrypts data.")
     .requiredOption("-o, --output", "Where to save encrypted file")
     .action(Action.download);
 
 program.command("export")
-    .argument("[name]", "backup name")
+    .argument("[backup]", "Id or name of the backup")
     .description("Decrypt and export a backup as plaintext files to a specified directory. Requires the vault to be unlocked and writes decrypted data to disk.")
     .requiredOption("-o, --output", "Where to save the decrypted file")
     .action(Action.export);
@@ -151,7 +151,7 @@ program.command("health")
     .action(Action.checkHealth)
 
 program.command("remove")
-    .argument("[name]", "backup name")
+    .argument("[backup]", "Id or name of the backup")
     .description("Manually remove backup")
     .option("-w, --wasabi", "Remove backup on wasabi")
     .option("-r, --remote", "Remove backup on remote host")
