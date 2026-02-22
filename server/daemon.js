@@ -77,8 +77,8 @@ const handleRequest = (socket) => {
 
         if (action === "decrypt") {
             try {
-                const filePath = payload;
-                const decryptedFilePath = await decryptDataPath(filePath);
+                const dirPath = payload;
+                const decryptedFilePath = await decryptDataPath(dirPath);
                 reply({ success: true, payload: decryptedFilePath });
             } catch (err) {
                 console.log("Error on 'decrypt': ", err.message)
