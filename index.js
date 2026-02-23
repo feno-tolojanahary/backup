@@ -201,6 +201,7 @@ jobCreateCmd.command("object-replication")
     .requiredOption("--source-config <name>", "Source configuration name")
     .requiredOption("--destination <name>", "Destination bucket name")
     .requiredOption("--destination-config <name>", "Destination configuration name")
+    .option("--prefix <name>", "Precise a prefix to synchronise for the replication")
     .action(s3Action.createObjectReplication)
 
 jobCmd.command("disable")
