@@ -27,12 +27,15 @@ exports.config = {
         password: "Hello123!",
         database: "sys"
     },
-    wasabi: {
-        accessKey: process.env.WS3_ACCESS_KEY,
-        secretKey: process.env.WS3_SECRET_KEY,
-        bucketName: process.env.WS3_BUCKET_NAME,
-        backupPrefix: "backup-data/"
-    },
+    s3: [
+        {
+            name: "default",
+            accessKey: process.env.WS3_ACCESS_KEY,
+            secretKey: process.env.WS3_SECRET_KEY,
+            bucketName: process.env.WS3_BUCKET_NAME,
+            backupPrefix: "backup-data/"
+        }
+    ],
     useRemoteServer: true,
     hosts: [
         {

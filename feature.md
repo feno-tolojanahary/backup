@@ -63,6 +63,8 @@ BACKUP:
 
 - add a local type of the destination storage
 
+- Config management improvement
+
 ---> Add a dashboard
 
 -----------
