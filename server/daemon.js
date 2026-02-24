@@ -5,7 +5,7 @@ const Action = require("../lib/action");
 const { getFormattedName, IPC_PATH } = require("../lib/utils");
 const cron = require("node-cron");
 const dbDriver = require("../lib/dbdriver");
-const s3Handler = require("../lib/s3Handler");
+const remoteS3 = require("../lib/remoteS3");
 const { config } = require("../config");
 const { sendToRemoteServers, hasConnectedServers } = require("../lib/remote/remoteHandler");
 const vaultSession = require("../lib/encryption/vaultSession");
@@ -132,10 +132,10 @@ const cronJob = config.cronJob || '* * * * *';
             let metaBackup;
             if (config.useEncryption) {
                 metaBackup = await dbDriver.dumpMongoDb(formattedName);        
-                await s3Handler.encryptedBackupToS3(metaBackup);
+                await remoteS3.encryptedBackupToS3(metaBackup);
             } else {
                 metaBackup = await dbDriver.plainDumpMongoDb(formattedName);        
-                await s3Handler.copyBackupToS3(metaBackup);
+                await remoteS3.copyBackupToS3(metaBackup);
             }
             if ((await hasConnectedServers())) {
                 // await removeOverFlowFileServers({ newUploadSize: backupFile.size });

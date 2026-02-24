@@ -9,6 +9,7 @@ const { CronExpressionParser } = require("cron-parser");
 const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
 const remoteHandler = require("./lib/remote/remoteHandler");
 const jobAction = require("./lib/db/jobService");
+const s3Action = require("./action/s3Action");
 const program = new Command();
 
 function createEnvFile () {
@@ -65,7 +66,7 @@ async function init() {
 
 init();
 
-const collectArgs = (value, previous) {
+const collectArgs = (value, previous) => {
     return previous.concat(value);
 }
 
@@ -78,6 +79,7 @@ program.command("now")
     .description("Run a backup of a database now")
     .argument("[name]", "database name")
     .option("-w, --wasabi", "send the backup to wasabi")
+    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
     .option("-r, --remote", "send the backup to the remote servers")
     .option("-t, --tag <name>", "Specify the name of the compressed file")
     .action(Action.backupManually);
@@ -117,6 +119,7 @@ program.command("stop")
 program.command("list")
     .description("Get list of backup")
     .option("-w, --wasabi", "Only the list of backup on wasabi")
+    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
     .option("-r, --remote", "Only the list of backup on the remote server")
     .option("-a, --all", "Resume the list of all backup")
     .option("-s, --syncAll", "Launch synchronisation of the backup list")
@@ -125,6 +128,7 @@ program.command("list")
 program.command("restore <backup>")
     .description("Restore a backup by id or name directly into the database. Requires the vault to be unlocked and decrypts data in memory only.")
     .option("-w, --wasabi", "restore the backup file from wasabi")
+    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
     .option("-r, --remote", "restore the backup file from a remote server")
     .option("--to <restorename>", "Restore the backup as a database name")
     .option("-h, --host <hostname>", "Host name to download the file for restoration")
@@ -148,27 +152,31 @@ program.command("export")
 
 program.command("health")
     .description("Check all status of servers connections")
+    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
     .action(Action.checkHealth)
 
 program.command("remove")
     .argument("[backup]", "Id or name of the backup")
     .description("Manually remove backup")
     .option("-w, --wasabi", "Remove backup on wasabi")
+    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
     .option("-r, --remote", "Remove backup on remote host")
     .action(Action.removeBackup);
 
-// This is used for development purpose
+    
+    // This is used for development purpose
 program.command("reset")
     .option("-w, --wasabi", "Reset all storage on wasabi")
+    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
     .option("-r, --remote", "Reset all storage on the remote server")
     .option("-t, --table", "Reset backups table")
     .option("-a, --all", "Reset all backups data")
     .action(Action.resetStorage)
-
-const jobCmd = program.command("job")
+    
+    const jobCmd = program.command("job")
     .description("Manage job for the backup")
-
-jobCmd.command("create")
+    
+    const jobCreateCmd = jobCmd.command("create")
     .description("Create a backup job")
     .requiredOption("-n, --name <name>", "Job name")
     .requiredOption("-s, --storage", "The storage destination of the backup (e.g. ssh, wasabi)", collectArgs, [])
@@ -176,20 +184,44 @@ jobCmd.command("create")
     .option("-c, --cron", "Precise a cron string to schedule the backup job")
     .action(jobAction.createJob)
 
-jobCmd.command("disable")
+    jobCmd.command("disable")
     .option("-n, --name <name>", "Job name")
     .option("--id", "Job id")
     .action(jobAction.disableJob)
-
-jobCmd.command("enable")
+    
+    jobCmd.command("enable")
     .option("-n, --name <name>", "Job name")
     .option("--id", "Job id")
     .action(jobAction.enableJob)
-
+    
 jobCmd.command("list")
-    .description("List all backup jobs")
-    .action(jobAction.listJob)
+.description("List all backup jobs")
+.action(jobAction.listJob)
 
+// S3 Object replication and backup
+jobCreateCmd.command("object-replication")
+    .description("Create an object replication job")
+    .requiredOption("--name <name>", "The job name")
+    .requiredOption("--source <name>", "Source configuration name")
+    .requiredOption("--destination <name>", "Destination configuration name")
+    .requiredOption("--schedule <value>", "Execution schedule for the job. Supports intervals (e.g. 1h, 24h, 30m)")
+    .action(s3Action.createObjectReplication)
+    
+const objectCmd = program.command("object")
+    .description("Manage object storage operations");
+
+objectCmd.command("test-config")
+    .description("Test connexion of existing configurations")
+    .requiredOption("--name", "Configuration name")
+    .action(s3Action.testConfig)
+    
+objectCmd.command("sync")
+    .description("Synchronize objects between buckets")
+    .requiredOption("--source <name>", "Source configuration name")
+    .requiredOption("--destination <name>", "Destination configuration name")
+    .requiredOption("--prefix <prefix>", "Object key prefix to sync")
+    .action(s3Action.syncObjectStorage);
+    
 program.parse();
 
 
@@ -209,4 +241,3 @@ async function testDatabaseConnection(cmd, opts) {
         process.exit(0);
     }))()
 }
-    

@@ -51,7 +51,6 @@ SECURITY:
 NOTIFICATION:
 - Add an history of successfull or failed backup
 
-
 BACKUP:
 - Support of local storage
 - Synchronisation of wasabi file
@@ -63,7 +62,14 @@ BACKUP:
 
 - add a local type of the destination storage
 
+- Config management improvement
+
 ---> Add a dashboard
+
+S3 file - synchronisation:
+- replication between two bucket (cron job)
+- have local data replication (multiple storage file destination)
+
 
 -----------
 LATER
