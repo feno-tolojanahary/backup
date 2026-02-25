@@ -104,6 +104,10 @@ program.command("test")
     .argument("[name]", "database name")
     .action(testDatabaseConnection);
 
+program.command("list-config")
+    .description("List all configuration and give a status of each config")
+    .action(Action.listConfigs)
+
 program.command("start")
     .description("Start the service backup")
     .action(startDaemon);
@@ -176,7 +180,7 @@ program.command("reset")
     const jobCmd = program.command("job")
     .description("Manage job for the backup")
     
-    const jobCreateCmd = jobCmd.command("create")
+const jobCreateCmd = jobCmd.command("create")
     .description("Create a backup job")
     .requiredOption("-n, --name <name>", "Job name")
     .requiredOption("-s, --storage", "The storage destination of the backup (e.g. ssh, wasabi)", collectArgs, [])
@@ -203,7 +207,7 @@ jobCreateCmd.command("object-replication")
     .description("Create an object replication job")
     .requiredOption("--name <name>", "The job name")
     .requiredOption("--source <name>", "Source configuration name")
-    .requiredOption("--destination <name>", "Destination configuration name")
+    .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
     .requiredOption("--schedule <value>", "Execution schedule for the job. Supports intervals (e.g. 1h, 24h, 30m)")
     .action(s3Action.createObjectReplication)
     
@@ -218,7 +222,7 @@ objectCmd.command("test-config")
 objectCmd.command("sync")
     .description("Synchronize objects between buckets")
     .requiredOption("--source <name>", "Source configuration name")
-    .requiredOption("--destination <name>", "Destination configuration name")
+    .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
     .requiredOption("--prefix <prefix>", "Object key prefix to sync")
     .action(s3Action.syncObjectStorage);
     

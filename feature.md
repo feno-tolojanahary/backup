@@ -70,6 +70,8 @@ S3 file - synchronisation:
 - replication between two bucket (cron job)
 - have local data replication (multiple storage file destination)
 
+JOB:
+- Actually launching the job
 
 -----------
 LATER

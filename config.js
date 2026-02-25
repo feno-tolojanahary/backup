@@ -39,6 +39,7 @@ exports.config = {
     useRemoteServer: true,
     hosts: [
         {
+            name: "host1",
             host: "192.168.2.181",
             port: "22",
             username: "ubuntu",
