@@ -27,6 +27,13 @@ exports.config = {
         password: "Hello123!",
         database: "sys"
     },
+    mongodb: [
+        {
+            name: "data_1",
+            database: "local",
+            uri: "mongodb://localhost:27017"
+        }
+    ],
     s3: [
         {
             name: "default",
@@ -36,7 +43,6 @@ exports.config = {
             backupPrefix: "backup-data/"
         }
     ],
-    useRemoteServer: true,
     hosts: [
         {
             name: "host1",
@@ -78,6 +84,7 @@ exports.config = {
     retentionTime: 5 * 60 * 1000,
     cronJob: "* * * * *",       // Every minutes
     useEncryption: true,
+    useRemoteServer: true,
     granularSetup: {
         day: 6,
         week: 2,

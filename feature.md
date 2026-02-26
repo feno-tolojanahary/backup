@@ -102,6 +102,9 @@ LATER 2:
 FINDING SOLUTION:
 - Find a solution if it's possible to make an instant backup so we make a backup if the user try to add a script to the database
 
+DISK:
+- add a up front retention for disk like 50 Go max
+
 ---------- 
 
 TO DO:
