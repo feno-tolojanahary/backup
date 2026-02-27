@@ -177,55 +177,62 @@ program.command("reset")
     .option("-a, --all", "Reset all backups data")
     .action(Action.resetStorage)
     
-    const jobCmd = program.command("job")
+const jobCmd = program.command("job")
     .description("Manage job for the backup")
     
-const jobCreateCmd = jobCmd.command("create")
-    .description("Create a backup job")
-    .requiredOption("-n, --name <name>", "Job name")
-    .requiredOption("-s, --source", "Configuration name of source to be backed up")
-    .requiredOption("-d, --destination", "The destination of the backup (e.g. ssh, wasabi)", collectArgs, [])
-    .option("-i, --interval", "Run the job every interval (e.g. 1h, 24h)")
-    .option("-c, --cron", "Precise a cron string to schedule the backup job")
-    .action(jobAction.createJob)
+    jobCmd.command("list")
+        .description("List all backup jobs")
+        .action(jobAction.listJob)
 
     jobCmd.command("disable")
-    .option("-n, --name <name>", "Job name")
-    .option("--id", "Job id")
-    .action(jobAction.disableJob)
-    
+        .option("-n, --name <name>", "Job name")
+        .option("--id", "Job id")
+        .action(jobAction.disableJob)
+        
     jobCmd.command("enable")
-    .option("-n, --name <name>", "Job name")
-    .option("--id", "Job id")
-    .action(jobAction.enableJob)
+        .option("-n, --name <name>", "Job name")
+        .option("--id", "Job id")
+        .action(jobAction.enableJob)
     
-jobCmd.command("list")
-    .description("List all backup jobs")
-    .action(jobAction.listJob)
+        const jobCreateCmd = jobCmd.command("create")
+            .description("Create a backup job")
+            .requiredOption("-n, --name <name>", "Job name")
+            .requiredOption("-s, --source", "Configuration name of source to be backed up")
+            .requiredOption("-d, --destination", "The destination of the backup (e.g. ssh, wasabi)", collectArgs, [])
+            .option("-i, --interval", "Run the job every interval (e.g. 1h, 24h)")
+            .option("-c, --cron", "Precise a cron string to schedule the backup job")
+            .action(jobAction.createJob)
 
-// S3 Object replication and backup
-jobCreateCmd.command("object-replication")
-    .description("Create an object replication job")
-    .requiredOption("--name <name>", "The job name")
-    .requiredOption("--source <name>", "Source configuration name")
-    .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
-    .requiredOption("--schedule <value>", "Execution schedule for the job. Supports intervals (e.g. 1h, 24h, 30m)")
-    .action(s3Action.createObjectReplication)
+        // S3 Object replication and backup
+        jobCreateCmd.command("object-replication")
+            .description("Create an object replication job")
+            .requiredOption("--name <name>", "The job name")
+            .requiredOption("--source <name>", "Source configuration name")
+            .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
+            .requiredOption("--schedule <value>", "Execution schedule for the job. Supports intervals (e.g. 1h, 24h, 30m)")
+            .action(s3Action.createObjectReplication)
     
+    jobCmd.command("history")
+        .description("Show the history execution of a job")
+        .arguments("<job-id>", "Job id")
+        .option("--status", "Filter list by status success|failed|partial")
+        .option("--since", "History since a date e.g. 2026-02-01")
+        .action(jobAction.jobRunList)
+
 const objectCmd = program.command("object")
     .description("Manage object storage operations");
 
-objectCmd.command("test-config")
-    .description("Test connexion of existing configurations")
-    .requiredOption("--name", "Configuration name")
-    .action(s3Action.testConfig)
-    
-objectCmd.command("sync")
-    .description("Synchronize objects between buckets")
-    .requiredOption("--source <name>", "Source configuration name")
-    .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
-    .requiredOption("--prefix <prefix>", "Object key prefix to sync")
-    .action(s3Action.syncObjectStorage);
+    objectCmd.command("test-config")
+        .description("Test connexion of existing configurations")
+        .requiredOption("--name", "Configuration name")
+        .action(s3Action.testConfig)
+        
+    objectCmd.command("sync")
+        .description("Synchronize objects between buckets")
+        .requiredOption("--source <name>", "Source configuration name")
+        .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
+        .requiredOption("--prefix <prefix>", "Object key prefix to sync")
+        .action(s3Action.syncObjectStorage);
     
 program.parse();
 
