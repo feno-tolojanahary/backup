@@ -57,6 +57,13 @@ exports.config = {
             maxDiskUsage: 2048
         }
     ],
+    localStorages: [
+        {
+            name: "local-storage-1",
+            destinationFolder: "C:\Users\PC\Documents\PROJECT_DEV\backup-data-test",
+            maxDiskUsage: "10MB"
+        }
+    ],
     SMTP: {
         host: "",
         port: "",

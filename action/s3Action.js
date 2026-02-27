@@ -1,10 +1,10 @@
 const jobService = require("../lib/db/jobService");
 const userService = require("../lib/db/userService");
 const { getS3Config, findHostConfig, searchConfig } = require("../lib/helper/mapConfig");
-const S3Manager = require("../lib/s3/s3");
+const S3Manager = require("../lib/storages/s3/s3");
 const { parseScheduleToSeconds } = require("../lib/utils");
-const RemoteHost = require("../lib/remote/remoteHost");
-const S3Provider = require("../lib/s3/s3Provider");
+const RemoteHost = require("../lib/storages/remote/remoteHost");
+const S3Provider = require("../lib/storages/s3/s3Provider");
 
 // Object replication between two bucket
 async function createObjectReplication(opts) {

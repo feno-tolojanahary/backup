@@ -10,7 +10,7 @@ const MongodbManager = require("../lib/dbdriver");
 const { resolveMongodbConf, searchConfig } = require("../lib/helper/mapConfig");
 const { execMongoJob } = require("../lib/jobAction");
 const backupService = require("../lib/db/backupService");
-const RemoteHost = require("../lib/remote/remoteHost");
+const RemoteHost = require("../lib/storages/remote/remoteHost");
 
 // running every day for default
 
