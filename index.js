@@ -3,13 +3,13 @@ require("dotenv").config();
 const fs = require('node:fs');
 const { config } = require("./config");
 const { Command } = require('commander');
-const Action = require("./lib/action");
+const Action = require("./lib/actions/action");
 const dbDriver = require("./lib/dbdriver");
 const { CronExpressionParser } = require("cron-parser");
 const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
 const remoteHandler = require("./lib/storages/remote/remoteHandler");
 const jobAction = require("./lib/db/jobService");
-const s3Action = require("./action/s3Action");
+const s3Action = require("./lib/actions/s3Action");
 const program = new Command();
 
 function createEnvFile () {
@@ -78,9 +78,12 @@ program
 program.command("now")
     .description("Run a backup of a database now")
     .requiredOption("-s, --source", "The configuration name of data for the backup")
-    .option("-w, --wasabi", "send the backup to wasabi")
-    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
-    .option("-r, --remote", "send the backup to the remote servers")
+    .option("--s3", "Backup to an s3 storage only")
+    .option("-r, --remote", "Backup into a remote server only")
+    .option("-l, --local-storage", "Backup into a local storage only")
+    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .option("-t, --tag <name>", "Specify the name of the compressed file")
     .action(Action.backupManually);
 
@@ -122,20 +125,24 @@ program.command("stop")
 
 program.command("list")
     .description("Get list of backup")
-    .option("-w, --wasabi", "Only the list of backup on wasabi")
-    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
+    .option("--s3", "Only the list of backup on s3 storage")
     .option("-r, --remote", "Only the list of backup on the remote server")
+    .option("-l, --local", "List of the backup on local storage only")
+    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .option("-a, --all", "Resume the list of all backup")
     .option("-s, --syncAll", "Launch synchronisation of the backup list")
     .action(Action.backupList);
 
 program.command("restore <backup>")
     .description("Restore a backup by id or name directly into the database. Requires the vault to be unlocked and decrypts data in memory only.")
-    .option("-w, --wasabi", "restore the backup file from wasabi")
-    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
+    .option("--s3", "restore the backup file from an s3 storage")
     .option("-r, --remote", "restore the backup file from a remote server")
+    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .option("--to <restorename>", "Restore the backup as a database name")
-    .option("-h, --host <hostname>", "Host name to download the file for restoration")
     .action(Action.restoreBackup)
 
 program.command("logs")
@@ -152,26 +159,34 @@ program.command("export")
     .argument("[backup]", "Id or name of the backup")
     .description("Decrypt and export a backup as plaintext files to a specified directory. Requires the vault to be unlocked and writes decrypted data to disk.")
     .requiredOption("-o, --output", "Where to save the decrypted file")
+    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .action(Action.export);
 
 program.command("health")
     .description("Check all status of servers connections")
-    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
+    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .action(Action.checkHealth)
 
 program.command("remove")
     .argument("[backup]", "Id or name of the backup")
     .description("Manually remove backup")
-    .option("-w, --wasabi", "Remove backup on wasabi")
-    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
-    .option("-r, --remote", "Remove backup on remote host")
+    .option("--s3", "Remove backup on a s3 storage")
+    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")    .option("-r, --remote", "Remove backup on remote host")
     .action(Action.removeBackup);
 
     
     // This is used for development purpose
 program.command("reset")
-    .option("-w, --wasabi", "Reset all storage on wasabi")
-    .option("--s3-config <name>", "S3 config name (defaults to the first configured S3 entry)")
+    .option("--s3", "Reset all storage on a s3 storage")
+    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .option("-r, --remote", "Reset all storage on the remote server")
     .option("-t, --table", "Reset backups table")
     .option("-a, --all", "Reset all backups data")
@@ -198,7 +213,7 @@ const jobCmd = program.command("job")
             .description("Create a backup job")
             .requiredOption("-n, --name <name>", "Job name")
             .requiredOption("-s, --source", "Configuration name of source to be backed up")
-            .requiredOption("-d, --destination", "The destination of the backup (e.g. ssh, wasabi)", collectArgs, [])
+            .requiredOption("-d, --destination", "The destination of the backup (e.g. ssh, s3)", collectArgs, [])
             .option("-i, --interval", "Run the job every interval (e.g. 1h, 24h)")
             .option("-c, --cron", "Precise a cron string to schedule the backup job")
             .action(jobAction.createJob)
