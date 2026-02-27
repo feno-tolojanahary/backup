@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const net = require("net");
 const { config } = require("./../config");
 const { spawn } = require("node:child_process");
-const { IPC_PATH } = require("./../lib/utils")
+const { IPC_PATH } = require("../lib/helper/utils")
 
 function isDaemonStarted () {
     return new Promise((resolve) => {
