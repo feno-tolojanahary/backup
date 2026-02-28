@@ -13,6 +13,8 @@ const backupService = require("../lib/db/backupService");
 const RemoteHost = require("../lib/storages/remote/remoteHost");
 const { config } = require("../config");
 const LocalStorage = require("../lib/storages/localStorage/localStorages");
+const { removeOverflowData } = require("../lib/storages/storageHelper");
+const S3Provider = require("../lib/storages/s3/s3Provider");
 
 // running every day for default
 
@@ -160,10 +162,22 @@ async function deleteOverFlowDataStorage (newBackupSize) {
     // delete overflow local storage
     for (const localConf of config.localStorages) {
         if (localConf.maxDiskUsage) {
-            const localStorage = new LocalStorage(localConf);
-            await localStorage.deleteOverflowData(newBackupSize);
+            localConf.type = "local-storage"
+            await removeOverflowData(localConfig, newBackupSize);
         }
     }
+    for (const s3Conf of config.s3) {
+        if (s3Conf.maxDiskUsage) {
+            s3Conf.type = "s3";
+            await removeOverflowData(s3Conf, newBackupSize)
+        }
+    }
+    for (const remoteConf of config.hosts) {
+        if (remoteConf.maxDiskUsage) {
+            remoteConf.type = "remote";
+            await removeOverflowData(remoteConf, newBackupSize);
+        }
+    } 
 }
 
 let wakeUpTimer = null;

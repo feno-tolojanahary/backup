@@ -54,7 +54,7 @@ exports.config = {
             passphrase: "",
             destinationFolder: "/home/ubuntu/backup-data",
             activeSync: true,
-            maxDiskUsage: 2048
+            maxDiskUsage: "10MB"
         }
     ],
     localStorages: [
