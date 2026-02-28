@@ -11,6 +11,8 @@ const { resolveMongodbConf, searchConfig } = require("../lib/helper/mapConfig");
 const { execMongoJob } = require("../lib/jobAction");
 const backupService = require("../lib/db/backupService");
 const RemoteHost = require("../lib/storages/remote/remoteHost");
+const { config } = require("../config");
+const LocalStorage = require("../lib/storages/localStorage/localStorages");
 
 // running every day for default
 
@@ -153,6 +155,17 @@ const retentionTask = cron.schedule("0 * * * *", async () => {
 
 retentionTask.start();
 
+async function deleteOverFlowDataStorage (newBackupSize) {
+    newBackupSize = newBackupSize * 1024;
+    // delete overflow local storage
+    for (const localConf of config.localStorages) {
+        if (localConf.maxDiskUsage) {
+            const localStorage = new LocalStorage(localConf);
+            await localStorage.deleteOverflowData(newBackupSize);
+        }
+    }
+}
+
 let wakeUpTimer = null;
 
 const launchSchedule = async () => {
@@ -162,7 +175,7 @@ const launchSchedule = async () => {
         if (runJobs && runJobs.length > 0) {
             // Execute jobs
             for (const job of runJobs) {
-                await execMongoJob(job)
+                await execMongoJob(job, deleteOverFlowDataStorage)
             }
         }
         const nextJob = await jobService.getNextToLaunch();

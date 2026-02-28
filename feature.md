@@ -42,29 +42,21 @@ BACKUP MANAGEMENT:
 - add a specific name of the output backup (--tag)
 - Add a specific scheduling time for backup
 - add a specific name of the output backup (--tag)
------------
-IN PROGRESS
 
+------------
+IN TEST:
+
+- add a local type of the destination storage
 SECURITY:
 - encrypting database
-
-NOTIFICATION:
-- Add an history of successfull or failed backup
 
 BACKUP:
 - Support of local storage
 - Synchronisation of wasabi file
 - Support of multiple hosts
+- Have an history of all jobs executions, peer job (code done)
 
 - create a job: check source, check destination
-
-- granularity retention
-
-- add a local type of the destination storage
-
-- Config management improvement
-
----> Add a dashboard
 
 S3 file - synchronisation:
 - replication between two bucket (cron job)
@@ -74,7 +66,29 @@ JOB:
 - Actually launching the job
 
 -----------
+IN PROGRESS
+
+
+NOTIFICATION:
+- Add an history of successfull or failed backup
+
+
+- granularity retention
+
+
+- Config management improvement
+
+---> Add a dashboard
+
+BACKUP MANAGEMENT:
+- Add estimation of disk usage
+
+
+-----------
 LATER
+
+--> Add small statistic for the job monitoring
+- Throttle bandwidth usage and other ressources
 
 BACKUP MANAGEMENT:
 - Make the config file too friendly
