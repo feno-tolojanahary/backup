@@ -9,7 +9,7 @@ const { CronExpressionParser } = require("cron-parser");
 const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
 const remoteHandler = require("./lib/storages/remote/remoteHandler");
 const jobAction = require("./lib/db/jobService");
-const s3Action = require("./lib/actions/s3Action");
+const targetAction = require("./lib/actions/targetAction");
 const program = new Command();
 
 function createEnvFile () {
@@ -75,6 +75,7 @@ program
     .description("Backup mongoose db into wasabi s3")
     .version("1.0.0");
 
+// to replace with job later
 program.command("now")
     .description("Run a backup of a database now")
     .requiredOption("-s, --source", "The configuration name of data for the backup")
@@ -212,8 +213,7 @@ const jobCmd = program.command("job")
         const jobCreateCmd = jobCmd.command("create")
             .description("Create a backup job")
             .requiredOption("-n, --name <name>", "Job name")
-            .requiredOption("-s, --source", "Configuration name of source to be backed up")
-            .requiredOption("-d, --destination", "The destination of the backup (e.g. ssh, s3)", collectArgs, [])
+            .requiredOption("-t, --target", "Name of the target specified on the configuration")
             .option("-i, --interval", "Run the job every interval (e.g. 1h, 24h)")
             .option("-c, --cron", "Precise a cron string to schedule the backup job")
             .action(jobAction.createJob)
@@ -222,10 +222,9 @@ const jobCmd = program.command("job")
         jobCreateCmd.command("object-replication")
             .description("Create an object replication job")
             .requiredOption("--name <name>", "The job name")
-            .requiredOption("--source <name>", "Source configuration name")
-            .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
+            .requiredOption("-t, --target", "Name of the target specified on the configuration")
             .requiredOption("--schedule <value>", "Execution schedule for the job. Supports intervals (e.g. 1h, 24h, 30m)")
-            .action(s3Action.createObjectReplication)
+            .action(targetAction.createObjectReplication)
     
     jobCmd.command("history")
         .description("Show the history execution of a job")
@@ -234,20 +233,18 @@ const jobCmd = program.command("job")
         .option("--since", "History since a date e.g. 2026-02-01")
         .action(jobAction.jobRunList)
 
-const objectCmd = program.command("object")
-    .description("Manage object storage operations");
+    jobCmd.command("run")
+        .argument("<job-id>")
+        .description("Execute imediatly a job")
+        .action(jobAction.runJob)
+
+// const objectCmd = program.command("target")
+//     .description("Manage target configuration");
 
     objectCmd.command("test-config")
         .description("Test connexion of existing configurations")
         .requiredOption("--name", "Configuration name")
-        .action(s3Action.testConfig)
-        
-    objectCmd.command("sync")
-        .description("Synchronize objects between buckets")
-        .requiredOption("--source <name>", "Source configuration name")
-        .requiredOption("--destination <name>", "Destination configuration name", collectArgs, [])
-        .requiredOption("--prefix <prefix>", "Object key prefix to sync")
-        .action(s3Action.syncObjectStorage);
+        .action(targetAction.testConfig)
     
 program.parse();
 
