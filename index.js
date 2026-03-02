@@ -238,12 +238,12 @@ const jobCmd = program.command("job")
         .description("Execute imediatly a job")
         .action(jobAction.runJob)
 
-// const objectCmd = program.command("target")
-//     .description("Manage target configuration");
-
-    objectCmd.command("test-config")
+const targetCmd = program.command("target")
+    .description("Manage target configuration")
+    
+    targetCmd.command("test-config")
+        .argument("<name>")
         .description("Test connexion of existing configurations")
-        .requiredOption("--name", "Configuration name")
         .action(targetAction.testConfig)
     
 program.parse();
@@ -255,12 +255,11 @@ async function testDatabaseConnection(cmd, opts) {
         if (!dbName) {
             dbName = config.dbName;
         }
-        const uri = "mongodb://localhost:27017";
-        const exists = await dbDriver.databaseExists(uri, dbName);
-        if (exists) {
-            console.log(`Connected to the database ${dbName}`);
-        } else {
-            console.log(`Could not connect to the database ${dbName}`);
+        try {
+            const uri = "mongodb://localhost:27017";
+            await dbDriver.databaseExists(uri, dbName);
+        } catch (error) {
+            console.log(error.message)
         }
         process.exit(0);
     }))()

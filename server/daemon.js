@@ -7,7 +7,7 @@ const vaultSession = require("../lib/encryption/vaultSession");
 const { derivePasswordKey, deriveMasterKey, decryptDataPath, generateVaultFile } = require("../lib/encryption/cryptoTools"); 
 const jobService = require("../lib/db/jobService");
 const MongodbManager = require("../lib/dbdriver");
-const { resolveMongodbConf, searchConfig } = require("../lib/helper/mapConfig");
+const { resolveMongodbConf, searchConfig, findTargetConf } = require("../lib/helper/mapConfig");
 const { execMongoJob } = require("../lib/jobAction");
 const backupService = require("../lib/db/backupService");
 const RemoteHost = require("../lib/storages/remote/remoteHost");
@@ -15,6 +15,7 @@ const { config } = require("../config");
 const LocalStorage = require("../lib/storages/localStorage/localStorages");
 const { removeOverflowData } = require("../lib/storages/storageHelper");
 const S3Provider = require("../lib/storages/s3/s3Provider");
+const { syncAppData } = require("../lib/actions/jobAction");
 
 // running every day for default
 
@@ -189,7 +190,18 @@ const launchSchedule = async () => {
         if (runJobs && runJobs.length > 0) {
             // Execute jobs
             for (const job of runJobs) {
-                await execMongoJob(job, deleteOverFlowDataStorage)
+                const targetConf = findTargetConf(job.target);
+                if (targetConf.type === "database") {
+                    await execMongoJob(job, deleteOverFlowDataStorage);
+                } else if (targetConf.type === "app") {
+                    await syncAppData(job, deleteOverFlowDataStorage);
+                } else if (targetConf.type === "object-replication") {
+                    const configs = getConfigurationsByTargetName(job.target);
+                    const handleProgress = ({ skippedCount, processCount, uploadedCount, percent, total }) => {
+                        console.log(`Progress: ${percent}% - ${processCount}/${total} - - uploaded: ${uploadedCount} - Skipped: ${skippedCount} `);
+                    }
+                    await syncObjectToDestinations(configs.target.source, configs.target.destinations, handleProgress);
+                }
             }
         }
         const nextJob = await jobService.getNextToLaunch();
