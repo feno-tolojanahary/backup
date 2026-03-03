@@ -153,34 +153,27 @@ program.command("download")
 
 // Export must work from multiple sources
 program.command("export")
-    .argument("[backup]", "Id or name of the backup")
+    .argument("<backup-id>", "Id of the backup to export")
     .description("Decrypt and export a backup as plaintext files to a specified directory. Requires the vault to be unlocked and writes decrypted data to disk.")
     .requiredOption("-o, --output", "Where to save the decrypted file")
-    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
-    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
-    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .action(Action.export);
 
 // @deprecated Check if all configuration is well established
-program.command("health")
-    .description("Check all status of servers connections")
-    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
-    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
-    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
-    .action(Action.checkHealth)
+// program.command("health")
+//     .description("Check all status of servers connections")
+//     .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
+//     .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
+//     .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
+//     .action(Action.checkHealth)
 
 // Remplace to remove backup by target
-program.command("remove")
-    .argument("[backup]", "Id or name of the backup")
-    .description("Manually remove backup")
-    .option("--s3", "Remove backup on a s3 storage")
-    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
-    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
-    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")    .option("-r, --remote", "Remove backup on remote host")
+program.command("delete")
+    .argument("<backup-id>", "Id of the backup to delete")
+    .description("Manually delete backup.")
     .action(Action.removeBackup);
 
     
-    // This is used for development purpose
+// This is used for development purpose
 program.command("reset")
     .option("--s3", "Reset all storage on a s3 storage")
     .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
@@ -233,7 +226,7 @@ const jobCmd = program.command("job")
 
     jobCmd.command("run")
         .argument("<job-id>")
-        .description("Execute imediatly a job")
+        .description("Execute a job imediatly")
         .action(jobAction.runJob)
 
 const targetCmd = program.command("target")

@@ -12,9 +12,7 @@ const { execMongoJob } = require("../lib/jobAction");
 const backupService = require("../lib/db/backupService");
 const RemoteHost = require("../lib/storages/remote/remoteHost");
 const { config } = require("../config");
-const LocalStorage = require("../lib/storages/localStorage/localStorages");
 const { removeOverflowData } = require("../lib/storages/storageHelper");
-const S3Provider = require("../lib/storages/s3/s3Provider");
 const { syncAppData } = require("../lib/actions/jobAction");
 
 // running every day for default
