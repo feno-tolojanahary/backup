@@ -4,7 +4,6 @@ const fs = require('node:fs');
 const { config } = require("./config");
 const { Command } = require('commander');
 const Action = require("./lib/actions/action");
-const dbDriver = require("./lib/dbdriver");
 const { CronExpressionParser } = require("cron-parser");
 const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
 const remoteHandler = require("./lib/storages/remote/remoteHandler");
@@ -103,13 +102,8 @@ program.command("lock")
                     Any operation requiring access to the vault will require unlocking again.`)
         .action(Action.lockVault);
 
-program.command("test")
-    .description("Launch a test of the mongodb database connection")
-    .argument("[name]", "database name")
-    .action(testDatabaseConnection);
-
 program.command("list-config")
-    .description("List all configuration and give a status of each config")
+    .description("List and check connection of all infrastructure configurations, give a connection status for each config")
     .action(Action.listConfigs)
 
 program.command("start")
@@ -136,26 +130,28 @@ program.command("list")
     .option("-s, --syncAll", "Launch synchronisation of the backup list")
     .action(Action.backupList);
 
+// Available only for the database restoration type
 program.command("restore <backup>")
-    .description("Restore a backup by id or name directly into the database. Requires the vault to be unlocked and decrypts data in memory only.")
-    .option("--s3", "restore the backup file from an s3 storage")
-    .option("-r, --remote", "restore the backup file from a remote server")
-    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
-    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
-    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
-    .option("--to <restorename>", "Restore the backup as a database name")
+    .description("Only available for target who is a type database. Restore a backup by id or name directly into the database. Requires the vault to be unlocked and decrypts data in memory only.")
+    .option("--target <name>", "Target definition to use for restore validation")
+    .option("--to-db <restorename>", "Restore database under a different name, set \"default\" for the default database name")
+    // .option("--files-path <path>", "Path for restoring application files")
     .action(Action.restoreBackup)
 
+// Feature to look later.
 program.command("logs")
     .description("Show the log of the running deamon")
     .action(Action.watchLogDaemon2)
 
+// Download must work from multiple destinations
 program.command("download")
-    .argument("[backup]", "Id or name of the backup")
-    .description("Download an encrypted backup and its metadata to local storage. Does not require a password and never decrypts data.")
-    .requiredOption("-o, --output", "Where to save encrypted file")
+    .argument("<backup-id>", "Id of the backup to download")
+    .description("Download an encrypted backup and its metadata to local storage.")
+    .requiredOption("-o, --output", "Where to save encrypted file data.")
+    .option("-s, --storage", "The storage name where to download the backup data.")
     .action(Action.download);
 
+// Export must work from multiple sources
 program.command("export")
     .argument("[backup]", "Id or name of the backup")
     .description("Decrypt and export a backup as plaintext files to a specified directory. Requires the vault to be unlocked and writes decrypted data to disk.")
@@ -165,6 +161,7 @@ program.command("export")
     .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .action(Action.export);
 
+// @deprecated Check if all configuration is well established
 program.command("health")
     .description("Check all status of servers connections")
     .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
@@ -172,6 +169,7 @@ program.command("health")
     .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
     .action(Action.checkHealth)
 
+// Remplace to remove backup by target
 program.command("remove")
     .argument("[backup]", "Id or name of the backup")
     .description("Manually remove backup")
@@ -247,20 +245,3 @@ const targetCmd = program.command("target")
         .action(targetAction.testConfig)
     
 program.parse();
-
-
-async function testDatabaseConnection(cmd, opts) {
-    ((async () => {
-        let dbName = cmd;
-        if (!dbName) {
-            dbName = config.dbName;
-        }
-        try {
-            const uri = "mongodb://localhost:27017";
-            await dbDriver.databaseExists(uri, dbName);
-        } catch (error) {
-            console.log(error.message)
-        }
-        process.exit(0);
-    }))()
-}

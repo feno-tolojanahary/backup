@@ -84,6 +84,10 @@ BACKUP MANAGEMENT:
 - Add estimation of disk usage
 
 
+COMMING SOON:
+- User access management
+- Log or history of the user accessing the file
+
 -----------
 LATER
 
