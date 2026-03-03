@@ -7,7 +7,7 @@ const Action = require("./lib/actions/action");
 const { CronExpressionParser } = require("cron-parser");
 const { startDaemon, statusDaemon, stopDaemon } = require("./server/daemonHandler");
 const remoteHandler = require("./lib/storages/remote/remoteHandler");
-const jobAction = require("./lib/db/jobService");
+const jobAction = require("./lib/actions/jobAction");
 const targetAction = require("./lib/actions/targetAction");
 const program = new Command();
 
