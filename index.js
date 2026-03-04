@@ -74,19 +74,6 @@ program
     .description("Backup mongoose db into wasabi s3")
     .version("1.0.0");
 
-// to replace with job later
-program.command("now")
-    .description("Run a backup of a database now")
-    .requiredOption("-s, --source", "The configuration name of data for the backup")
-    .option("--s3", "Backup to an s3 storage only")
-    .option("-r, --remote", "Backup into a remote server only")
-    .option("-l, --local-storage", "Backup into a local storage only")
-    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
-    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
-    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
-    .option("-t, --tag <name>", "Specify the name of the compressed file")
-    .action(Action.backupManually);
-
 program.command("configure")
     .description("Configure backup password for the global user")
     .action(Action.configure)
@@ -120,14 +107,11 @@ program.command("stop")
 
 program.command("list")
     .description("Get list of backup")
-    .option("--s3", "Only the list of backup on s3 storage")
-    .option("-r, --remote", "Only the list of backup on the remote server")
-    .option("-l, --local", "List of the backup on local storage only")
-    .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
-    .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
-    .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
-    .option("-a, --all", "Resume the list of all backup")
-    .option("-s, --syncAll", "Launch synchronisation of the backup list")
+    .option("-d, --destination", "Name of destination storage to query the list")
+    .option("--scan", "Scan storage directly instead of the registered metadata.")
+    // .option("--limit", "Limit results")
+    // .option("--since", "Filter by date")
+    // .option("--scan-all-storages", "Scan every destination for this target")
     .action(Action.backupList);
 
 // Available only for the database restoration type
@@ -157,14 +141,6 @@ program.command("export")
     .description("Decrypt and export a backup as plaintext files to a specified directory. Requires the vault to be unlocked and writes decrypted data to disk.")
     .requiredOption("-o, --output", "Where to save the decrypted file")
     .action(Action.export);
-
-// @deprecated Check if all configuration is well established
-// program.command("health")
-//     .description("Check all status of servers connections")
-//     .option("--s3-config <name>", "S3 configurationn to use (default is the first configured entry)")
-//     .option("--remote-config <name>", "Remote host configuration to use (default is the first configured entry)")
-//     .option("--local-storage-config <name>", "Name of the local storage configuration to use (default is the first configured entry)")
-//     .action(Action.checkHealth)
 
 // Remplace to remove backup by target
 program.command("delete")

@@ -104,7 +104,6 @@ exports.config = {
         to: []
     },
     SES: {
-        from: "",
         port: "",
         region: "",
         accessKeyId: "",
