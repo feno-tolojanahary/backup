@@ -4,7 +4,7 @@ import JobsPageClient from "./JobsPageClient";
 
 export const metadata: Metadata = {
   title: "Jobs",
-  description: "List of backup jobs",
+  description: "Configure and manage automated backup jobs.",
 };
 
 export default function JobsPage() {
