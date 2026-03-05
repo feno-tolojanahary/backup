@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { JobRecord, JobRun } from "./data";
+import Link from "next/link";
 
 type RunStatus = JobRun["status"];
 type DateRangeFilter = "24h" | "7d" | "30d" | "custom";
@@ -48,7 +49,11 @@ const statusBadgeColor = (status: RunStatus) => {
 const formatDateTime = (value: string) => {
   if (!value || value === "-") return "-";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (num: number) => num.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
 
 const parseDuration = (duration: string) => {
@@ -253,6 +258,28 @@ export default function JobDetailPageClient({ job }: { job: JobRecord }) {
           </div>
         </ComponentCard>
 
+        <ComponentCard title="Execution Controls">
+          <div className="flex flex-wrap gap-3">
+            <Button size="sm" type="button" onClick={() => console.log("Run job", job.id)}>
+              Run Job Now
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              onClick={() =>
+                console.log(job.enabled ? "Disable job" : "Enable job", job.id)
+              }
+            >
+              {job.enabled ? "Disable Job" : "Enable Job"}
+            </Button>
+            <Link href={`/jobs/${job.id}/edit`}>
+              <Button size="sm" variant="outline" type="button">
+                Edit Job
+              </Button>
+            </Link>
+          </div>
+        </ComponentCard>
         <ComponentCard title="Run History">
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -282,16 +309,6 @@ export default function JobDetailPageClient({ job }: { job: JobRecord }) {
               </div>
             </div>
 
-            {job.runs.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">No runs recorded for this job.</p>
-                <div className="mt-4 flex justify-center">
-                  <Button size="sm" type="button" onClick={() => console.log("Run Job Now", job.id)}>
-                    Run Job Now
-                  </Button>
-                </div>
-              </div>
-            ) : (
               <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
@@ -497,8 +514,7 @@ export default function JobDetailPageClient({ job }: { job: JobRecord }) {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
         </ComponentCard>
       </div>
 
