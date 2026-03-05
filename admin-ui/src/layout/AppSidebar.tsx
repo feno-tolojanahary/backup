@@ -4,7 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
-import { FolderIcon, GridIcon, TableIcon, TaskIcon } from "../icons/index";
+import {
+  FolderIcon,
+  GridIcon,
+  PlugInIcon,
+  TableIcon,
+  TaskIcon,
+} from "../icons/index";
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -13,6 +19,7 @@ const AppSidebar: React.FC = () => {
   const isBackupsActive = pathname?.startsWith("/backups") ?? false;
   const isJobsActive = pathname?.startsWith("/jobs") ?? false;
   const isStoragesActive = pathname?.startsWith("/storages") ?? false;
+  const isSettingsActive = pathname?.startsWith("/settings") ?? false;
 
   return (
     <aside
@@ -155,6 +162,29 @@ const AppSidebar: React.FC = () => {
                   </span>
                   {(isExpanded || isHovered || isMobileOpen) && (
                     <span className="menu-item-text">Storages</span>
+                  )}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/settings"
+                  className={`menu-item group ${
+                    isSettingsActive
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
+                  }`}
+                >
+                  <span
+                    className={`${
+                      isSettingsActive
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    <PlugInIcon />
+                  </span>
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <span className="menu-item-text">Settings</span>
                   )}
                 </Link>
               </li>
