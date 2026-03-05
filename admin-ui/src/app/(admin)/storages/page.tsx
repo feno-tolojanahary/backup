@@ -4,7 +4,7 @@ import StoragesPageClient from "./StoragesPageClient";
 
 export const metadata: Metadata = {
   title: "Storages",
-  description: "List of storage targets",
+  description: "Manage backup storage destinations.",
 };
 
 export default function StoragesPage() {
