@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import React from "react";
 import DashboardPageClient from "./DashboardPageClient";
+import SWRProvider from '@/components/common/SWRProvider';
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function Dashboard() {
-  return <DashboardPageClient />;
+  return (
+    <SWRProvider>
+      <DashboardPageClient />
+    </SWRProvider>
+  );
 }
