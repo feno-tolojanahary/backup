@@ -14,3 +14,10 @@ export type CreateSourcePayload = {
     config: any,
     createdBy?: string
 }
+
+export type UpdateSourcePayload = {
+    name?: string,
+    type?: SourceType,
+    config?: any,
+    createdBy?: string
+}
