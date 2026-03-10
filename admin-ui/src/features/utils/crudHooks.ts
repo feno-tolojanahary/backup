@@ -16,14 +16,15 @@ export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, Update
     service: {
         create: (url: string, { arg }: { arg: { payload: CreatePayload }}) => Promise<any>,
         update: (url: string, { arg }: { arg: UpdateArgs<UpdatePayload> }) => Promise<any>,
-        delete: (url: string, { arg }: { arg: { id: string } }) => Promise<any>
+        delete: (url: string, { arg }: { arg: { id: string } }) => Promise<any>,
+        getList: (url: string, { arg }: { arg: { query: any } }) => Promise<any>
     }
 ) {
     function useList () {
-        const { data, error, isLoading } = useSWR<Entity[]>(url, fetcher);
+        const { data, error, isLoading } = useSWR<Entity[]>(url, service.getList);
 
         return {
-             data,
+            data: data,
             isLoading,
             error
         }

@@ -1,16 +1,17 @@
-import { callFetch } from "./utils";
+import { callFetch, fetchJson } from "./utils";
 
 
 export default function createRessourceService<Entity, CreateEntityPayload = Partial<Entity>, UpdateEntityPayload = Partial<Entity>>(baseUrl: string) {
     
     async function getList(): Promise<Entity[]> {
-        const res = await fetch(baseUrl)
+        const res = await fetchJson(baseUrl)
         if (!res.ok) {
             const text = await res.text();
             throw new Error(text || "Error notificationProvider get list.")
         }
     
-        return res.json();
+        const data = (await res.json()).data;
+        return data;
     }
     
     async function create(url: string, { arg }: { arg: { payload: CreateEntityPayload } }): Promise<any> {

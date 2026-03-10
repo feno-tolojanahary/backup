@@ -101,6 +101,22 @@ class JobController {
             next(error);
         }
     }
+
+    async getJobDetail(req, res, next) {
+        try {
+            const jobId = req.params.id;
+            if (!jobId) 
+                throw new Error("The id in params is required.");
+            const jobDetail = await jobService.getJobDetail(jobId);
+            if (!result.ok)
+                throw new Error(jobDetail.errorMsg);
+            response.success(res, jobDetail);
+        } catch (error) {
+            console.log(error);
+            response.error(res, error.message);
+            next(error);
+        }
+    }
 }
 
 module.exports = new JobController();

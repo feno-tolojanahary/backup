@@ -1,3 +1,6 @@
+import { Source } from "../sources/type"
+import { Destination } from "../destinations/type";
+
 export type Job = {
     id: number,
     name: string,
@@ -48,3 +51,14 @@ export type UpdateJobPayload = {
     retentionDays?: string
 }
 
+export type JobDetail = {
+    id: number,
+    name: string,
+    status: string,
+    scheduleType: string,
+    scheduleValue: string,
+    createdBy?: number,
+    useEncryption: boolean,
+    source: Source,
+    destinations: Destination[]
+ }

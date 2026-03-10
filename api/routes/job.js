@@ -9,5 +9,6 @@ router.route('/')
 router.route(':id')
     .put(jobController.update)
     .delete(jobController.deleteJob)
+    .get(jobController.getJobDetail)
 
 module.exports = router;
