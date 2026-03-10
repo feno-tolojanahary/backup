@@ -1,4 +1,3 @@
-
 export function callFetch(url: string, method: "POST" | "PUT" | "DELETE" | "GET", payload: any = {}): Promise<Response> {
     return fetch(url, {
         method,

@@ -1,5 +1,5 @@
 import useSWR, { mutate } from "swr";
-import { deleteBackup } from "./backupService";
+import { deleteBackup, restoreBackup } from "./backupService";
 import { Backup } from "./type";
 import { fetcher } from "@/services/fetcher";
 import useSWRMutation from "swr/mutation";
@@ -28,5 +28,15 @@ export function useDeleteBackup() {
         error,
         isMutating,
         deleteBackup: deleteById
+    }
+}
+
+export function useRestoreBackup() {
+    const { trigger, error, isMutating } = useSWRMutation(baseUrl, (_, { arg }) => restoreBackup(baseUrl, arg));
+
+    return {
+        restore: trigger,
+        isLoading: isMutating,
+        error
     }
 }
