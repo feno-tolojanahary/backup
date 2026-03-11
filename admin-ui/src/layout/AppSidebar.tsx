@@ -18,7 +18,10 @@ const AppSidebar: React.FC = () => {
   const isDashboardActive = pathname === "/";
   const isBackupsActive = pathname?.startsWith("/backups") ?? false;
   const isJobsActive = pathname?.startsWith("/jobs") ?? false;
-  const isStoragesActive = pathname?.startsWith("/storages") ?? false;
+  const isSourcesActive =
+    pathname?.startsWith("/infrastructure/sources") ?? false;
+  const isDestinationsActive =
+    pathname?.startsWith("/infrastructure/destinations") ?? false;
   const isSettingsActive = pathname?.startsWith("/settings") ?? false;
 
   return (
@@ -104,27 +107,6 @@ const AppSidebar: React.FC = () => {
               </li>
               <li>
                 <Link
-                  href="/backups"
-                  className={`menu-item group ${
-                    isBackupsActive ? "menu-item-active" : "menu-item-inactive"
-                  }`}
-                >
-                  <span
-                    className={`${
-                      isBackupsActive
-                        ? "menu-item-icon-active"
-                        : "menu-item-icon-inactive"
-                    }`}
-                  >
-                    <TableIcon />
-                  </span>
-                  {(isExpanded || isHovered || isMobileOpen) && (
-                    <span className="menu-item-text">Backups</span>
-                  )}
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/jobs"
                   className={`menu-item group ${
                     isJobsActive ? "menu-item-active" : "menu-item-inactive"
@@ -146,14 +128,69 @@ const AppSidebar: React.FC = () => {
               </li>
               <li>
                 <Link
-                  href="/storages"
+                  href="/backups"
                   className={`menu-item group ${
-                    isStoragesActive ? "menu-item-active" : "menu-item-inactive"
+                    isBackupsActive ? "menu-item-active" : "menu-item-inactive"
                   }`}
                 >
                   <span
                     className={`${
-                      isStoragesActive
+                      isBackupsActive
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    <TableIcon />
+                  </span>
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <span className="menu-item-text">Backups</span>
+                  )}
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div className="mt-8">
+            <h2
+              className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+              }`}
+            >
+              {isExpanded || isHovered || isMobileOpen ? "Infrastructure" : ""}
+            </h2>
+            <ul className="flex flex-col gap-4">
+              <li>
+                <Link
+                  href="/infrastructure/sources"
+                  className={`menu-item group ${
+                    isSourcesActive ? "menu-item-active" : "menu-item-inactive"
+                  }`}
+                >
+                  <span
+                    className={`${
+                      isSourcesActive
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    <PlugInIcon />
+                  </span>
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <span className="menu-item-text">Sources</span>
+                  )}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/infrastructure/destinations"
+                  className={`menu-item group ${
+                    isDestinationsActive
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
+                  }`}
+                >
+                  <span
+                    className={`${
+                      isDestinationsActive
                         ? "menu-item-icon-active"
                         : "menu-item-icon-inactive"
                     }`}
@@ -161,10 +198,21 @@ const AppSidebar: React.FC = () => {
                     <FolderIcon />
                   </span>
                   {(isExpanded || isHovered || isMobileOpen) && (
-                    <span className="menu-item-text">Storages</span>
+                    <span className="menu-item-text">Destinations</span>
                   )}
                 </Link>
               </li>
+            </ul>
+          </div>
+          <div className="mt-8">
+            <h2
+              className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+              }`}
+            >
+              {isExpanded || isHovered || isMobileOpen ? "Settings" : ""}
+            </h2>
+            <ul className="flex flex-col gap-4">
               <li>
                 <Link
                   href="/settings"

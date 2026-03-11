@@ -1,7 +1,8 @@
 import useSWR, { mutate } from "swr";
+import api from "../globalAxios";
 import useSWRMutation from "swr/mutation";
-import { CreateSourcePayload, Source, UpdateSourcePayload } from "./type";
-import { fetcher } from "@/services/fetcher";
+import { CreateSourcePayload, Source, SourceConfig, UpdateSourcePayload } from "./type";
+import { fetcher } from "@/handlers/fetcher";
 import { createSource, deleteSource, updateSource } from "./service";
 
 const SOURCE_URL = "/sources";
@@ -61,4 +62,12 @@ export function useDeleteSource() {
         error,
         deleteSource: _delete
     }
+}
+
+export async function testConnection(config: SourceConfig): Promise<SourceConfig> {
+    const res = await api.post(`${SOURCE_URL}/test-connection`, config);
+    if (res.data) {
+        mutate(SOURCE_URL);       
+    }
+    return res.data;
 }

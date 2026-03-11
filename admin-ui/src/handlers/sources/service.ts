@@ -15,8 +15,8 @@ export async function getSources(): Promise<Source[]> {
     return res.json();
 }
 
-export async function createSource(url: string, { arg }: { arg: { payload: CreateSourcePayload  }}): Promise<any> {
-    const res = await callFetch(url, "POST", arg.payload);
+export async function createSource(url: string, { arg }: { arg: CreateSourcePayload }): Promise<any> {
+    const res = await callFetch(url, "POST", arg);
     if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "Error creating ressource");

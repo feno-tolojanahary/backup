@@ -1,4 +1,4 @@
-import { fetcher } from "@/services/fetcher";
+import { fetcher } from "@/handlers/fetcher";
 import useSWR, { mutate } from "swr";
 import useSWRMutation from "swr/mutation";
 

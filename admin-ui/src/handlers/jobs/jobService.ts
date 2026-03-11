@@ -1,3 +1,4 @@
+import api from "../globalAxios";
 import createRessourceService from "../utils/ressourceService";
 import { fetchJson } from "../utils/utils";
 import { CreateJobPayload, Job, JobDetail, UpdateJobPayload } from "./type";
@@ -11,6 +12,10 @@ export const updateJob = update;
 export const deleteJob = deleteById;
 export const getListJob = getList;
 
+type RunJobSuccess = {
+    success: boolean
+}
+
 export async function getDetail(url: string): Promise<JobDetail> {
     const res = await fetchJson(url);
     if (!res.ok) {
@@ -19,4 +24,9 @@ export async function getDetail(url: string): Promise<JobDetail> {
     }
     const jobDetail = (await res.json()).data;
     return jobDetail;
+}
+
+export async function runJobService(url: string): Promise<RunJobSuccess> {
+    const res = await api.post(url);
+    return res.data;
 }

@@ -1,6 +1,6 @@
 "use client"
 import { SWRConfig } from "swr";
-import { fetcher } from "@/services/fetcher";
+import { fetcher } from "@/handlers/fetcher";
 import React from "react";
 
 

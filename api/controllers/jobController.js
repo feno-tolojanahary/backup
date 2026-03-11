@@ -3,6 +3,7 @@ const targetService = require("../../lib/db/job/targetService");
 const destinationService = require("../services/infrastructure/destinationService");
 const response = require("../utils/response");
 const jobService = require("../../lib/db/job/jobService");
+const { runJob } = require("../../lib/handlers/jobs");
 
 class JobController {
     constructor() {}
@@ -114,6 +115,20 @@ class JobController {
         } catch (error) {
             console.log(error);
             response.error(res, error.message);
+            next(error);
+        }
+    }
+
+    async runJobNow(req, res, next) {
+        try {
+            const jobId = req.params.id;
+            if (!jobId) 
+                throw new Error("The id in params is required.");
+            await runJob(jobId);
+            response.success(res, { success: true });
+        } catch (error) {
+            console.log(error);
+            response.error(res, { success: false });
             next(error);
         }
     }

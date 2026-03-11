@@ -10,4 +10,6 @@ router.route(':id')
     .delete(sourceController.delete)
     .get(sourceController.findById)
 
+router.post("/test-connection", sourceController.testConnection);
+
 module.exports = router;

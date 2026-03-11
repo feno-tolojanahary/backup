@@ -1,3 +1,4 @@
+const { testConf } = require("../../lib/storages/storageHelper");
 const sourceService = require("../services/infrastructure/sourceService");
 const response = require("../utils/response");
 
@@ -70,6 +71,21 @@ class SourceController {
             if (!id) 
                 throw new Error("The id field in params is required");
             const res = await sourceService.deleteById(id)
+        } catch (error) {
+            console.log(error);
+            response.error(res, error.message);
+            next(error);
+        }
+    }
+
+    async testConnection(req, res, next) {
+        try {
+            const config = req.body;
+            if (!config) {
+                throw new Error("The params body is required.");
+            }
+            const srcRes = await testConf(config);
+            response.success(res, srcRes);
         } catch (error) {
             console.log(error);
             response.error(res, error.message);

@@ -203,7 +203,7 @@ const jobCmd = program.command("job")
     jobCmd.command("run")
         .argument("<job-id>")
         .description("Execute a job imediatly")
-        .action(jobAction.runJob)
+        .action(jobAction.callRunJob)
 
 const targetCmd = program.command("target")
     .description("Manage target configuration")

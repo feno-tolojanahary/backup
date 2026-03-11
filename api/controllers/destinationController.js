@@ -76,6 +76,21 @@ class DestinationController {
             next(error);
         }
     }
+
+    async testConnection(req, res, next) {
+        try {
+            const config = req.body;
+            if (!config) {
+                throw new Error("The params body is required.");
+            }
+            const srcRes = await testConf(config);
+            response.success(res, srcRes);
+        } catch (error) {
+            console.log(error);
+            response.error(res, error.message);
+            next(error);
+        }
+    }
 }
 
 module.exports = new DestinationController();

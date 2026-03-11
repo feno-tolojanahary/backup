@@ -1,7 +1,7 @@
 import useSWR, { mutate } from "swr";
 import { deleteBackup, restoreBackup } from "./backupService";
 import { Backup } from "./type";
-import { fetcher } from "@/services/fetcher";
+import { fetcher } from "@/handlers/fetcher";
 import useSWRMutation from "swr/mutation";
 
 
