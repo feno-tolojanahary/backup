@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from "react";
 import GeneralTab from "./components/GeneralTab";
 import NotificationsTab from "./components/NotificationsTab";
-import EmailTab from "./components/EmailTab";
 import BackupEngineTab from "./components/BackupEngineTab";
 import SecurityTab from "./components/SecurityTab";
 import SystemHealthTab from "./components/SystemHealthTab";
@@ -11,7 +10,6 @@ import SystemHealthTab from "./components/SystemHealthTab";
 type TabKey =
   | "general"
   | "notifications"
-  | "email"
   | "backup-engine"
   | "security"
   | "system-health";
@@ -19,7 +17,6 @@ type TabKey =
 const tabs: { key: TabKey; label: string }[] = [
   { key: "general", label: "General" },
   { key: "notifications", label: "Notifications" },
-  { key: "email", label: "Email" },
   { key: "backup-engine", label: "Backup Engine" },
   { key: "security", label: "Security" },
   { key: "system-health", label: "System Health" },
@@ -34,12 +31,6 @@ export default function SettingsPageClient() {
     jobFailed: true,
     storageError: false,
   });
-  const [smtpRecipients, setSmtpRecipients] = useState(
-    "admin@company.com\nops@company.com"
-  );
-  const [sesRecipients, setSesRecipients] = useState(
-    "alerts@company.com\nadmin@company.com"
-  );
 
   const tabContent = useMemo(() => {
     if (activeTab === "general") {
@@ -57,17 +48,6 @@ export default function SettingsPageClient() {
       );
     }
 
-    if (activeTab === "email") {
-      return (
-        <EmailTab
-          smtpRecipients={smtpRecipients}
-          setSmtpRecipients={setSmtpRecipients}
-          sesRecipients={sesRecipients}
-          setSesRecipients={setSesRecipients}
-        />
-      );
-    }
-
     if (activeTab === "backup-engine") {
       return <BackupEngineTab />;
     }
@@ -81,8 +61,6 @@ export default function SettingsPageClient() {
     activeTab,
     notifyEmailEnabled,
     notifyTriggers,
-    smtpRecipients,
-    sesRecipients,
   ]);
 
   return (

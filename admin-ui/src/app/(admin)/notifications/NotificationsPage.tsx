@@ -10,6 +10,8 @@ import { Modal } from "@/components/ui/modal";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "@/icons";
+import { useModal } from "@/hooks/useModal";
+import CreateNotificationProviderModal from "@/components/notifications/CreateNotificationProviderModal";
 import {
   Table,
   TableBody,
@@ -532,6 +534,7 @@ export default function NotificationsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const createProviderModal = useModal();
 
   const activeTab = useMemo(() => {
     const tabParam = searchParams.get("tab");
@@ -681,7 +684,7 @@ export default function NotificationsPage() {
             <Button
               size="sm"
               type="button"
-              onClick={() => console.log("Add provider")}
+              onClick={createProviderModal.openModal}
             >
               Add Provider
             </Button>
@@ -1264,6 +1267,14 @@ export default function NotificationsPage() {
           </div>
         )}
       </DetailDrawer>
+
+      <CreateNotificationProviderModal
+        isOpen={createProviderModal.isOpen}
+        onClose={createProviderModal.closeModal}
+        onSubmit={(payload) =>
+          console.log("Create provider from notifications page", payload)
+        }
+      />
     </div>
   );
 }
