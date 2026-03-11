@@ -8,7 +8,8 @@ import {
   FolderIcon,
   GridIcon,
   PlugInIcon,
-  TableIcon,
+  BellIcon,
+  BoxCubeIcon,
   TaskIcon,
 } from "../icons/index";
 
@@ -23,6 +24,7 @@ const AppSidebar: React.FC = () => {
   const isDestinationsActive =
     pathname?.startsWith("/infrastructure/destinations") ?? false;
   const isSettingsActive = pathname?.startsWith("/settings") ?? false;
+  const isNotificationsActive = pathname?.startsWith("/notifications") ?? false;
 
   return (
     <aside
@@ -140,7 +142,7 @@ const AppSidebar: React.FC = () => {
                         : "menu-item-icon-inactive"
                     }`}
                   >
-                    <TableIcon />
+                    <BoxCubeIcon />
                   </span>
                   {(isExpanded || isHovered || isMobileOpen) && (
                     <span className="menu-item-text">Backups</span>
@@ -199,6 +201,29 @@ const AppSidebar: React.FC = () => {
                   </span>
                   {(isExpanded || isHovered || isMobileOpen) && (
                     <span className="menu-item-text">Destinations</span>
+                  )}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/notifications"
+                  className={`menu-item group ${
+                    isNotificationsActive
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
+                  }`}
+                >
+                  <span
+                    className={`${
+                      isNotificationsActive
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    <BellIcon />
+                  </span>
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <span className="menu-item-text">Notifications</span>
                   )}
                 </Link>
               </li>

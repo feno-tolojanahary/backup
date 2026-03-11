@@ -1,0 +1,3 @@
+Jobs Page UI Structure (single-line)
+
+[Card] Jobs — Configure and manage automated backup jobs. | Filters/Actions: Search [Input] "Search job name" | Status [Select] "All status" (enabled/disabled/running) | Schedule type [Select] "All schedules" (interval/cron/manual) | [Button] Refresh | [Button] Create Job | Table Header: Job Name | Target | Schedule | Retention | Last Run | Last Status | Enabled | Actions | Table Row: <name> (sub: <sched type>) | <target> | <text> | <X days> | <date time> | [Badge] | [Switch] | [Menu: View job, Run job now, Edit job, Enable/Disable, Delete job] | Empty State: No jobs found. | Pagination: Items per page [Select] 25/50/100 | [Button] Previous | Page X of Y | [Button] Next
