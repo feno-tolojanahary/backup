@@ -5,10 +5,12 @@ const notificationProvider = require("./notificationProvider");
 const setting = require("./setting");
 const job = require("./job");
 const backup = require("./backup");
+const notification = require("./notification");
 
 router.use("/source", source);
 router.use("/destination", destination);
 router.use("/notification-providers", notificationProvider);
+router.use("/notifications", notification)
 router.use("/setting", setting);
 router.use("/jobs", job);
 router.use("/backups", backup);

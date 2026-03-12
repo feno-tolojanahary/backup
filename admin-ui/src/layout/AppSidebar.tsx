@@ -7,7 +7,7 @@ import { useSidebar } from "../context/SidebarContext";
 import {
   FolderIcon,
   GridIcon,
-  PlugInIcon,
+  DatabaseIcon,
   BellIcon,
   BoxCubeIcon,
   SettingsIcon,
@@ -167,7 +167,7 @@ const AppSidebar: React.FC = () => {
                         : "menu-item-icon-inactive"
                     }`}
                   >
-                    <PlugInIcon />
+                    <DatabaseIcon />
                   </span>
                   {(isExpanded || isMobileOpen) && (
                     <span className="menu-item-text">Sources</span>

@@ -1,5 +1,5 @@
 import { createCrudHooks } from "../utils/crudHooks";
-import { createNotificationProvider, deleteNotificationProvider, updateNotificationProvider } from "./notificationProviderService";
+import { createNotificationProvider, deleteNotificationProvider, getListNotificationProviders, updateNotificationProvider } from "./notificationProviderService";
 import { CreateNotificationProvider, NotificationProvider, UpdateNotificationProvider } from "./type";
 
 
@@ -13,10 +13,12 @@ const sourceCrud = createCrudHooks<
 >(sourceUrl, {
     create: createNotificationProvider,
     update: updateNotificationProvider,
-    delete: deleteNotificationProvider
+    delete: deleteNotificationProvider,
+    getList: getListNotificationProviders
 });
 
 export const useListNotificationProviders = sourceCrud.useList;
 export const useCreateNotificationProvider = sourceCrud.useCreate;
 export const useUdpateNotificationProvider = sourceCrud.useUpdate;
 export const useDeleteNotificationProvider = sourceCrud.useDelete;
+

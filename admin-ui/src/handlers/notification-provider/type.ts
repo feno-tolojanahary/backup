@@ -1,7 +1,7 @@
 
 
 export type NotificationProvider = {
-    id: string,
+    id: number,
     name: string,
     type: string,
     config: any,
@@ -25,4 +25,19 @@ export type CreateNotificationProvider = {
     config: any,
     isEnable?: boolean,
     createdBy?: string
+}
+
+export type CreateNotificatonRulePayload = {
+    name: string,
+    eventType: string,
+    providerId: number,
+    isEnable: boolean,
+    createdAt: string
+}
+
+export type UpdateNotificationRulePayload = {
+    name?: string,
+    eventType?: string,
+    providerId?: number,
+    isEnable?: boolean,
 }

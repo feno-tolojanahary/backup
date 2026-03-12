@@ -10,4 +10,7 @@ router.route(':id')
     .delete(notificationProviderController.deleteById)
     .get(notificationProviderController.getById);
 
+router.post("/save-rules", notificationProviderController.saveRules);
+router.put("/update-rules", notificationProviderController.updateRules);
+
 module.exports = router;

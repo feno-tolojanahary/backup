@@ -45,6 +45,7 @@ import PageIcon from "./page.svg";
 import PieChartIcon from "./pie-chart.svg";
 import BoxCubeIcon from "./box-cube.svg";
 import PlugInIcon from "./plug-in.svg";
+import DatabaseIcon from "./database.svg";
 import DocsIcon from "./docs.svg";
 import MailIcon from "./mail-line.svg";
 import HorizontaLDots from "./horizontal-dots.svg";
@@ -104,6 +105,7 @@ export {
   PieChartIcon,
   BoxCubeIcon,
   PlugInIcon,
+  DatabaseIcon,
   DocsIcon,
   MailIcon,
   HorizontaLDots,

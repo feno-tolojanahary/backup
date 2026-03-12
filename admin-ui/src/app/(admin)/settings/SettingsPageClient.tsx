@@ -2,21 +2,18 @@
 
 import React, { useMemo, useState } from "react";
 import GeneralTab from "./components/GeneralTab";
-import NotificationsTab from "./components/NotificationsTab";
 import BackupEngineTab from "./components/BackupEngineTab";
 import SecurityTab from "./components/SecurityTab";
 import SystemHealthTab from "./components/SystemHealthTab";
 
 type TabKey =
   | "general"
-  | "notifications"
   | "backup-engine"
   | "security"
   | "system-health";
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: "general", label: "General" },
-  { key: "notifications", label: "Notifications" },
   { key: "backup-engine", label: "Backup Engine" },
   { key: "security", label: "Security" },
   { key: "system-health", label: "System Health" },
@@ -24,28 +21,10 @@ const tabs: { key: TabKey; label: string }[] = [
 
 export default function SettingsPageClient() {
   const [activeTab, setActiveTab] = useState<TabKey>("general");
-  const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(true);
-  const [notifyTriggers, setNotifyTriggers] = useState({
-    completed: true,
-    backupFailed: true,
-    jobFailed: true,
-    storageError: false,
-  });
 
   const tabContent = useMemo(() => {
     if (activeTab === "general") {
       return <GeneralTab />;
-    }
-
-    if (activeTab === "notifications") {
-      return (
-        <NotificationsTab
-          notifyEmailEnabled={notifyEmailEnabled}
-          setNotifyEmailEnabled={setNotifyEmailEnabled}
-          notifyTriggers={notifyTriggers}
-          setNotifyTriggers={setNotifyTriggers}
-        />
-      );
     }
 
     if (activeTab === "backup-engine") {
@@ -57,11 +36,7 @@ export default function SettingsPageClient() {
     }
 
     return <SystemHealthTab />;
-  }, [
-    activeTab,
-    notifyEmailEnabled,
-    notifyTriggers,
-  ]);
+  }, [activeTab]);
 
   return (
     <div className="space-y-6">
