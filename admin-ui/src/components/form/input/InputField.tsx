@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { forwardRef } from "react";
 
 interface InputProps {
   type?: "text" | "number" | "email" | "password" | "date" | "time" | string;
@@ -6,7 +6,9 @@ interface InputProps {
   name?: string;
   placeholder?: string;
   defaultValue?: string | number;
+  value?: string | number;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   className?: string;
   min?: string;
   max?: string;
@@ -17,22 +19,28 @@ interface InputProps {
   hint?: string; // Optional hint text
 }
 
-const Input: FC<InputProps> = ({
-  type = "text",
-  id,
-  name,
-  placeholder,
-  defaultValue,
-  onChange,
-  className = "",
-  min,
-  max,
-  step,
-  disabled = false,
-  success = false,
-  error = false,
-  hint,
-}) => {
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  (
+    {
+      type = "text",
+      id,
+      name,
+      placeholder,
+      defaultValue,
+      value,
+      onChange,
+      onBlur,
+      className = "",
+      min,
+      max,
+      step,
+      disabled = false,
+      success = false,
+      error = false,
+      hint,
+    },
+    ref
+  ) => {
   // Determine input styles based on state (disabled, success, error)
   let inputClasses = `h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 ${className}`;
 
@@ -54,13 +62,16 @@ const Input: FC<InputProps> = ({
         id={id}
         name={name}
         placeholder={placeholder}
-        defaultValue={defaultValue}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        value={value}
         onChange={onChange}
+        onBlur={onBlur}
         min={min}
         max={max}
         step={step}
         disabled={disabled}
         className={inputClasses}
+        ref={ref}
       />
 
       {/* Optional Hint Text */}
@@ -79,6 +90,9 @@ const Input: FC<InputProps> = ({
       )}
     </div>
   );
-};
+  }
+);
+
+Input.displayName = "Input";
 
 export default Input;

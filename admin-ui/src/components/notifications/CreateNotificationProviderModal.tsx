@@ -1,32 +1,16 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Switch from "@/components/form/switch/Switch";
 import { Modal } from "@/components/ui/modal";
+import { Controller, useForm } from "react-hook-form";
 
 type ConfigMethod = "smtp" | "ses";
 type ProviderType = "email";
 type EncryptionType = "none" | "ssl" | "starttls";
-
-type SmtpConfig = {
-  host: string;
-  port: string;
-  username: string;
-  password: string;
-  senderEmail: string;
-  encryption: EncryptionType;
-};
-
-type SesConfig = {
-  region: string;
-  accessKey: string;
-  secretKey: string;
-  senderEmail: string;
-  configurationSet?: string;
-};
 
 type NotificationProviderPayload =
   | {
@@ -63,6 +47,24 @@ type CreateNotificationProviderModalProps = {
   onSubmit?: (payload: NotificationProviderPayload) => void;
 };
 
+type FormValues = {
+  name: string;
+  type: ProviderType;
+  enabled: boolean;
+  method: ConfigMethod;
+  smtpHost: string;
+  smtpPort: string;
+  smtpUsername: string;
+  smtpPassword: string;
+  smtpSenderEmail: string;
+  smtpEncryption: EncryptionType;
+  sesRegion: string;
+  sesAccessKey: string;
+  sesSecretKey: string;
+  sesSenderEmail: string;
+  sesConfigurationSet: string;
+};
+
 const providerTypeOptions = [{ value: "email", label: "Email" }];
 
 const methodOptions = [
@@ -82,99 +84,90 @@ const sesRegionOptions = [
   { value: "eu-west-1", label: "eu-west-1" },
 ];
 
+const buildDefaults = (): FormValues => ({
+  name: "",
+  type: "email",
+  enabled: true,
+  method: "smtp",
+  smtpHost: "",
+  smtpPort: "",
+  smtpUsername: "",
+  smtpPassword: "",
+  smtpSenderEmail: "",
+  smtpEncryption: "starttls",
+  sesRegion: "",
+  sesAccessKey: "",
+  sesSecretKey: "",
+  sesSenderEmail: "",
+  sesConfigurationSet: "",
+});
+
 const CreateNotificationProviderModal: React.FC<
   CreateNotificationProviderModalProps
 > = ({ isOpen, onClose, onSubmit }) => {
-  const [name, setName] = useState("");
-  const [providerType, setProviderType] = useState<ProviderType>("email");
-  const [enabled, setEnabled] = useState(true);
-  const [method, setMethod] = useState<ConfigMethod>("smtp");
-
-  const [smtpConfig, setSmtpConfig] = useState<SmtpConfig>({
-    host: "",
-    port: "",
-    username: "",
-    password: "",
-    senderEmail: "",
-    encryption: "starttls",
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: buildDefaults(),
+    shouldUnregister: true,
   });
 
-  const [sesConfig, setSesConfig] = useState<SesConfig>({
-    region: "",
-    accessKey: "",
-    secretKey: "",
-    senderEmail: "",
-    configurationSet: "",
-  });
+  const method = watch("method");
+  const enabled = watch("enabled");
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!isOpen) return;
+    reset(buildDefaults());
+  }, [isOpen, reset]);
 
   const requiredFields = useMemo(() => {
     if (method === "smtp") {
-      return ["name", "smtpHost", "smtpPort", "smtpUsername", "smtpPassword", "smtpSenderEmail", "smtpEncryption"];
+      return [
+        "name",
+        "smtpHost",
+        "smtpPort",
+        "smtpUsername",
+        "smtpPassword",
+        "smtpSenderEmail",
+        "smtpEncryption",
+      ];
     }
     return ["name", "sesRegion", "sesAccessKey", "sesSecretKey", "sesSenderEmail"];
   }, [method]);
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const nextErrors: Record<string, string> = {};
-
-    if (!name.trim()) nextErrors.name = "Provider name is required.";
-
-    if (method === "smtp") {
-      if (!smtpConfig.host.trim()) nextErrors.smtpHost = "SMTP host is required.";
-      if (!smtpConfig.port.trim()) nextErrors.smtpPort = "Port is required.";
-      if (!smtpConfig.username.trim())
-        nextErrors.smtpUsername = "Username is required.";
-      if (!smtpConfig.password.trim())
-        nextErrors.smtpPassword = "Password is required.";
-      if (!smtpConfig.senderEmail.trim())
-        nextErrors.smtpSenderEmail = "Sender email is required.";
-      if (!smtpConfig.encryption)
-        nextErrors.smtpEncryption = "Encryption is required.";
-    }
-
-    if (method === "ses") {
-      if (!sesConfig.region.trim()) nextErrors.sesRegion = "Region is required.";
-      if (!sesConfig.accessKey.trim())
-        nextErrors.sesAccessKey = "Access key is required.";
-      if (!sesConfig.secretKey.trim())
-        nextErrors.sesSecretKey = "Secret key is required.";
-      if (!sesConfig.senderEmail.trim())
-        nextErrors.sesSenderEmail = "Sender email is required.";
-    }
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
+  const onSubmitForm = (values: FormValues) => {
     const payload: NotificationProviderPayload =
-      method === "smtp"
+      values.method === "smtp"
         ? {
-            name: name.trim(),
-            type: providerType,
-            enabled,
+            name: values.name.trim(),
+            type: values.type,
+            enabled: values.enabled,
             method: "smtp",
             config: {
-              host: smtpConfig.host.trim(),
-              port: Number(smtpConfig.port),
-              username: smtpConfig.username.trim(),
-              password: smtpConfig.password,
-              senderEmail: smtpConfig.senderEmail.trim(),
-              encryption: smtpConfig.encryption,
+              host: values.smtpHost.trim(),
+              port: Number(values.smtpPort),
+              username: values.smtpUsername.trim(),
+              password: values.smtpPassword,
+              senderEmail: values.smtpSenderEmail.trim(),
+              encryption: values.smtpEncryption,
             },
           }
         : {
-            name: name.trim(),
-            type: providerType,
-            enabled,
+            name: values.name.trim(),
+            type: values.type,
+            enabled: values.enabled,
             method: "ses",
             config: {
-              region: sesConfig.region.trim(),
-              accessKey: sesConfig.accessKey.trim(),
-              secretKey: sesConfig.secretKey,
-              senderEmail: sesConfig.senderEmail.trim(),
-              configurationSet: sesConfig.configurationSet?.trim() || undefined,
+              region: values.sesRegion.trim(),
+              accessKey: values.sesAccessKey.trim(),
+              secretKey: values.sesSecretKey,
+              senderEmail: values.sesSenderEmail.trim(),
+              configurationSet: values.sesConfigurationSet?.trim() || undefined,
             },
           };
 
@@ -190,7 +183,7 @@ const CreateNotificationProviderModal: React.FC<
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[680px] m-4">
-      <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+      <form onSubmit={handleSubmit(onSubmitForm)} className="p-6 sm:p-8">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
             Create Notification Provider
@@ -213,10 +206,9 @@ const CreateNotificationProviderModal: React.FC<
                 </label>
                 <Input
                   placeholder="Admin Email"
-                  defaultValue={name}
-                  onChange={(e) => setName(e.target.value)}
+                  {...register("name", { required: "Provider name is required." })}
                   error={Boolean(errors.name)}
-                  hint={errors.name}
+                  hint={errors.name?.message}
                 />
               </div>
 
@@ -224,11 +216,19 @@ const CreateNotificationProviderModal: React.FC<
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Provider Type
                 </label>
-                <Select
-                  options={providerTypeOptions}
-                  placeholder="Select type"
-                  defaultValue={providerType}
-                  onChange={(value) => setProviderType(value as ProviderType)}
+                <Controller
+                  name="type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={providerTypeOptions}
+                      placeholder="Select type"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  )}
                 />
               </div>
 
@@ -236,10 +236,16 @@ const CreateNotificationProviderModal: React.FC<
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Provider Status
                 </label>
-                <Switch
-                  label={enabled ? "Enabled" : "Disabled"}
-                  defaultChecked={enabled}
-                  onChange={(checked) => setEnabled(checked)}
+                <Controller
+                  name="enabled"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      label={enabled ? "Enabled" : "Disabled"}
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
               </div>
             </div>
@@ -253,11 +259,19 @@ const CreateNotificationProviderModal: React.FC<
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 Configuration Method
               </label>
-              <Select
-                options={methodOptions}
-                placeholder="Choose a method"
-                defaultValue={method}
-                onChange={(value) => setMethod(value as ConfigMethod)}
+              <Controller
+                name="method"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={methodOptions}
+                    placeholder="Choose a method"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                  />
+                )}
               />
             </div>
           </div>
@@ -279,15 +293,11 @@ const CreateNotificationProviderModal: React.FC<
                     </label>
                     <Input
                       placeholder="smtp.mailserver.com"
-                      defaultValue={smtpConfig.host}
-                      onChange={(e) =>
-                        setSmtpConfig((prev) => ({
-                          ...prev,
-                          host: e.target.value,
-                        }))
-                      }
+                      {...register("smtpHost", {
+                        required: "SMTP host is required.",
+                      })}
                       error={Boolean(errors.smtpHost)}
-                      hint={errors.smtpHost}
+                      hint={errors.smtpHost?.message}
                     />
                   </div>
                   <div>
@@ -297,15 +307,11 @@ const CreateNotificationProviderModal: React.FC<
                     <Input
                       type="number"
                       placeholder="587"
-                      defaultValue={smtpConfig.port}
-                      onChange={(e) =>
-                        setSmtpConfig((prev) => ({
-                          ...prev,
-                          port: e.target.value,
-                        }))
-                      }
+                      {...register("smtpPort", {
+                        required: "Port is required.",
+                      })}
                       error={Boolean(errors.smtpPort)}
-                      hint={errors.smtpPort}
+                      hint={errors.smtpPort?.message}
                     />
                   </div>
                   <div>
@@ -314,15 +320,11 @@ const CreateNotificationProviderModal: React.FC<
                     </label>
                     <Input
                       placeholder="admin@mailserver.com"
-                      defaultValue={smtpConfig.username}
-                      onChange={(e) =>
-                        setSmtpConfig((prev) => ({
-                          ...prev,
-                          username: e.target.value,
-                        }))
-                      }
+                      {...register("smtpUsername", {
+                        required: "Username is required.",
+                      })}
                       error={Boolean(errors.smtpUsername)}
-                      hint={errors.smtpUsername}
+                      hint={errors.smtpUsername?.message}
                     />
                   </div>
                   <div>
@@ -332,15 +334,11 @@ const CreateNotificationProviderModal: React.FC<
                     <Input
                       type="password"
                       placeholder="••••••••"
-                      defaultValue={smtpConfig.password}
-                      onChange={(e) =>
-                        setSmtpConfig((prev) => ({
-                          ...prev,
-                          password: e.target.value,
-                        }))
-                      }
+                      {...register("smtpPassword", {
+                        required: "Password is required.",
+                      })}
                       error={Boolean(errors.smtpPassword)}
-                      hint={errors.smtpPassword}
+                      hint={errors.smtpPassword?.message}
                     />
                   </div>
                   <div>
@@ -350,35 +348,35 @@ const CreateNotificationProviderModal: React.FC<
                     <Input
                       type="email"
                       placeholder="backup@mailserver.com"
-                      defaultValue={smtpConfig.senderEmail}
-                      onChange={(e) =>
-                        setSmtpConfig((prev) => ({
-                          ...prev,
-                          senderEmail: e.target.value,
-                        }))
-                      }
+                      {...register("smtpSenderEmail", {
+                        required: "Sender email is required.",
+                      })}
                       error={Boolean(errors.smtpSenderEmail)}
-                      hint={errors.smtpSenderEmail}
+                      hint={errors.smtpSenderEmail?.message}
                     />
                   </div>
                   <div>
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       Encryption{requiredMarker("smtpEncryption")}
                     </label>
-                    <Select
-                      options={encryptionOptions}
-                      placeholder="Select encryption"
-                      defaultValue={smtpConfig.encryption}
-                      onChange={(value) =>
-                        setSmtpConfig((prev) => ({
-                          ...prev,
-                          encryption: value as EncryptionType,
-                        }))
-                      }
+                    <Controller
+                      name="smtpEncryption"
+                      control={control}
+                      rules={{ required: "Encryption is required." }}
+                      render={({ field }) => (
+                        <Select
+                          options={encryptionOptions}
+                          placeholder="Select encryption"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                        />
+                      )}
                     />
                     {errors.smtpEncryption && (
                       <p className="mt-1.5 text-xs text-error-500">
-                        {errors.smtpEncryption}
+                        {errors.smtpEncryption.message}
                       </p>
                     )}
                   </div>
@@ -396,17 +394,24 @@ const CreateNotificationProviderModal: React.FC<
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       Region{requiredMarker("sesRegion")}
                     </label>
-                    <Select
-                      options={sesRegionOptions}
-                      placeholder="Select region"
-                      defaultValue={sesConfig.region}
-                      onChange={(value) =>
-                        setSesConfig((prev) => ({ ...prev, region: value }))
-                      }
+                    <Controller
+                      name="sesRegion"
+                      control={control}
+                      rules={{ required: "Region is required." }}
+                      render={({ field }) => (
+                        <Select
+                          options={sesRegionOptions}
+                          placeholder="Select region"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                        />
+                      )}
                     />
                     {errors.sesRegion && (
                       <p className="mt-1.5 text-xs text-error-500">
-                        {errors.sesRegion}
+                        {errors.sesRegion.message}
                       </p>
                     )}
                   </div>
@@ -416,15 +421,11 @@ const CreateNotificationProviderModal: React.FC<
                     </label>
                     <Input
                       placeholder="AKIA..."
-                      defaultValue={sesConfig.accessKey}
-                      onChange={(e) =>
-                        setSesConfig((prev) => ({
-                          ...prev,
-                          accessKey: e.target.value,
-                        }))
-                      }
+                      {...register("sesAccessKey", {
+                        required: "Access key is required.",
+                      })}
                       error={Boolean(errors.sesAccessKey)}
-                      hint={errors.sesAccessKey}
+                      hint={errors.sesAccessKey?.message}
                     />
                   </div>
                   <div>
@@ -434,15 +435,11 @@ const CreateNotificationProviderModal: React.FC<
                     <Input
                       type="password"
                       placeholder="••••••••"
-                      defaultValue={sesConfig.secretKey}
-                      onChange={(e) =>
-                        setSesConfig((prev) => ({
-                          ...prev,
-                          secretKey: e.target.value,
-                        }))
-                      }
+                      {...register("sesSecretKey", {
+                        required: "Secret key is required.",
+                      })}
                       error={Boolean(errors.sesSecretKey)}
-                      hint={errors.sesSecretKey}
+                      hint={errors.sesSecretKey?.message}
                     />
                   </div>
                   <div>
@@ -452,15 +449,11 @@ const CreateNotificationProviderModal: React.FC<
                     <Input
                       type="email"
                       placeholder="backup@mailserver.com"
-                      defaultValue={sesConfig.senderEmail}
-                      onChange={(e) =>
-                        setSesConfig((prev) => ({
-                          ...prev,
-                          senderEmail: e.target.value,
-                        }))
-                      }
+                      {...register("sesSenderEmail", {
+                        required: "Sender email is required.",
+                      })}
                       error={Boolean(errors.sesSenderEmail)}
-                      hint={errors.sesSenderEmail}
+                      hint={errors.sesSenderEmail?.message}
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -469,13 +462,7 @@ const CreateNotificationProviderModal: React.FC<
                     </label>
                     <Input
                       placeholder="optional-config-set"
-                      defaultValue={sesConfig.configurationSet}
-                      onChange={(e) =>
-                        setSesConfig((prev) => ({
-                          ...prev,
-                          configurationSet: e.target.value,
-                        }))
-                      }
+                      {...register("sesConfigurationSet")}
                     />
                   </div>
                 </div>

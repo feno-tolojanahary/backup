@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Switch from "@/components/form/switch/Switch";
 import { Modal } from "@/components/ui/modal";
+import { Controller, useForm } from "react-hook-form";
 
 type Severity = "info" | "warning" | "critical";
 type EventType =
@@ -15,17 +16,6 @@ type EventType =
   | "job_completed"
   | "storage_high_usage"
   | "storage_connection_failed";
-
-type RuleFormState = {
-  name: string;
-  enabled: boolean;
-  severity: Severity;
-  event: EventType;
-  target: string;
-  provider: string;
-  retryThreshold: string;
-  storageUsageThreshold: string;
-};
 
 type NotificationRulePayload = {
   name: string;
@@ -44,6 +34,17 @@ type CreateNotificationRuleModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (payload: NotificationRulePayload) => void;
+};
+
+type FormValues = {
+  name: string;
+  enabled: boolean;
+  severity: Severity;
+  event: EventType;
+  target: string;
+  provider: string;
+  retryThreshold: string;
+  storageUsageThreshold: string;
 };
 
 const severityOptions = [
@@ -74,54 +75,54 @@ const providerOptions = [
   { value: "Monitoring Webhook", label: "Monitoring Webhook" },
 ];
 
+const buildDefaults = (): FormValues => ({
+  name: "",
+  enabled: true,
+  severity: "critical",
+  event: "backup_failed",
+  target: "all",
+  provider: "Admin Email",
+  retryThreshold: "",
+  storageUsageThreshold: "",
+});
+
 const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
 }) => {
-  const [formState, setFormState] = useState<RuleFormState>({
-    name: "",
-    enabled: true,
-    severity: "critical",
-    event: "backup_failed",
-    target: "all",
-    provider: "Admin Email",
-    retryThreshold: "",
-    storageUsageThreshold: "",
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: buildDefaults(),
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const enabled = watch("enabled");
 
-  const requiredFields = useMemo(
-    () => ["name", "severity", "event", "provider"],
-    []
-  );
+  useEffect(() => {
+    if (!isOpen) return;
+    reset(buildDefaults());
+  }, [isOpen, reset]);
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const nextErrors: Record<string, string> = {};
-
-    if (!formState.name.trim()) nextErrors.name = "Rule name is required.";
-    if (!formState.severity) nextErrors.severity = "Severity is required.";
-    if (!formState.event) nextErrors.event = "Event type is required.";
-    if (!formState.provider) nextErrors.provider = "Provider is required.";
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
+  const onSubmitForm = (values: FormValues) => {
     const payload: NotificationRulePayload = {
-      name: formState.name.trim(),
-      enabled: formState.enabled,
-      severity: formState.severity,
-      event: formState.event,
-      target: formState.target,
-      provider: formState.provider,
+      name: values.name.trim(),
+      enabled: values.enabled,
+      severity: values.severity,
+      event: values.event,
+      target: values.target,
+      provider: values.provider,
       conditions: {
-        retryThreshold: formState.retryThreshold
-          ? Number(formState.retryThreshold)
+        retryThreshold: values.retryThreshold
+          ? Number(values.retryThreshold)
           : undefined,
-        storageUsageThreshold: formState.storageUsageThreshold
-          ? Number(formState.storageUsageThreshold)
+        storageUsageThreshold: values.storageUsageThreshold
+          ? Number(values.storageUsageThreshold)
           : undefined,
       },
     };
@@ -131,14 +132,9 @@ const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = 
     onClose();
   };
 
-  const requiredMarker = (key: string) =>
-    requiredFields.includes(key) ? (
-      <span className="text-error-500"> *</span>
-    ) : null;
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[680px] m-4">
-      <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+      <form onSubmit={handleSubmit(onSubmitForm)} className="p-6 sm:p-8">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
             Create Notification Rule
@@ -157,48 +153,53 @@ const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Rule Name{requiredMarker("name")}
+                  Rule Name<span className="text-error-500"> *</span>
                 </label>
                 <Input
                   placeholder="Backup Failure Alert"
-                  defaultValue={formState.name}
-                  onChange={(e) =>
-                    setFormState((prev) => ({ ...prev, name: e.target.value }))
-                  }
+                  {...register("name", { required: "Rule name is required." })}
                   error={Boolean(errors.name)}
-                  hint={errors.name}
+                  hint={errors.name?.message}
                 />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Rule Status
                 </label>
-                <Switch
-                  label={formState.enabled ? "Enabled" : "Disabled"}
-                  defaultChecked={formState.enabled}
-                  onChange={(checked) =>
-                    setFormState((prev) => ({ ...prev, enabled: checked }))
-                  }
+                <Controller
+                  name="enabled"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      label={enabled ? "Enabled" : "Disabled"}
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Severity{requiredMarker("severity")}
+                  Severity<span className="text-error-500"> *</span>
                 </label>
-                <Select
-                  options={severityOptions}
-                  placeholder="Select severity"
-                  defaultValue={formState.severity}
-                  onChange={(value) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      severity: value as Severity,
-                    }))
-                  }
+                <Controller
+                  name="severity"
+                  control={control}
+                  rules={{ required: "Severity is required." }}
+                  render={({ field }) => (
+                    <Select
+                      options={severityOptions}
+                      placeholder="Select severity"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  )}
                 />
                 {errors.severity && (
                   <p className="mt-1.5 text-xs text-error-500">
-                    {errors.severity}
+                    {errors.severity.message}
                   </p>
                 )}
               </div>
@@ -212,22 +213,26 @@ const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Event Type{requiredMarker("event")}
+                  Event Type<span className="text-error-500"> *</span>
                 </label>
-                <Select
-                  options={eventOptions}
-                  placeholder="Select event"
-                  defaultValue={formState.event}
-                  onChange={(value) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      event: value as EventType,
-                    }))
-                  }
+                <Controller
+                  name="event"
+                  control={control}
+                  rules={{ required: "Event type is required." }}
+                  render={({ field }) => (
+                    <Select
+                      options={eventOptions}
+                      placeholder="Select event"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  )}
                 />
                 {errors.event && (
                   <p className="mt-1.5 text-xs text-error-500">
-                    {errors.event}
+                    {errors.event.message}
                   </p>
                 )}
               </div>
@@ -235,13 +240,19 @@ const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = 
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Target
                 </label>
-                <Select
-                  options={targetOptions}
-                  placeholder="All Targets"
-                  defaultValue={formState.target}
-                  onChange={(value) =>
-                    setFormState((prev) => ({ ...prev, target: value }))
-                  }
+                <Controller
+                  name="target"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={targetOptions}
+                      placeholder="All Targets"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  )}
                 />
               </div>
             </div>
@@ -253,19 +264,26 @@ const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = 
             </h4>
             <div className="mt-4">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Notification Provider{requiredMarker("provider")}
+                Notification Provider<span className="text-error-500"> *</span>
               </label>
-              <Select
-                options={providerOptions}
-                placeholder="Select provider"
-                defaultValue={formState.provider}
-                onChange={(value) =>
-                  setFormState((prev) => ({ ...prev, provider: value }))
-                }
+              <Controller
+                name="provider"
+                control={control}
+                rules={{ required: "Provider is required." }}
+                render={({ field }) => (
+                  <Select
+                    options={providerOptions}
+                    placeholder="Select provider"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                  />
+                )}
               />
               {errors.provider && (
                 <p className="mt-1.5 text-xs text-error-500">
-                  {errors.provider}
+                  {errors.provider.message}
                 </p>
               )}
             </div>
@@ -283,13 +301,7 @@ const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = 
                 <Input
                   type="number"
                   placeholder="2"
-                  defaultValue={formState.retryThreshold}
-                  onChange={(e) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      retryThreshold: e.target.value,
-                    }))
-                  }
+                  {...register("retryThreshold")}
                 />
                 <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                   Trigger only if retries exceed this value.
@@ -302,13 +314,7 @@ const CreateNotificationRuleModal: React.FC<CreateNotificationRuleModalProps> = 
                 <Input
                   type="number"
                   placeholder="90"
-                  defaultValue={formState.storageUsageThreshold}
-                  onChange={(e) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      storageUsageThreshold: e.target.value,
-                    }))
-                  }
+                  {...register("storageUsageThreshold")}
                 />
                 <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                   Trigger if storage usage exceeds this percentage.

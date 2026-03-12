@@ -102,6 +102,27 @@ const AppSidebar: React.FC = () => {
               </li>
               <li>
                 <Link
+                  href="/backups"
+                  className={`menu-item group ${
+                    isBackupsActive ? "menu-item-active" : "menu-item-inactive"
+                  }`}
+                >
+                  <span
+                    className={`${
+                      isBackupsActive
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    <BoxCubeIcon />
+                  </span>
+                  {(isExpanded || isMobileOpen) && (
+                    <span className="menu-item-text">Backups</span>
+                  )}
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/jobs"
                   className={`menu-item group ${
                     isJobsActive ? "menu-item-active" : "menu-item-inactive"
@@ -123,22 +144,24 @@ const AppSidebar: React.FC = () => {
               </li>
               <li>
                 <Link
-                  href="/backups"
+                  href="/notifications"
                   className={`menu-item group ${
-                    isBackupsActive ? "menu-item-active" : "menu-item-inactive"
+                    isNotificationsActive
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
                   }`}
                 >
                   <span
                     className={`${
-                      isBackupsActive
+                      isNotificationsActive
                         ? "menu-item-icon-active"
                         : "menu-item-icon-inactive"
                     }`}
                   >
-                    <BoxCubeIcon />
+                    <BellIcon />
                   </span>
                   {(isExpanded || isMobileOpen) && (
-                    <span className="menu-item-text">Backups</span>
+                    <span className="menu-item-text">Notifications</span>
                   )}
                 </Link>
               </li>
@@ -194,29 +217,6 @@ const AppSidebar: React.FC = () => {
                   </span>
                   {(isExpanded || isMobileOpen) && (
                     <span className="menu-item-text">Destinations</span>
-                  )}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/notifications"
-                  className={`menu-item group ${
-                    isNotificationsActive
-                      ? "menu-item-active"
-                      : "menu-item-inactive"
-                  }`}
-                >
-                  <span
-                    className={`${
-                      isNotificationsActive
-                        ? "menu-item-icon-active"
-                        : "menu-item-icon-inactive"
-                    }`}
-                  >
-                    <BellIcon />
-                  </span>
-                  {(isExpanded || isMobileOpen) && (
-                    <span className="menu-item-text">Notifications</span>
                   )}
                 </Link>
               </li>

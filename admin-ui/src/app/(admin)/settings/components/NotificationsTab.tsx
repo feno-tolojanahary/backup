@@ -11,15 +11,11 @@ type NotifyTriggers = {
 };
 
 type NotificationsTabProps = {
-  notifyEmailEnabled: boolean;
-  setNotifyEmailEnabled: (value: boolean) => void;
   notifyTriggers: NotifyTriggers;
   setNotifyTriggers: React.Dispatch<React.SetStateAction<NotifyTriggers>>;
 };
 
 export default function NotificationsTab({
-  notifyEmailEnabled,
-  setNotifyEmailEnabled,
   notifyTriggers,
   setNotifyTriggers,
 }: NotificationsTabProps) {
@@ -28,22 +24,6 @@ export default function NotificationsTab({
       title="Notifications"
       description="Enable or disable system alerts."
     >
-      <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-white/[0.02]">
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
-            Enable Email Notifications
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Send email alerts when critical events occur.
-          </p>
-        </div>
-        <Switch
-          label={notifyEmailEnabled ? "enabled" : "disabled"}
-          defaultChecked={notifyEmailEnabled}
-          onChange={(checked) => setNotifyEmailEnabled(checked)}
-        />
-      </div>
-
       <div className="space-y-3">
         <FieldLabel label="Alert Triggers" />
         <div className="grid gap-3 sm:grid-cols-2">

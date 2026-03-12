@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useMemo } from "react";
+import /*React,*/ { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import ProvidersTab from "@/app/(admin)/notifications/components/ProvidersTab";
-import RulesTab from "@/app/(admin)/notifications/components/RulesTab";
-import HistoryTab from "@/app/(admin)/notifications/components/HistoryTab";
+// import RulesTab from "@/app/(admin)/notifications/components/RulesTab";
+// import HistoryTab from "@/app/(admin)/notifications/components/HistoryTab";
 import ParametersTab from "@/app/(admin)/notifications/components/ParametersTab";
 
 const tabConfig = [
   { id: "providers", label: "Providers" },
-  { id: "rules", label: "Rules" },
-  { id: "history", label: "History" },
+  // { id: "rules", label: "Rules" },
+  // { id: "history", label: "History" },
   { id: "parameters", label: "Parameters" },
 ];
 
@@ -76,8 +76,8 @@ export default function NotificationsPage() {
       </div>
 
       {activeTab === "providers" && <ProvidersTab />}
-      {activeTab === "rules" && <RulesTab />}
-      {activeTab === "history" && <HistoryTab />}
+      {/* {activeTab === "rules" && <RulesTab />} */}
+      {/* {activeTab === "history" && <HistoryTab />} */}
       {activeTab === "parameters" && <ParametersTab />}
     </div>
   );
