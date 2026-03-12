@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const notificationProviderController = require("../controllers/notificationProviderController");
+const notificationProviderController = require("../../controllers/notifications/notificationProviderController");
 
 router.route('/')
     .post(notificationProviderController.insert)
@@ -9,8 +9,5 @@ router.route(':id')
     .put(notificationProviderController.update)
     .delete(notificationProviderController.deleteById)
     .get(notificationProviderController.getById);
-
-router.post("/save-rules", notificationProviderController.saveRules);
-router.put("/update-rules", notificationProviderController.updateRules);
 
 module.exports = router;

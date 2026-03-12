@@ -1,8 +1,7 @@
 const notificationService = require("../services/notificationService");
 const response = require("../utils/response");
 
-
-class NotificationController {
+class NotificationEventController {
     constructor() {}
 
     async getNotifications() {
@@ -17,4 +16,4 @@ class NotificationController {
     }
 }   
 
-module.exports = new NotificationController();
+module.exports = new NotificationEventController();

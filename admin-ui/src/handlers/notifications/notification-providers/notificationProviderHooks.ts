@@ -1,8 +1,7 @@
-import { createCrudHooks } from "../utils/crudHooks";
+import api from "../../globalAxios";
+import { createCrudHooks } from "../../utils/crudHooks";
 import { createNotificationProvider, deleteNotificationProvider, getListNotificationProviders, updateNotificationProvider } from "./notificationProviderService";
 import { CreateNotificationProvider, NotificationProvider, UpdateNotificationProvider } from "./type";
-
-
 
 const sourceUrl = "/notification-providers";
 
@@ -21,4 +20,3 @@ export const useListNotificationProviders = sourceCrud.useList;
 export const useCreateNotificationProvider = sourceCrud.useCreate;
 export const useUdpateNotificationProvider = sourceCrud.useUpdate;
 export const useDeleteNotificationProvider = sourceCrud.useDelete;
-

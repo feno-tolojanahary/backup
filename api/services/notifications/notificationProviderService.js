@@ -1,4 +1,4 @@
-const db = require("../../lib/db/db");
+const db = require("../../../lib/db/db");
 
 class NotificationProviderService {
     constructor() {}
@@ -82,62 +82,6 @@ class NotificationProviderService {
         } catch (error) {
             console.log("Error delete notificationProvider: ", error.message);
             return;
-        }
-    }
-
-    async saveRules(rules) {
-        try {
-            const insertedIds = [];
-            const query = `INSERT INTO notification_rules (name, event_type, provider_id, is_enable) VALUES (?, ?, ?, ?)`;
-            const insertStmt = db.prepare(query);
-            for (const rule of rules) {
-                const ruleData = [
-                    rule.name,
-                    rule.eventType,
-                    rule.providerId,
-                    rule.isEnable ? 1 : 0
-                ]
-                const res = insertStmt.insert(...ruleData);
-                results.push(res.lastInsertRowid);
-            }  
-            return {
-                ok: true,
-                insertedIds
-            }
-        } catch (error) {
-            return {
-                ok: false,
-                errorMsg: error.message
-            }
-        }
-    }
-
-    async updateRule(id, rule) {
-        try {
-            const setUpdate = [];
-            const values = [];
-            const mapField = {
-                eventType: "event_type",
-                providerId: "provider_id",
-                isEnable: "is_enable"
-            }
-            for (const [key, value] of Object.entries(rule)) {
-                const fieldName = mapField[key] ? mapField[key] : key;
-                setUpdate.push(`SET ${fieldName} = ?`);
-                values.push(value);
-            }
-            let query = `UPDATE notification_rules SET ${setUpdate.join(', ')} WHERE id = ?`;
-            const stmt = db.prepare(query);
-            const res = stmt.run(...values, id)
-            return {
-                ok: true,
-                id: res.lastInsertRowid
-            }
-        } catch (error) {
-            return {
-                ok: false,
-                errorMsg: error.message
-            }
         }
     }
 }

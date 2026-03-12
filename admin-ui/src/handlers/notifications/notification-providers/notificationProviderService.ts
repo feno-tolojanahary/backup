@@ -1,5 +1,5 @@
 import { CreateNotificationProvider, UpdateNotificationProvider } from "./type";
-import { callFetch } from "../utils/utils";
+import { callFetch } from "../../utils/utils";
 
 const baseUrl = "/notification-providers";
 

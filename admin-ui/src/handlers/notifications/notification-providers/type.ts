@@ -1,5 +1,3 @@
-
-
 export type NotificationProvider = {
     id: number,
     name: string,
