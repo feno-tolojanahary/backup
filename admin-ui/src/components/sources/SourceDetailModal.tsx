@@ -1,15 +1,16 @@
 "use client";
 
-import React from "react";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import { Modal } from "@/components/ui/modal";
-import { SourceRecord, SourceStatus, SourceType } from "./types";
+import { SourceStatus, SourceType } from "./types";
+import { MongodbConfig, Source } from "@/handlers/sources/type";
+import { S3Config } from "@/handlers/destinations/type";
 
 type SourceDetailModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  source: SourceRecord | null;
+  source: Source | null;
 };
 
 const statusLabel: Record<SourceStatus, string> = {
@@ -35,6 +36,7 @@ export default function SourceDetailModal({
   onClose,
   source,
 }: SourceDetailModalProps) {
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[620px] m-4">
       <div className="p-6 sm:p-8">
@@ -65,24 +67,35 @@ export default function SourceDetailModal({
                   {typeLabel[source.type]}
                 </p>
               </div>
-              <div>
+              {/* <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Jobs
                 </p>
                 <p className="text-gray-800 dark:text-white/80">
                   {source.jobsCount} {source.jobsCount === 1 ? "job" : "jobs"}
                 </p>
-              </div>
+              </div> */}
             </div>
-
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 Configuration
               </p>
               <div className="mt-2 space-y-1">
-                {source.configSummary.map((line) => (
-                  <p key={`${source.id}-${line}`}>{line}</p>
-                ))}
+                { source.type === "mongodb" &&
+                  <>
+                    <p>Database: {(source.config as MongodbConfig)?.database}</p>
+                    <p>Uri: {(source.config as MongodbConfig)?.uri}</p>
+                  </>
+                }
+                {
+                  source.type === "s3" && 
+                  <>
+                    <p>Bucket: {(source.config as S3Config)?.bucketName}</p>
+                    <p>Secret key: {(source.config as S3Config)?.secretKey}</p>
+                    <p>Access key: {(source.config as S3Config)?.accessKey}</p>
+                    <p>Prefix: {(source.config as S3Config)?.prefix}</p>
+                  </>
+                }
               </div>
             </div>
           </div>

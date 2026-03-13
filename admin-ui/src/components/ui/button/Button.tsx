@@ -6,6 +6,7 @@ interface ButtonProps {
   variant?: "primary" | "outline"; // Button variant
   startIcon?: ReactNode; // Icon before the text
   endIcon?: ReactNode; // Icon after the text
+  isLoading?: boolean; // Loading state
   onClick?: () => void; // Click handler
   disabled?: boolean; // Disabled state
   type?: "button" | "submit" | "reset";
@@ -18,6 +19,7 @@ const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   startIcon,
   endIcon,
+  isLoading = false,
   onClick,
   className = "",
   disabled = false,
@@ -42,15 +44,23 @@ const Button: React.FC<ButtonProps> = ({
       className={`inline-flex items-center justify-center font-medium gap-2 rounded-lg transition ${className} ${
         sizeClasses[size]
       } ${variantClasses[variant]} ${
-        disabled ? "cursor-not-allowed opacity-50" : ""
+        disabled || isLoading ? "cursor-not-allowed opacity-50" : ""
       }`}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || isLoading}
       type={type}
+      aria-busy={isLoading}
     >
-      {startIcon && <span className="flex items-center">{startIcon}</span>}
+      {!isLoading && startIcon && (
+        <span className="flex items-center">{startIcon}</span>
+      )}
       {children}
-      {endIcon && <span className="flex items-center">{endIcon}</span>}
+      {!isLoading && endIcon && (
+        <span className="flex items-center">{endIcon}</span>
+      )}
+      {isLoading && (
+        <span className="btn-spinner" aria-hidden="true" />
+      )}
     </button>
   );
 };

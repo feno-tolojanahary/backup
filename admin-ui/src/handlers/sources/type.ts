@@ -1,4 +1,5 @@
 export type SourceType = "s3" | "mongodb";
+export type StatusType = "connected" | "error" | "warning";
 
 export type MongodbConfig = {
     database: string,
@@ -22,6 +23,7 @@ export type Source = {
     id: string,
     name: string,
     type: SourceType,
+    status: StatusType,
     config: MongodbConfig | S3Config,
     createdBy?: string
 }
@@ -30,11 +32,13 @@ export type CreateSourcePayload = {
     name: string,
     type: SourceType,
     config: any,
+    status: StatusType,
     createdBy?: string
 }
 
 export type UpdateSourcePayload = {
     name?: string,
+    status: StatusType,
     type?: SourceType,
     config?: any,
     createdBy?: string

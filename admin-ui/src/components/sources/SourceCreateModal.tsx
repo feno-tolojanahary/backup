@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
-import { useCreateSource } from "@/handlers/sources/sourcesHooks";
+import { useCreateSource, useTestConnection } from "@/handlers/sources/sourcesHooks";
 import { CreateSourcePayload, MongodbConfig, S3Config, Source, SourceType } from "@/handlers/sources/type";
 import { useToast } from "@/context/ToastContext";
 
@@ -78,17 +78,21 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
       defaultValues: buildDefaults(initialData),
     });
 
+  const [isConnected, setIsConnected] = useState(false)
+
   const sourceType = watch("type");
 
-  const { createSource, isLoading, error } = useCreateSource();
-  const { addToast } = useToast();
+  const { createSource, isLoading: isLoadingSource } = useCreateSource();
+  const { testConnection, isLoading: isLoadingConnection} = useTestConnection();
+
+  const { toastError, toastSuccess, toastWarning } = useToast();
 
   useEffect(() => {
     if (!isOpen) return;
     reset(buildDefaults(initialData));
   }, [isOpen, initialData, reset]);
-
-  const onSubmitForm = async (values: SourceFormValues) => {
+  
+  const getCreatePaylod = (values: SourceFormValues): CreateSourcePayload => {
     const payload: CreateSourcePayload = {
       name: values.name.trim(),
       type: values.type,
@@ -104,29 +108,39 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
       payload.config.bucketName = values.bucketName.trim();
       payload.config.prefix = values.prefix.trim();
     }
+    return payload;
+  };
 
-    onSubmit?.(payload);
+  const createSourceData = async (values: SourceFormValues) => {
+    const payload = getCreatePaylod(values);
     try {
       await createSource(payload);
-      addToast({
-        variant: "success",
-        title: "Source created",
-        message: "The source was created successfully.",
-      });
+      toastSuccess("The source was created successfully.")
     } catch (err) {
-      const message = "Failed to create source.";
-      addToast({
-        variant: "error",
-        title: "Create failed",
-        message,
-      });
+      toastError();
+    } finally {
+      onClose();
     }
-    onClose();
-  };
+  }
+
+  const testConfigConnection = async (values: SourceFormValues) => {
+    const payload = getCreatePaylod(values);
+    try {
+      const resConfig = await testConnection(payload.config);
+      setIsConnected(Boolean(resConfig.connected));
+      if (resConfig.connected) {
+        toastSuccess("The source is connected.");
+      } else {
+        toastWarning("The source is not connected.")
+      }
+    } catch (error) {
+      toastError();
+    }
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[620px] m-4">
-      <form className="p-6 sm:p-8" onSubmit={handleSubmit(onSubmitForm)}>
+      <form className="p-6 sm:p-8">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
           {initialData ? "Edit Source" : "Add Source"}
         </h3>
@@ -213,13 +227,15 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
 
         </div>
 
-        <div className="mt-8 flex flex-wrap justify-end gap-3">
-          <Button size="sm" variant="outline" type="button">
+        <div className="mt-8 flex flex-wrap justify-between gap-3">
+          <Button isLoading={isLoadingConnection} size="sm" variant="outline" type="button" onClick={handleSubmit(testConfigConnection)}>
             Test Connection
           </Button>
-          <Button size="sm" type="submit">
-            {initialData ? "Save Changes" : "Save Source"}
-          </Button>
+          { isConnected &&
+            <Button  size="sm" isLoading={isLoadingSource} type="button" onClick={handleSubmit(createSourceData)} >
+              {initialData ? "Save Changes" : "Save Source"}
+            </Button>
+          }
         </div>
       </form>
     </Modal>

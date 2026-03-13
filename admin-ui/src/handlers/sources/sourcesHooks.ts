@@ -3,7 +3,7 @@ import api from "../globalAxios";
 import useSWRMutation from "swr/mutation";
 import { CreateSourcePayload, Source, SourceConfig, UpdateSourcePayload } from "./type";
 import { fetcher } from "@/handlers/fetcher";
-import { createSource, deleteSource, updateSource } from "./service";
+import { createSource, deleteSource, testSourceConnection, updateSource } from "./service";
 
 const SOURCE_URL = "/sources";
 
@@ -64,10 +64,11 @@ export function useDeleteSource() {
     }
 }
 
-export async function testConnection(config: SourceConfig): Promise<SourceConfig> {
-    const res = await api.post(`${SOURCE_URL}/test-connection`, config);
-    if (res.data) {
-        mutate(SOURCE_URL);       
+export function useTestConnection() {
+    const { trigger, isMutating, error } = useSWRMutation(SOURCE_URL, (_url, { arg }) => testSourceConnection(arg))
+    return {
+        testConnection: trigger,
+        isLoading: isMutating,
+        error
     }
-    return res.data;
 }

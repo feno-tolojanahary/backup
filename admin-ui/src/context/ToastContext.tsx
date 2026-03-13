@@ -17,6 +17,9 @@ type ToastItem = ToastInput & { id: string };
 type ToastContextType = {
   addToast: (toast: ToastInput) => void;
   removeToast: (id: string) => void;
+  toastError: () => void;
+  toastWarning: (message: string) => void;
+  toastSuccess: (message: string) => void;
 };
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -63,6 +66,30 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [removeToast]);
 
+  const toastError = () => {
+    addToast({
+      variant: "error",
+      title: "Error",
+      message: "Something went wrong. Please try again"
+    })
+  }
+
+  const toastSuccess = (message: string) => {
+    addToast({
+      variant: "success",
+      title: "Success",
+      message
+    })
+  }
+
+  const toastWarning = (message: string) => {
+    addToast({
+      variant: "warning",
+      title: "Warning",
+      message
+    })
+  }
+
   useEffect(() => {
     return () => {
       timersRef.current.forEach((timer) => clearTimeout(timer));
@@ -70,7 +97,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  const contextValue = useMemo(() => ({ addToast, removeToast }), [addToast, removeToast]);
+  const contextValue = useMemo(() => ({ addToast, removeToast, toastError, toastSuccess, toastWarning }), [addToast, removeToast, toastError, toastSuccess, toastWarning]);
 
   return (
     <ToastContext.Provider value={contextValue}>

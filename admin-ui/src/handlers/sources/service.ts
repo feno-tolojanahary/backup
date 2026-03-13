@@ -1,5 +1,6 @@
+import api from "../globalAxios";
 import { callFetch } from "../utils/utils";
-import { CreateSourcePayload, Source, UpdateSourcePayload } from "./type";
+import { CreateSourcePayload, Source, SourceConfig, UpdateSourcePayload } from "./type";
 
 
 const BASE_URL = "/sources";
@@ -41,4 +42,9 @@ export async function deleteSource(url: string, { arg }: { arg: { id: string } }
         throw new Error(text || "Error delete source.");
     }
     return res.json();
+}
+
+export async function testSourceConnection(source: SourceConfig): Promise<SourceConfig> {
+    const res = await api.post(`${BASE_URL}`, source);
+    return res.data;
 }

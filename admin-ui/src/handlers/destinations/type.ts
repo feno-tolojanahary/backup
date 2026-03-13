@@ -1,10 +1,12 @@
-
+export type StatusType = "connected" | "error";
 export type DestinationType = "local" | "s3" | "local-storage";
 
 export type S3Config = {
     accessKey: string,
     secretKey: string,
-    bucketName: string,
+    bucketName: string,    
+    status?: StatusType,
+    prefix?: string,
     backupPrefix?: string
 }
 
@@ -14,6 +16,7 @@ export type HostConfig = {
     username: string,
     password?: string,
     privateKey?: string,
+    status?: StatusType,
     passphrase?: string,
     destinationFolder?: string,
     maxDiskUsage?: string
@@ -21,6 +24,7 @@ export type HostConfig = {
 
 export type LocalStorageConfig = {
     destinationFolder: string,
+    status?: StatusType,
     maxDiskUsage?: string
 }
 
