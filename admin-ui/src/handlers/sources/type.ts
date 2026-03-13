@@ -1,4 +1,4 @@
-export type SourceType = "local" | "s3" | "local-storage";
+export type SourceType = "s3" | "mongodb";
 
 export type MongodbConfig = {
     database: string,

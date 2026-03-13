@@ -5,8 +5,10 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
-import { SourceType } from "./types";
 import { Controller, useForm } from "react-hook-form";
+import { useCreateSource } from "@/handlers/sources/sourcesHooks";
+import { CreateSourcePayload, MongodbConfig, S3Config, Source, SourceType } from "@/handlers/sources/type";
+import { useToast } from "@/context/ToastContext";
 
 export type SourceFormPayload = {
   name: string;
@@ -14,7 +16,7 @@ export type SourceFormPayload = {
   config: {
     host?: string;
     database?: string;
-    bucket?: string;
+    bucketName?: string;
     prefix?: string;
     path?: string;
   };
@@ -24,31 +26,24 @@ type SourceCreateModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (payload: SourceFormPayload) => void;
-  initialData?: {
-    name: string;
-    type: SourceType;
-    host?: string;
-    database?: string;
-    bucket?: string;
-    prefix?: string;
-    path?: string;
-  } | null;
+  initialData?: Source | null;
 };
 
 const sourceTypeOptions = [
   { value: "mongodb", label: "MongoDB" },
-  { value: "s3", label: "S3 Bucket" },
-  { value: "filesystem", label: "Filesystem" },
+  { value: "s3", label: "S3 Bucket" }
 ];
 
 type SourceFormValues = {
   name: string;
   type: SourceType;
-  connectionUri: string;
+  uri: string;
   database: string;
-  bucket: string;
+  bucketName: string;
   prefix: string;
   path: string;
+  secretKey: string;
+  accessKey: string;
 };
 
 const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
@@ -57,17 +52,26 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
   onSubmit,
   initialData,
 }) => {
+
   const buildDefaults = (
     data?: SourceCreateModalProps["initialData"]
-  ): SourceFormValues => ({
-    name: data?.name || "",
-    type: data?.type || "mongodb",
-    connectionUri: data?.host ||  "",
-    database: data?.database || "",
-    bucket: data?.bucket || "",
-    prefix: data?.prefix || "",
-    path: data?.path || "",
-  });
+  ): SourceFormValues => {
+    const config = data?.config;
+    const isMongo = data?.type === "mongodb";
+    const isS3 = data?.type === "s3";
+
+    return {
+      name: data?.name || "",
+      type: data?.type || "mongodb",
+      uri: isMongo ? (config as MongodbConfig)?.uri || "" : "",
+      database: isMongo ? (config as MongodbConfig)?.database || "" : "",
+      bucketName: isS3 ? (config as S3Config)?.bucketName || "" : "",
+      prefix: isS3 ? (config as S3Config)?.prefix || "" : "",
+      secretKey: isS3 ? (config as S3Config)?.secretKey || "" : "",
+      accessKey: isS3 ? (config as S3Config)?.accessKey || "" : "",
+      path: "",
+    };
+  };
 
   const { control, register, handleSubmit, reset, watch } =
     useForm<SourceFormValues>({
@@ -76,33 +80,47 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
 
   const sourceType = watch("type");
 
+  const { createSource, isLoading, error } = useCreateSource();
+  const { addToast } = useToast();
+
   useEffect(() => {
     if (!isOpen) return;
     reset(buildDefaults(initialData));
   }, [isOpen, initialData, reset]);
 
-  const onSubmitForm = (values: SourceFormValues) => {
-    const payload: SourceFormPayload = {
+  const onSubmitForm = async (values: SourceFormValues) => {
+    const payload: CreateSourcePayload = {
       name: values.name.trim(),
       type: values.type,
       config: {},
     };
 
     if (values.type === "mongodb") {
-      payload.config.host = values.connectionUri.trim();
+      payload.config.host = values.uri.trim();
       payload.config.database = values.database.trim();
     }
 
     if (values.type === "s3") {
-      payload.config.bucket = values.bucket.trim();
+      payload.config.bucketName = values.bucketName.trim();
       payload.config.prefix = values.prefix.trim();
     }
 
-    if (values.type === "filesystem") {
-      payload.config.path = values.path.trim();
-    }
-
     onSubmit?.(payload);
+    try {
+      await createSource(payload);
+      addToast({
+        variant: "success",
+        title: "Source created",
+        message: "The source was created successfully.",
+      });
+    } catch (err) {
+      const message = "Failed to create source.";
+      addToast({
+        variant: "error",
+        title: "Create failed",
+        message,
+      });
+    }
     onClose();
   };
 
@@ -152,7 +170,7 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
                 </label>
                 <Input
                   placeholder="mongodb://user:pass@localhost:27017"
-                  {...register("connectionUri")}
+                  {...register("uri")}
                 />
               </div>
               <div>
@@ -170,7 +188,19 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Bucket name
                 </label>
-                <Input placeholder="backup-source" {...register("bucket")} />
+                <Input type="text" placeholder="backup-source" {...register("bucketName")} />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Secret key
+                </label>
+                <Input placeholder="/" {...register("secretKey")} />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Access key
+                </label>
+                <Input placeholder="/" {...register("accessKey")} />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -181,14 +211,6 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
             </>
           )}
 
-          {sourceType === "filesystem" && (
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Path
-              </label>
-              <Input placeholder="/var/lib/data" {...register("path")} />
-            </div>
-          )}
         </div>
 
         <div className="mt-8 flex flex-wrap justify-end gap-3">
@@ -205,5 +227,3 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
 };
 
 export default SourceCreateModal;
-
-

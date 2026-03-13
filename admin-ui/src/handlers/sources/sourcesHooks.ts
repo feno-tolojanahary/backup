@@ -25,7 +25,7 @@ export function useCreateSource () {
         return result;
     }
     return {
-        isMutating,
+        isLoading: isMutating,
         error,
         createSource: create
     }
@@ -44,7 +44,7 @@ export function useUpdateSource () {
         return result;
     }
     return {
-        isMutating,
+        isLoading: isMutating,
         error,
         updateSource: update
     }
@@ -58,7 +58,7 @@ export function useDeleteSource() {
         return result;
     }
     return {
-        isMutating,
+        isLoading: isMutating,
         error,
         deleteSource: _delete
     }
