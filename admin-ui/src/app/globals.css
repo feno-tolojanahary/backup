@@ -765,3 +765,56 @@ span.flatpickr-weekday,
   border-top-color: transparent;
   animation: button-spinner-rotate 0.8s linear infinite;
 }
+
+@keyframes loading-dots-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+.loading-dots-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-9999);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-dots-center {
+  display: flex;
+  min-height: 200px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-dots {
+  --loading-dot-size: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--loading-dot-size) * 0.6);
+}
+
+.loading-dot {
+  width: var(--loading-dot-size);
+  height: var(--loading-dot-size);
+  border-radius: 9999px;
+  background: currentColor;
+  animation: loading-dots-bounce 1.2s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}

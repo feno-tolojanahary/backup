@@ -1,33 +1,34 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
-import SourceCreateModal from "@/components/sources/SourceCreateModal";
-import SourceDetailModal from "@/components/sources/SourceDetailModal";
+import SourceUpsertModal from "@/app/(admin)/infrastructure/sources/components/modals/SourceUpsertModal";
 import { useModal } from "@/hooks/useModal";
 import {
-  SourceRecord,
-  SourceStatus,
+  Source,
   SourceType,
-} from "@/components/sources/types";
-import { sources } from "./data";
+  StatusType
+} from "@/handlers/sources/type";
 import SourcesFilters from "./components/SourcesFilters";
-import SourcesContent from "./components/SourcesContent";
-import { SourceFormPayload } from "@/components/sources/SourceCreateModal";
+import SourceCard from "./components/tables/SourceCard";
+import SourceDetailModal from "./components/SourceDetailModal";
+import { useSources } from "@/handlers/sources/sourcesHooks";
+import LoadingDots from "@/components/common/LoadingDots";
 
 export default function SourcesPageClient() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<SourceType | "">("");
-  const [statusFilter, setStatusFilter] = useState<SourceStatus | "">("");
-  const [sourceItems, setSourceItems] = useState<SourceRecord[]>(sources);
-  const [editTarget, setEditTarget] = useState<SourceRecord | null>(null);
-  const [viewTarget, setViewTarget] = useState<SourceRecord | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusType | "">("");
+  const [viewTarget, setViewTarget] = useState<Source | null>(null);
+  const [editSource, setEditSource] = useState<Source | null>(null);
   const createModal = useModal();
   const detailModal = useModal();
 
+  const { sources, isLoading } = useSources()
+
   const filteredSources = useMemo(() => {
-    return sourceItems.filter((source) => {
+    return sources.filter((source) => {
       if (
         search &&
         !source.name.toLowerCase().includes(search.toLowerCase().trim())
@@ -38,73 +39,15 @@ export default function SourcesPageClient() {
       if (statusFilter && source.status !== statusFilter) return false;
       return true;
     });
-  }, [search, typeFilter, statusFilter, sourceItems]);
+  }, [search, typeFilter, statusFilter, sources]);
 
-  const getSummaryValue = (source: SourceRecord, key: string) => {
-    const line = source.configSummary.find((item) =>
-      item.toLowerCase().startsWith(`${key.toLowerCase()}:`)
-    );
-    if (!line) return "";
-    return line.split(":").slice(1).join(":").trim();
-  };
-
-  const buildConfigSummary = (payload: SourceFormPayload) => {
-    if (payload.type === "mongodb") {
-      return [
-        `Database: ${payload.config.database || "-"}`,
-        `Host: ${payload.config.host || "-"}`,
-      ];
-    }
-    if (payload.type === "s3") {
-      return [
-        `Bucket: ${payload.config.bucket || "-"}`,
-        `Prefix: ${payload.config.prefix || "/"}`,
-      ];
-    }
-    return [`Path: ${payload.config.path || "-"}`];
-  };
-
-  const handleUpsert = (payload: SourceFormPayload) => {
-    if (editTarget) {
-      setSourceItems((prev) =>
-        prev.map((item) =>
-          item.id === editTarget.id
-            ? {
-                ...item,
-                name: payload.name,
-                type: payload.type,
-                configSummary: buildConfigSummary(payload),
-              }
-            : item
-        )
-      );
-      setEditTarget(null);
-      createModal.closeModal();
-      return;
-    }
-
-    const newId = Date.now();
-    setSourceItems((prev) => [
-      ...prev,
-      {
-        id: newId,
-        name: payload.name,
-        type: payload.type,
-        status: "warning",
-        configSummary: buildConfigSummary(payload),
-        jobsCount: 0,
-      },
-    ]);
-    createModal.closeModal();
-  };
-
-  const handleView = (source: SourceRecord) => {
+  const handleView = (source: Source) => {
     setViewTarget(source);
     detailModal.openModal();
   };
 
-  const handleEdit = (source: SourceRecord) => {
-    setEditTarget(source);
+  const handleEdit = (source: Source) => {
+    setEditSource(source);
     createModal.openModal();
   };
 
@@ -120,44 +63,49 @@ export default function SourcesPageClient() {
             setStatusFilter={(value) => setStatusFilter(value)}
             onRefresh={() => console.log("Refresh sources")}
             onAdd={() => {
-              setEditTarget(null);
+              setEditSource(null);
               createModal.openModal();
             }}
           />
-
-          <SourcesContent
-            sources={sourceItems}
-            filteredSources={filteredSources}
-            onCreate={() => {
-              setEditTarget(null);
-              createModal.openModal();
-            }}
-            onView={handleView}
-            onEdit={handleEdit}
-            onTest={(source) => console.log("Test source", source.id)}
-            onDelete={(source) => console.log("Delete source", source.id)}
-          />
+          <div className="mt-6">
+            { isLoading ?
+              <LoadingDots />
+              :
+              <>
+                {filteredSources.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+                    No sources match these filters.
+                  </div>
+                ) : (
+                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                    {filteredSources.map((source) => (
+                      <SourceCard
+                        key={source.id}
+                        source={source}
+                        onView={handleView}
+                        onEdit={handleEdit}
+                        onTest={(source) => console.log("Test source", source.id)}
+                        onDelete={(source) => console.log("Delete source", source.id)}
+                      />
+                    ))}
+                </div>
+                )}
+              </>
+            }
+          </div>
         </ComponentCard>
       </div>
 
-      <SourceCreateModal
+      <SourceUpsertModal
         isOpen={createModal.isOpen}
         onClose={() => {
-          setEditTarget(null);
+          setEditSource(null);
           createModal.closeModal();
         }}
-        onSubmit={handleUpsert}
+        modal={createModal}
         initialData={
-          editTarget
-            ? {
-                name: editTarget.name,
-                type: editTarget.type,
-                host: getSummaryValue(editTarget, "Host"),
-                database: getSummaryValue(editTarget, "Database"),
-                bucket: getSummaryValue(editTarget, "Bucket"),
-                prefix: getSummaryValue(editTarget, "Prefix"),
-                path: getSummaryValue(editTarget, "Path"),
-              }
+          editSource
+            ? editSource
             : null
         }
       />

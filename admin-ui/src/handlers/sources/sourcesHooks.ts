@@ -1,5 +1,4 @@
 import useSWR, { mutate } from "swr";
-import api from "../globalAxios";
 import useSWRMutation from "swr/mutation";
 import { CreateSourcePayload, Source, SourceConfig, UpdateSourcePayload } from "./type";
 import { fetcher } from "@/handlers/fetcher";
@@ -11,7 +10,7 @@ export function useSources () {
     const { data, error, isLoading } = useSWR<Source[]>(SOURCE_URL, fetcher);
 
     return {
-        sources: data,
+        sources: data || [],
         isLoading,
         error
     }

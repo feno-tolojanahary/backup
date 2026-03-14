@@ -6,9 +6,10 @@ import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
-import { useCreateSource, useTestConnection } from "@/handlers/sources/sourcesHooks";
+import { useCreateSource, useTestConnection, useUpdateSource } from "@/handlers/sources/sourcesHooks";
 import { CreateSourcePayload, MongodbConfig, S3Config, Source, SourceType } from "@/handlers/sources/type";
 import { useToast } from "@/context/ToastContext";
+import { ModalType } from "@/types/common";
 
 export type SourceFormPayload = {
   name: string;
@@ -22,11 +23,11 @@ export type SourceFormPayload = {
   };
 };
 
-type SourceCreateModalProps = {
+type SourceUpsertModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit?: (payload: SourceFormPayload) => void;
   initialData?: Source | null;
+  modal: ModalType
 };
 
 const sourceTypeOptions = [
@@ -46,15 +47,15 @@ type SourceFormValues = {
   accessKey: string;
 };
 
-const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
+const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
+  modal,
   initialData,
 }) => {
 
   const buildDefaults = (
-    data?: SourceCreateModalProps["initialData"]
+    data?: SourceUpsertModalProps["initialData"]
   ): SourceFormValues => {
     const config = data?.config;
     const isMongo = data?.type === "mongodb";
@@ -83,6 +84,7 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
   const sourceType = watch("type");
 
   const { createSource, isLoading: isLoadingSource } = useCreateSource();
+  const { updateSource, isLoading: isLoadingUpdate } = useUpdateSource();
   const { testConnection, isLoading: isLoadingConnection} = useTestConnection();
 
   const { toastError, toastSuccess, toastWarning } = useToast();
@@ -92,7 +94,7 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
     reset(buildDefaults(initialData));
   }, [isOpen, initialData, reset]);
   
-  const getCreatePaylod = (values: SourceFormValues): CreateSourcePayload => {
+  const getCreatePayload = (values: SourceFormValues): CreateSourcePayload => {
     const payload: CreateSourcePayload = {
       name: values.name.trim(),
       type: values.type,
@@ -111,20 +113,8 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
     return payload;
   };
 
-  const createSourceData = async (values: SourceFormValues) => {
-    const payload = getCreatePaylod(values);
-    try {
-      await createSource(payload);
-      toastSuccess("The source was created successfully.")
-    } catch (err) {
-      toastError();
-    } finally {
-      onClose();
-    }
-  }
-
   const testConfigConnection = async (values: SourceFormValues) => {
-    const payload = getCreatePaylod(values);
+    const payload = getCreatePayload(values);
     try {
       const resConfig = await testConnection(payload.config);
       setIsConnected(Boolean(resConfig.connected));
@@ -137,6 +127,32 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
       toastError();
     }
   }
+
+  const upsertSource = async (values: SourceFormValues) => {
+    const payload = getCreatePayload(values);
+    if (initialData?.id) {
+      try {
+        const result = await updateSource(initialData.id, payload);
+        if (result) {
+          throw new Error("Error update ressource.")
+        }
+        toastSuccess("Source updated with success.");
+        modal.closeModal();
+      } catch (error: any) {
+        console.log("Error update source: ", error.message);
+        toastError();
+      }
+    } else {
+     try {
+        await createSource(payload);
+        toastSuccess("The source was created successfully.")
+        modal.closeModal();
+      } catch (err: any) {
+        console.log("Error create source: ", err.message);
+        toastError();
+      } 
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[620px] m-4">
@@ -231,8 +247,8 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
           <Button isLoading={isLoadingConnection} size="sm" variant="outline" type="button" onClick={handleSubmit(testConfigConnection)}>
             Test Connection
           </Button>
-          { isConnected &&
-            <Button  size="sm" isLoading={isLoadingSource} type="button" onClick={handleSubmit(createSourceData)} >
+          { (isConnected || initialData?.status === "connected") &&
+            <Button  size="sm" isLoading={isLoadingSource} type="button" onClick={handleSubmit(upsertSource)} >
               {initialData ? "Save Changes" : "Save Source"}
             </Button>
           }
@@ -242,4 +258,4 @@ const SourceCreateModal: React.FC<SourceCreateModalProps> = ({
   );
 };
 
-export default SourceCreateModal;
+export default SourceUpsertModal;
