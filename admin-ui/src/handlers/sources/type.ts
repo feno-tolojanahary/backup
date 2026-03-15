@@ -1,5 +1,5 @@
 export type SourceType = "s3" | "mongodb";
-export type StatusType = "connected" | "error" | "warning";
+export type StatusType = "connected" | "disconnected" | "failed";
 
 export type MongodbConfig = {
     database: string,

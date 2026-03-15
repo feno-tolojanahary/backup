@@ -3,8 +3,7 @@
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import { Modal } from "@/components/ui/modal";
-import { SourceStatus, SourceType } from "./types";
-import { MongodbConfig, Source } from "@/handlers/sources/type";
+import { MongodbConfig, Source, StatusType, SourceType } from "@/handlers/sources/type";
 import { S3Config } from "@/handlers/destinations/type";
 
 type SourceDetailModalProps = {
@@ -13,22 +12,21 @@ type SourceDetailModalProps = {
   source: Source | null;
 };
 
-const statusLabel: Record<SourceStatus, string> = {
+const statusLabel: Record<StatusType, string> = {
   connected: "Connected",
-  warning: "Warning",
-  error: "Connection Failed",
+  disconnected: "Warning",
+  failed: "Connection Failed",
 };
 
-const statusColor: Record<SourceStatus, "success" | "warning" | "error"> = {
+const statusColor: Record<StatusType, "success" | "error" | "warning"> = {
   connected: "success",
-  warning: "warning",
-  error: "error",
+  failed: "warning",
+  disconnected: "error",
 };
 
 const typeLabel: Record<SourceType, string> = {
   mongodb: "MongoDB",
-  s3: "S3 Bucket",
-  filesystem: "Filesystem",
+  s3: "S3 Bucket"
 };
 
 export default function SourceDetailModal({

@@ -71,7 +71,7 @@ export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, Update
         return {
             isMutating,
             error,
-            delete: deleteEntity
+            deleteById: deleteEntity
         }
     }
 

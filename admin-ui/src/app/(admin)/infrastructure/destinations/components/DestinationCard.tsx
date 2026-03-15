@@ -1,19 +1,18 @@
-import React from "react";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { BoxIcon, FolderIcon, PlugInIcon, MoreDotIcon } from "@/icons";
-import { DestinationRecord } from "../data";
 import { statusBadgeColor, usagePercent } from "./DestinationsUtils";
+import { Destination, HostConfig, LocalStorageConfig, S3Config } from "@/handlers/destinations/type";
 
 type DestinationCardProps = {
-  destination: DestinationRecord;
+  destination: Destination;
   openMenuId: string | null;
   setOpenMenuId: (value: string | null) => void;
-  onTestConnection: (destination: DestinationRecord) => void;
-  onEdit: (destination: DestinationRecord) => void;
-  onDelete: (destination: DestinationRecord) => void;
+  onTestConnection: (destination: Destination) => void;
+  onEdit: (destination: Destination) => void;
+  onDelete: (destination: Destination) => void;
 };
 
 export default function DestinationCard({
@@ -25,8 +24,8 @@ export default function DestinationCard({
   onDelete,
 }: DestinationCardProps) {
   const capacityUsage = usagePercent(
-    destination.totalUsed,
-    destination.totalCapacity
+    "40",
+    "100"
   );
 
   return (
@@ -36,7 +35,7 @@ export default function DestinationCard({
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
             {destination.type === "s3" ? (
               <BoxIcon />
-            ) : destination.type === "sftp" ? (
+            ) : destination.type === "ssh" ? (
               <PlugInIcon />
             ) : (
               <FolderIcon />
@@ -52,7 +51,7 @@ export default function DestinationCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge size="sm" color={statusBadgeColor(destination.status)}>
+          <Badge size="sm" color={statusBadgeColor(destination?.status || "error")}>
             {destination.status}
           </Badge>
           <div className="relative">
@@ -111,12 +110,6 @@ export default function DestinationCard({
             {destination.type}
           </span>
         </p>
-        <p>
-          Configuration:{" "}
-          <span className="text-gray-800 dark:text-white/80">
-            {destination.configName}
-          </span>
-        </p>
         <div>
           <div className="mb-1 flex items-center justify-between text-xs">
             <span className="font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -132,29 +125,29 @@ export default function DestinationCard({
               style={{ width: `${capacityUsage}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+          {/* <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
             {destination.totalUsed} used
             {destination.totalCapacity
               ? ` / ${destination.totalCapacity} total`
               : ""}
-          </p>
+          </p> */}
         </div>
       </div>
 
       <div className="mt-4 space-y-1 text-sm text-gray-600 dark:text-gray-400">
         {destination.type === "s3" && (
           <>
-            <p>Endpoint: {destination.endpoint}</p>
-            <p>Bucket: {destination.bucket}</p>
+            <p>Endpoint: {(destination.config as S3Config)?.endpoint}</p>
+            <p>Bucket: {(destination.config as S3Config)?.bucketName}</p>
           </>
         )}
-        {destination.type === "sftp" && (
+        {destination.type === "ssh" && (
           <>
-            <p>Host: {destination.host}</p>
-            <p>Folder: {destination.folder}</p>
+            <p>Host: {(destination.config as HostConfig)?.host}</p>
+            <p>Folder: {(destination.config as HostConfig).destinationFolder}</p>
           </>
         )}
-        {destination.type === "local" && <p>Folder: {destination.folder}</p>}
+        {destination.type === "local-storage" && <p>Folder: {(destination.config as LocalStorageConfig).destinationFolder}</p>}
       </div>
 
       <div className="mt-5 flex justify-end">

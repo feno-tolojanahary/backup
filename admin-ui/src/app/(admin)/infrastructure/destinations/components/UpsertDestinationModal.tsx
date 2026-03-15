@@ -6,8 +6,9 @@ import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
-
-type DestinationType = "local" | "s3" | "sftp";
+import { Destination, DestinationType, S3Config, AuthMethodType, HostConfig, LocalStorageConfig, CreateDestinationPayload, UpdateDestinationPayload } from "@/handlers/destinations/type";
+import { useCreateDestination, useUdpateDestination } from "@/handlers/destinations/destinationHooks";
+import { useToast } from "@/context/ToastContext";
 
 export type DestinationFormPayload = {
   name: string;
@@ -16,40 +17,30 @@ export type DestinationFormPayload = {
   config: Record<string, string | number>;
 };
 
-type CreateDestinationModalProps = {
+type UpsertDestinationModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit?: (payload: DestinationFormPayload) => void;
-  initialData?: {
-    name: string;
-    configName: string;
-    type: DestinationType;
-    endpoint?: string;
-    bucket?: string;
-    folder?: string;
-    host?: string;
-    port?: number;
-    username?: string;
-  } | null;
+  destination?: Destination | null;
 };
 
 type FormValues = {
   name: string;
-  configName: string;
   type: DestinationType;
-  localPath: string;
-  s3Endpoint: string;
-  s3Bucket: string;
-  s3Region: string;
-  s3AccessKey: string;
-  s3SecretKey: string;
-  sftpHost: string;
-  sftpPort: string;
-  sftpUsername: string;
-  sftpFolder: string;
-  sftpAuthMethod: "password" | "key";
-  sftpPassword: string;
-  sftpPrivateKey: string;
+  destinationFolder: string;
+  endpoint: string;
+  bucketName: string;
+  region: string;
+  accessKey: string;
+  secretKey: string;
+  passphrase: string,
+  maxDiskUsage: string,
+  prefix: string;
+  host: string;
+  port: string;
+  username: string;
+  authMethod: AuthMethodType;
+  password: string;
+  privateKey: string;
 };
 
 const typeOptions = [
@@ -64,31 +55,46 @@ const authMethodOptions = [
 ];
 
 const buildDefaults = (
-  data?: CreateDestinationModalProps["initialData"]
-): FormValues => ({
-  name: data?.name ?? "",
-  configName: data?.configName ?? "",
-  type: data?.type ?? "local",
-  localPath: data?.folder ?? "",
-  s3Endpoint: data?.endpoint ?? "",
-  s3Bucket: data?.bucket ?? "",
-  s3Region: "",
-  s3AccessKey: "",
-  s3SecretKey: "",
-  sftpHost: data?.host ?? "",
-  sftpPort: data?.port ? String(data.port) : "22",
-  sftpUsername: data?.username ?? "",
-  sftpFolder: data?.folder ?? "",
-  sftpAuthMethod: "password",
-  sftpPassword: "",
-  sftpPrivateKey: "",
-});
+  data?: Destination | null
+): FormValues => {
+  const formValue = {
+    name: data?.name ?? "",
+    type: (data?.type ?? "ssh" as DestinationType),
+    
+    destinationFolder: "",
+    endpoint: "",
+    bucketName: "",
+    region: "",
+    accessKey: "",
+    secretKey: "",
+    host: "",
+    port: "22",
+    username: "",
+    authMethod: "password" as AuthMethodType,
+    password: "",
+    privateKey: "",
+    maxDiskUsage: "",
+    passphrase: "",
+    prefix: ""
+  }
+  if (data?.type === "s3") {
+    const s3Config = (data?.config || {}) as S3Config;
+    return { ...formValue, ...s3Config }
+  } else if (data?.type === "ssh") {
+    const hostConf = (data?.config || {}) as HostConfig;
+    return { ...formValue, ...hostConf }
+  } else if (data?.type === "local-storage") {
+    const localConf = (data?.config || {}) as LocalStorageConfig;
+    return { ...formValue, ...localConf };
+  } else {
+    return formValue;
+  }
+}
 
-const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
+const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
-  initialData,
+  destination,
 }) => {
   const {
     control,
@@ -98,61 +104,83 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
     watch,
     formState: { errors },
   } = useForm<FormValues>({
-    defaultValues: buildDefaults(initialData),
+    defaultValues: buildDefaults(destination),
     shouldUnregister: true,
-  });
+  }); 
 
   const destinationType = watch("type");
-  const authMethod = watch("sftpAuthMethod");
+  const authMethod = watch("authMethod");
+
+  const { create: createDestination } = useCreateDestination();
+  const { update: updateDestination } = useUdpateDestination();
+
+  const { toastError, toastSuccess } = useToast()
 
   useEffect(() => {
     if (!isOpen) return;
-    reset(buildDefaults(initialData));
-  }, [initialData, isOpen, reset]);
+    reset(buildDefaults(destination));
+  }, [destination, isOpen, reset]);
 
-  const onSubmitForm = (values: FormValues) => {
-    let config: DestinationFormPayload["config"] = {};
-
-    if (values.type === "local") {
-      config = { path: values.localPath.trim() };
-    }
-
-    if (values.type === "s3") {
-      config = {
-        endpoint: values.s3Endpoint.trim(),
-        bucket: values.s3Bucket.trim(),
-        region: values.s3Region.trim(),
-        accessKey: values.s3AccessKey.trim(),
-        secretKey: values.s3SecretKey.trim(),
-      };
-    }
-
-    if (values.type === "sftp") {
-      config = {
-        host: values.sftpHost.trim(),
-        port: Number(values.sftpPort) || 22,
-        username: values.sftpUsername.trim(),
-        folder: values.sftpFolder.trim(),
-        authMethod: values.sftpAuthMethod,
-        password:
-          values.sftpAuthMethod === "password"
-            ? values.sftpPassword
-            : undefined,
-        privateKey:
-          values.sftpAuthMethod === "key" ? values.sftpPrivateKey : undefined,
-      };
-    }
-
-    const payload: DestinationFormPayload = {
+  const getDestinationData = (values: FormValues) => {
+    let destination: CreateDestinationPayload | UpdateDestinationPayload = {
       name: values.name.trim(),
-      configName: values.configName.trim(),
-      type: values.type,
-      config,
-    };
+      type: values.type as DestinationType,
+    }
+    if (values.type === "local-storage") {
+      destination = {
+        ...destination,
+        config: {
+          destinationFolder: values.destinationFolder,
+        }
+      }
+    } else if (values.type === "s3") {
+      const { accessKey, secretKey, endpoint, bucketName, region, prefix } = values;
+      destination = {
+        ...destination,
+        config: {
+          accessKey,
+          secretKey,
+          endpoint,
+          bucketName,
+          region,
+          prefix
+        }
+      }
+    } else if (values.type === "ssh") {
+      const { host, port, username, password, authMethod, privateKey, passphrase, destinationFolder, maxDiskUsage } = values; 
+      destination = {
+        ...destination,
+        config: { host, port, username, password, authMethod, privateKey, passphrase, destinationFolder, maxDiskUsage }
+      }
+    } else {
+      const { destinationFolder, maxDiskUsage } = values;
+      destination = {
+        ...destination,
+        config: { destinationFolder, maxDiskUsage }
+      }
+    }
+    return destination;
+  }
 
-    onSubmit?.(payload);
-    console.log("Create destination payload", payload);
-    onClose();
+  const onSubmitForm = async (values: FormValues) => {
+    const destData = getDestinationData(values);
+    if (destination?.id) {
+      try {
+        await updateDestination(destination?.id, destData as UpdateDestinationPayload);
+        toastSuccess("Update destination with success.");
+      } catch(error: any) {
+        console.log("Error dest update: ", error.message);
+        toastError();
+      }     
+    } else {
+      try {
+        await createDestination(destData as CreateDestinationPayload);
+        toastSuccess("Destination created with success.");
+      } catch(error: any) {
+        console.log("Error create dest: ", error.message);
+        toastError();
+      }
+    }
   };
 
   return (
@@ -160,7 +188,7 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
       <form onSubmit={handleSubmit(onSubmitForm)} className="p-6 sm:p-8">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            {initialData ? "Edit Destination" : "Create Destination"}
+            {destination?.id ? "Edit Destination" : "Create Destination"}
           </h3>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             Configure the storage backend and connection details for backups.
@@ -184,19 +212,6 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   })}
                   error={Boolean(errors.name)}
                   hint={errors.name?.message}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Config name<span className="text-error-500"> *</span>
-                </label>
-                <Input
-                  placeholder="s3-prod"
-                  {...register("configName", {
-                    required: "Config name is required.",
-                  })}
-                  error={Boolean(errors.configName)}
-                  hint={errors.configName?.message}
                 />
               </div>
               <div>
@@ -227,7 +242,7 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
             </div>
           </div>
 
-          {destinationType === "local" && (
+          {destinationType === "local-storage" && (
             <div>
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
                 Local Storage
@@ -238,11 +253,24 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                 </label>
                 <Input
                   placeholder="/mnt/backups"
-                  {...register("localPath", {
+                  {...register("destinationFolder", {
                     required: "Local path is required.",
                   })}
-                  error={Boolean(errors.localPath)}
-                  hint={errors.localPath?.message}
+                  error={Boolean(errors.destinationFolder)}
+                  hint={errors.destinationFolder?.message}
+                />
+              </div>
+              <div className="mt-4">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Max disk usage
+                </label>
+                <Input
+                  placeholder="/mnt/backups"
+                  {...register("maxDiskUsage", {
+                    required: "Local path is required.",
+                  })}
+                  error={Boolean(errors.maxDiskUsage)}
+                  hint={errors.maxDiskUsage?.message}
                 />
               </div>
             </div>
@@ -260,11 +288,11 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   </label>
                   <Input
                     placeholder="s3.amazonaws.com"
-                    {...register("s3Endpoint", {
+                    {...register("endpoint", {
                       required: "Endpoint is required.",
                     })}
-                    error={Boolean(errors.s3Endpoint)}
-                    hint={errors.s3Endpoint?.message}
+                    error={Boolean(errors.endpoint)}
+                    hint={errors.endpoint?.message}
                   />
                 </div>
                 <div>
@@ -273,18 +301,18 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   </label>
                   <Input
                     placeholder="backup-bucket"
-                    {...register("s3Bucket", {
+                    {...register("bucketName", {
                       required: "Bucket is required.",
                     })}
-                    error={Boolean(errors.s3Bucket)}
-                    hint={errors.s3Bucket?.message}
+                    error={Boolean(errors.bucketName)}
+                    hint={errors.bucketName?.message}
                   />
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Region
                   </label>
-                  <Input placeholder="us-east-1" {...register("s3Region")} />
+                  <Input placeholder="us-east-1" {...register("region")} />
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -292,11 +320,11 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   </label>
                   <Input
                     placeholder="ACCESS_KEY"
-                    {...register("s3AccessKey", {
+                    {...register("accessKey", {
                       required: "Access key is required.",
                     })}
-                    error={Boolean(errors.s3AccessKey)}
-                    hint={errors.s3AccessKey?.message}
+                    error={Boolean(errors.accessKey)}
+                    hint={errors.accessKey?.message}
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -306,18 +334,24 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   <Input
                     type="password"
                     placeholder="SECRET_KEY"
-                    {...register("s3SecretKey", {
+                    {...register("secretKey", {
                       required: "Secret key is required.",
                     })}
-                    error={Boolean(errors.s3SecretKey)}
-                    hint={errors.s3SecretKey?.message}
+                    error={Boolean(errors.secretKey)}
+                    hint={errors.secretKey?.message}
                   />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Prefix
+                  </label>
+                  <Input placeholder="/" {...register("prefix")} />
                 </div>
               </div>
             </div>
           )}
 
-          {destinationType === "sftp" && (
+          {destinationType === "ssh" && (
             <div>
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
                 SSH Remote Storage
@@ -329,11 +363,11 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   </label>
                   <Input
                     placeholder="sftp.example.com"
-                    {...register("sftpHost", {
+                    {...register("host", {
                       required: "Host is required.",
                     })}
-                    error={Boolean(errors.sftpHost)}
-                    hint={errors.sftpHost?.message}
+                    error={Boolean(errors.host)}
+                    hint={errors.host?.message}
                   />
                 </div>
                 <div>
@@ -343,7 +377,7 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   <Input
                     type="number"
                     placeholder="22"
-                    {...register("sftpPort")}
+                    {...register("port")}
                   />
                 </div>
                 <div>
@@ -352,24 +386,11 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                   </label>
                   <Input
                     placeholder="backup"
-                    {...register("sftpUsername", {
+                    {...register("username", {
                       required: "Username is required.",
                     })}
-                    error={Boolean(errors.sftpUsername)}
-                    hint={errors.sftpUsername?.message}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Remote folder
-                  </label>
-                  <Input
-                    placeholder="/data/backups"
-                    {...register("sftpFolder", {
-                      required: "Remote folder is required.",
-                    })}
-                    error={Boolean(errors.sftpFolder)}
-                    hint={errors.sftpFolder?.message}
+                    error={Boolean(errors.username)}
+                    hint={errors.username?.message}
                   />
                 </div>
                 <div>
@@ -377,11 +398,11 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                     Authentication method
                   </label>
                   <Controller
-                    name="sftpAuthMethod"
+                    name="authMethod"
                     control={control}
                     render={({ field }) => (
                       <Select
-                        options={authMethodOptions}
+                      options={authMethodOptions}
                         value={field.value}
                         onChange={field.onChange}
                         onBlur={field.onBlur}
@@ -398,28 +419,61 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
                     <Input
                       type="password"
                       placeholder="Password"
-                      {...register("sftpPassword", {
+                      {...register("password", {
                         required: "Password is required.",
                       })}
-                      error={Boolean(errors.sftpPassword)}
-                      hint={errors.sftpPassword?.message}
+                      error={Boolean(errors.password)}
+                      hint={errors.password?.message}
                     />
                   </div>
                 ) : (
-                  <div className="sm:col-span-2">
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Private key
-                    </label>
-                    <Input
-                      placeholder="/path/to/key.pem"
-                      {...register("sftpPrivateKey", {
-                        required: "Private key is required.",
-                      })}
-                      error={Boolean(errors.sftpPrivateKey)}
-                      hint={errors.sftpPrivateKey?.message}
-                    />
+                  <div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Private key
+                      </label>
+                      <Input
+                        placeholder="/path/to/key.pem"
+                        {...register("privateKey", {
+                          required: "Private key is required.",
+                        })}
+                        error={Boolean(errors.privateKey)}
+                        hint={errors.privateKey?.message}
+                      />
+                    </div>
+                      <div className="sm:col-span-2">
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Passphrase
+                        </label>
+                        <Input
+                          placeholder="/path/to/key.pem"
+                          {...register("passphrase")}
+                        />
+                    </div>
                   </div>
                 )}
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Destination folder
+                  </label>
+                  <Input
+                    placeholder="/home/ubuntu/"
+                    {...register("destinationFolder", {
+                      required: "Remote folder is required.",
+                    })}
+                    error={Boolean(errors.destinationFolder)}
+                    hint={errors.destinationFolder?.message}
+                  />
+                </div>
+                <div className="mt-4">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Max disk usage
+                  </label>
+                  <Input
+                    placeholder="/mnt/backups"
+                    {...register("maxDiskUsage")}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -430,7 +484,7 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
             Cancel
           </Button>
           <Button size="sm" type="submit">
-            {initialData ? "Save Changes" : "Create Destination"}
+            {destination?.id ? "Save Changes" : "Create Destination"}
           </Button>
         </div>
       </form>
@@ -438,4 +492,4 @@ const CreateDestinationModal: React.FC<CreateDestinationModalProps> = ({
   );
 };
 
-export default CreateDestinationModal;
+export default UpsertDestinationModal;

@@ -1,17 +1,17 @@
 import React from "react";
-import { DestinationRecord } from "../data";
+import { Destination } from "@/handlers/destinations/type";
 import DestinationCard from "./DestinationCard";
 import DestinationsEmptyState from "./DestinationsEmptyState";
 
 type DestinationsGridProps = {
-  destinations: DestinationRecord[];
-  filteredDestinations: DestinationRecord[];
+  destinations: Destination[];
+  filteredDestinations: Destination[];
   openMenuId: string | null;
   setOpenMenuId: (value: string | null) => void;
   onAdd: () => void;
-  onTestConnection: (destination: DestinationRecord) => void;
-  onEdit: (destination: DestinationRecord) => void;
-  onDelete: (destination: DestinationRecord) => void;
+  onTestConnection: (destination: Destination) => void;
+  onEdit: (destination: Destination) => void;
+  onDelete: (destination: Destination) => void;
 };
 
 export default function DestinationsGrid({

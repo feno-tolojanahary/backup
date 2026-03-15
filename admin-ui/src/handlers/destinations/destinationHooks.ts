@@ -22,8 +22,8 @@ export const useCreateDestination = sourceCrud.useCreate;
 export const useUdpateDestination = sourceCrud.useUpdate;
 export const useDeleteDestination = sourceCrud.useDelete;
 
-export async function testConnection(config: DestinationConfig): Promise<DestinationConfig> {
-    const res = await api.post(`${sourceUrl}/test-connection`, config);
+export async function testConnection(dest: Destination): Promise<Destination> {
+    const res = await api.post(`${sourceUrl}/test-connection`, dest);
     if (res.data) {
         mutate(sourceUrl);       
     }

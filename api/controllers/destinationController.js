@@ -80,12 +80,14 @@ class DestinationController {
 
     async testConnection(req, res, next) {
         try {
-            const config = req.body;
-            if (!config) {
+            let dest = req.body;
+            if (!dest) {
                 throw new Error("The params body is required.");
             }
-            const srcRes = await testConf(config);
-            response.success(res, srcRes);
+            const srcRes = await testConf(dest?.config);
+            dest.status = srcRes.connected ? "connected" : "failed";
+            dest.errorMsg = srcRes.errorMsg;
+            response.success(res, dest);
         } catch (error) {
             console.log(error);
             response.error(res, error.message);
