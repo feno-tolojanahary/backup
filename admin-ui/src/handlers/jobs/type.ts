@@ -1,6 +1,18 @@
 import { Source } from "../sources/type"
 import { Destination } from "../destinations/type";
 
+export type JobStatus = "success" | "failed" | "running" | "canceled";
+
+export type DestinationJob = {
+    id: string;
+    name: string;
+}
+
+export type SourceJob = {
+    id: string;
+    name: string;
+}
+
 export type Job = {
     id: number;
     name: string;
@@ -8,10 +20,13 @@ export type Job = {
     status: string;
     scheduleType: string;
     scheduleValue: string;
+    useEncryption: Boolean;
     createdBy?: number;
     createdAt?: string;
+    lastRun?: string;
     updatedAt?: string;
-    useEncryption: Boolean;
+    destinations?: DestinationJob[];
+    source?: Source;
     retentionDays?: string;
 }
 

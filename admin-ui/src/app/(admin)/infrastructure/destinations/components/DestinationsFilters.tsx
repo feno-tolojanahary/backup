@@ -39,9 +39,9 @@ export default function DestinationsFilters({
           </label>
           <Select
             options={[
-              { value: "local", label: "local" },
+              { value: "local-storage", label: "local" },
               { value: "s3", label: "s3" },
-              { value: "sftp", label: "sftp" },
+              { value: "ssh", label: "sftp" },
             ]}
             placeholder="All types"
             onChange={(value) => setTypeFilter(value)}
@@ -54,7 +54,7 @@ export default function DestinationsFilters({
           <Select
             options={[
               { value: "connected", label: "connected" },
-              { value: "error", label: "error" },
+              { value: "failed", label: "failed" },
               { value: "unknown", label: "unknown" },
             ]}
             placeholder="All status"

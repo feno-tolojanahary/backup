@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
-import { Destination, DestinationConfig, StatusType } from "@/handlers/destinations/type";
+import { Destination, StatusType } from "@/handlers/destinations/type";
 import { testConnection } from "@/handlers/destinations/destinationHooks";
 
 type DestinationTestModalProps = {

@@ -1,8 +1,8 @@
-import { DestinationStatus } from "../data";
+import { StatusType } from "@/handlers/destinations/type";
 
-export const statusBadgeColor = (status: DestinationStatus) => {
+export const statusBadgeColor = (status: StatusType) => {
   if (status === "connected") return "success";
-  if (status === "error") return "error";
+  if (status === "failed") return "error";
   return "dark";
 };
 

@@ -119,6 +119,17 @@ class JobController {
         }
     }
 
+    async getJobList (req, res, next) {
+        try {
+            const jobList = await jobService.getJobList();
+            response.success(res, jobList);
+        } catch (error) {
+            console.log(error);
+            response.error(res, error.message);
+            next(error);
+        }
+    }
+
     async runJobNow(req, res, next) {
         try {
             const jobId = req.params.id;

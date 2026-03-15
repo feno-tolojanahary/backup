@@ -51,7 +51,7 @@ export default function DestinationCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge size="sm" color={statusBadgeColor(destination?.status || "error")}>
+          <Badge size="sm" color={statusBadgeColor(destination?.status || "failed")}>
             {destination.status}
           </Badge>
           <div className="relative">
