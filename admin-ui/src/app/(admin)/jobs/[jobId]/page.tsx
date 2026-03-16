@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import React from "react";
-import JobDetailPageClient from "../JobDetailPageClient";
+import JobDetailPageClient from "../components/JobDetailPageClient";
 import { jobs } from "../data";
 
 export const metadata: Metadata = {

@@ -13,7 +13,8 @@ export async function getSources(): Promise<Source[]> {
         throw new Error(text || "Failed to get sources.");
     }
 
-    return res.json();
+    const data = (await res.json()).data;
+    return data;
 }
 
 export async function createSource(url: string, { arg }: { arg: CreateSourcePayload }): Promise<any> {
@@ -23,7 +24,8 @@ export async function createSource(url: string, { arg }: { arg: CreateSourcePayl
         throw new Error(text || "Error creating ressource");
     }
     
-    return res.json();
+    const data = (await res.json()).data;
+    return data;
 }
 
 export async function updateSource(url: string, { arg }: { arg: { id: string, payload: UpdateSourcePayload }}): Promise<any> {
@@ -32,7 +34,8 @@ export async function updateSource(url: string, { arg }: { arg: { id: string, pa
         const text = await res.text();
         throw new Error(text || "Error updating source");
     }
-    return res.json()
+    const data = (await res.json()).data;
+    return data;
 }
 
 export async function deleteSource(url: string, { arg }: { arg: { id: string } }) : Promise<any> {
@@ -41,7 +44,8 @@ export async function deleteSource(url: string, { arg }: { arg: { id: string } }
         const text = await res.text();
         throw new Error(text || "Error delete source.");
     }
-    return res.json();
+    const data = (await res.json()).data;
+    return data;
 }
 
 export async function testSourceConnection(source: SourceConfig): Promise<SourceConfig> {

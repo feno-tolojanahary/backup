@@ -7,15 +7,20 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
-import { jobs, JobStatus } from "./data";
+import { useJobList } from "@/handlers/jobs/jobHooks";
+import { useSources } from "@/handlers/sources/sourcesHooks";
+import { useListDestinations } from "@/handlers/destinations/destinationHooks";
+import JobTable from "./table/JobTable";
 
 export default function JobsPageClient() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [scheduleFilter, setScheduleFilter] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState(25);
-  const [page, setPage] = useState(1);
+  const [sourceFilter, setSourceFilter] = useState("");
+  const [destinationFilter, setDestinationFilter] = useState("");
 
+  const { data: jobs, isLoading } = useJobList();
+  const { sources } = useSources();
+  const { data: destinations } = useListDestinations();
+  
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       if (
@@ -24,35 +29,22 @@ export default function JobsPageClient() {
       ) {
         return false;
       }
-      if (statusFilter === "enabled" && !job.enabled) return false;
-      if (statusFilter === "disabled" && job.enabled) return false;
-      if (statusFilter === "running" && job.lastStatus !== "running")
-        return false;
-      if (scheduleFilter && job.scheduleType !== scheduleFilter)
-        return false;
+
+      if (sourceFilter && job.source?.name !== sourceFilter) return false;
+      if (destinationFilter) {
+        if (!job.destinations?.find(({name}) => name === destinationFilter))
+          return false;
+      }
+      
       return true;
     });
-  }, [search, statusFilter, scheduleFilter]);
+  }, [search, sourceFilter, destinationFilter]);
 
-  const sortedJobs = useMemo(() => {
-    return [...filteredJobs].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [filteredJobs]);
+  const sourceList = useMemo(() => {
+    return sources.map(({id, name}) => ({ value: id, label: name }))
+  }, [sources])
 
-  const totalPages = Math.max(1, Math.ceil(sortedJobs.length / itemsPerPage));
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
-
-  const pagedJobs = useMemo(() => {
-    const start = (page - 1) * itemsPerPage;
-    return sortedJobs.slice(start, start + itemsPerPage);
-  }, [sortedJobs, page, itemsPerPage]);
+  const destinationList = useMemo(() => destinations.map(({ id, name }) => ({ value: id, label: name })), [destinations])
 
   return (
     <div>
@@ -73,54 +65,35 @@ export default function JobsPageClient() {
                   defaultValue={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
-                    setPage(1);
                   }}
                 />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Status
+                  Source
                 </label>
                 <Select
-                  options={[
-                    { value: "enabled", label: "enabled" },
-                    { value: "disabled", label: "disabled" },
-                    { value: "running", label: "running" },
-                  ]}
-                  placeholder="All status"
+                  options={sourceList}
+                  placeholder="Source"
                   onChange={(value) => {
-                    setStatusFilter(value);
-                    setPage(1);
+                    setSourceFilter(value);
                   }}
                 />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Schedule type
+                  Target
                 </label>
                 <Select
-                  options={[
-                    { value: "interval", label: "interval" },
-                    { value: "cron", label: "cron" },
-                    { value: "manual", label: "manual" },
-                  ]}
-                  placeholder="All schedules"
+                  options={destinationList}
+                  placeholder="Destination"
                   onChange={(value) => {
-                    setScheduleFilter(value);
-                    setPage(1);
+                    setDestinationFilter(value);
                   }}
                 />
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                type="button"
-                onClick={() => console.log("Refresh jobs")}
-              >
-                Refresh
-              </Button>
               <Link href="/jobs/new">
                 <Button size="sm" type="button">
                   Create Job
@@ -131,55 +104,11 @@ export default function JobsPageClient() {
 
           <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
-              
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Items per page
-              </span>
-              <div className="w-28">
-                <Select
-                  options={[
-                    { value: "25", label: "25" },
-                    { value: "50", label: "50" },
-                    { value: "100", label: "100" },
-                  ]}
-                  placeholder={`${itemsPerPage}`}
-                  onChange={(value) => {
-                    setItemsPerPage(Number(value));
-                    setPage(1);
-                  }}
-                  defaultValue={`${itemsPerPage}`}
+                <JobTable 
+                  filteredJobs={filteredJobs}                 
                 />
-              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                type="button"
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                disabled={page === 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Page {page} of {totalPages}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                type="button"
-                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={page === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          </div>         
         </ComponentCard>
       </div>
     </div>

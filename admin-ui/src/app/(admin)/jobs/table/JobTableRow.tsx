@@ -8,9 +8,13 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Job, JobStatus } from "@/handlers/jobs/type";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/context/ToastContext";
+import { runJob } from "@/handlers/jobs/jobHooks";
 
 type TableRowProps = {
     job: Job;
+    handleDelete: (job: Job) => void;
 }
 
 // const statusBadgeColor = (status: JobStatus) => {
@@ -20,15 +24,26 @@ type TableRowProps = {
 //   return "dark";
 // };
 
-export default function TableRaw({ job }: TableRowProps) {
+export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
     const [openMenu, setOpenMenu] = useState(false);
+    const router = useRouter();
+    const { toastSuccess, toastError } = useToast();
 
     const toggleEnableJob = async (checked: boolean) => {
 
     }
 
     const runJobNow = async () => {
+        try {  
+            const res = await runJob(job.id);
+            toastSuccess("Running job with success.")
+        } catch (error: any) {
+            console.log("Error run job: ", error.message)
+        }
+    }
 
+    const handleEditJob = () => {
+        router.push(`/jobs/${job.id}/edit`);
     }
     
     return (
@@ -96,9 +111,10 @@ export default function TableRaw({ job }: TableRowProps) {
                             Run job now
                         </DropdownItem>
                         <DropdownItem
-                            tag="a"
-                            href={`/jobs/${job.id}/edit`}
-                            onItemClick={() => setOpenMenu(false)}
+                            onItemClick={() => {
+                                handleEditJob();
+                                setOpenMenu(false)
+                            }}
                             className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                         >
                             Edit job
@@ -106,7 +122,7 @@ export default function TableRaw({ job }: TableRowProps) {
                         <DropdownItem
                             onItemClick={() => {
                                 setOpenMenu(false);
-                                console.log("Delete job", job.id);
+                                handleDelete(job)
                             }}
                             className="flex w-full font-normal text-left text-error-600 rounded-lg hover:bg-error-50 hover:text-error-700 dark:text-error-400 dark:hover:bg-white/5"
                         >

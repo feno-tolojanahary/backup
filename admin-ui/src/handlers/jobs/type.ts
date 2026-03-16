@@ -1,4 +1,4 @@
-import { Source } from "../sources/type"
+    import { Source } from "../sources/type"
 import { Destination } from "../destinations/type";
 
 export type JobStatus = "success" | "failed" | "running" | "canceled";
@@ -20,24 +20,25 @@ export type Job = {
     status: string;
     scheduleType: string;
     scheduleValue: string;
-    useEncryption: Boolean;
+    isEncrypted: boolean;
     createdBy?: number;
     createdAt?: string;
     lastRun?: string;
     updatedAt?: string;
     destinations?: DestinationJob[];
-    source?: Source;
-    retentionDays?: string;
+    source?: SourceJob;
+    retentionDays?: number;
 }
 
 export type JobRun = {
     id: number;
     jobId: number;
     status: string;
-    startAt: string;
+    startedAt: string;
     finishedAt: string;
     errorCode?: string;
     errorMessage?: string;
+    duration?: number;
     createdAt?: string;
 }
 
@@ -47,23 +48,24 @@ export type CreateJobPayload = {
     status: string;
     scheduleType: string;
     scheduleValue: string;
-    createdBy: number;
-    source: number;
-    destinations: number[];
-    type: string;
-    useEncryption: boolean;
-    retentionDays?: string;
+    createdBy: string;
+    source: string;
+    destinations: string[];
+    isEncrypted: boolean;
+    retentionDays?: number;
 }
 
 export type UpdateJobPayload = {
     name?: string;
     isEnable?: boolean;
     status?: string;
+    source?: string,
+    destinations?: string[];
     scheduleType?: string;
     scheduleValue?: string;
-    createdBy?: number;
-    useEncryption?: boolean;
-    retentionDays?: string;
+    createdBy?: string;
+    isEncrypted?: boolean;
+    retentionDays?: number;
 }
 
 export type JobDetail = {
@@ -73,7 +75,7 @@ export type JobDetail = {
     scheduleType: string;
     scheduleValue: string;
     createdBy?: number;
-    useEncryption: boolean;
+    isEncrypted: boolean;
     source: Source;
     destinations: Destination[];
  }

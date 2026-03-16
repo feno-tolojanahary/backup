@@ -24,7 +24,7 @@ export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, Update
         const { data, error, isLoading } = useSWR<Entity[]>(url, service.getList);
 
         return {
-            data: data,
+            data: data || [],
             isLoading,
             error
         }

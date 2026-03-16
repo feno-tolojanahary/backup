@@ -30,6 +30,7 @@
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.71.2",
+    "react-select": "^5.10.2",
     "swiper": "^11.2.10",
     "tailwind-merge": "^2.6.0"
   },

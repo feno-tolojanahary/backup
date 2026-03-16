@@ -3,7 +3,7 @@ import createRessourceService from "../utils/ressourceService";
 import { fetchJson } from "../utils/utils";
 import { CreateJobPayload, Job, JobDetail, UpdateJobPayload } from "./type";
 
-const baseUrl = "/payloads";
+const baseUrl = "/jobs";
 
 const { create, update, deleteById, getList } = createRessourceService<Job, CreateJobPayload, UpdateJobPayload>(baseUrl);
 
@@ -30,3 +30,4 @@ export async function runJobService(url: string): Promise<RunJobSuccess> {
     const res = await api.post(url);
     return res.data;
 }
+

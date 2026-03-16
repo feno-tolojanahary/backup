@@ -143,6 +143,16 @@ class JobController {
             next(error);
         }
     }
+
+    async getJobRunList(req, res, next) {
+        try {
+            
+        } catch (error) {
+            console.log(error);
+            response.error(res, { success: false });
+            next(error);
+        }
+    }
 }
 
 module.exports = new JobController();

@@ -402,7 +402,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                     control={control}
                     render={({ field }) => (
                       <Select
-                      options={authMethodOptions}
+                        options={authMethodOptions}
                         value={field.value}
                         onChange={field.onChange}
                         onBlur={field.onBlur}
