@@ -9,7 +9,7 @@ export interface Option {
 interface SelectProps {
   options: Option[];
   placeholder?: string;
-  onChange?: (value: string | string[] | null) => void;
+  onChange?: (value: string) => void;
   onChangeOption?: (valueOption: Option | Option[] | null) => void;
   onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
   className?: string;

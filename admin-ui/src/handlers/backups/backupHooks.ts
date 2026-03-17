@@ -10,15 +10,15 @@ const baseUrl = "/backups";
 export function useBackupList() {
     const { data, error, isLoading } = useSWR<Backup[]>(baseUrl, fetcher);
     return {
-        data,
+        data: data || [],
         error,
         isLoading
     }
 }
 
 export function useDeleteBackup() {
-    const { trigger, error, isMutating } = useSWRMutation<Backup, Error, string, { id: string }>(baseUrl, deleteBackup);
-    async function deleteById(id: string) {
+    const { trigger, error, isMutating } = useSWRMutation<Backup, Error, string, { id: number }>(baseUrl, deleteBackup);
+    async function deleteById(id: number) {
         const result = await trigger({id});
         mutate(baseUrl);
         return result;

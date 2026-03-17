@@ -1,4 +1,3 @@
-import React from "react";
 import Badge from "@/components/ui/badge/Badge";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
@@ -10,16 +9,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BackupRecord, BackupStatus } from "./BackupsTypes";
+import { BackupStatus } from "./BackupsTypes";
+import { Backup } from "@/handlers/backups/type";
+import moment from "moment";
 
 type BackupsTableProps = {
-  pagedBackups: BackupRecord[];
-  openMenuId: string | null;
-  setOpenMenuId: (value: string | null) => void;
-  onOpenDetails: (backup: BackupRecord) => void;
-  onOpenDelete: (backup: BackupRecord) => void;
-  onRestore: (backup: BackupRecord) => void;
-  onDownload: (backup: BackupRecord) => void;
+  pagedBackups: Backup[];
+  openMenuId: number | null;
+  setOpenMenuId: (value: number | null) => void;
+  onOpenDetails: (backup: Backup) => void;
+  onOpenDelete: (backup: Backup) => void;
+  onRestore: (backup: Backup) => void;
+  onDownload: (backup: Backup) => void;
   statusBadgeColor: (status: BackupStatus) => "success" | "error" | "dark";
 };
 
@@ -105,11 +106,11 @@ export default function BackupsTable({
                   <TableRow key={backup.id}>
                     <TableCell className="px-5 py-4 text-gray-700 text-theme-sm dark:text-gray-300">
                       <div className="font-medium text-gray-800 dark:text-white/90">
-                        {backup.uid}
+                        {backup.backupUid}
                       </div>
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
-                      {backup.job}
+                      {backup.job?.name}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
                       <Badge size="sm" color={statusBadgeColor(backup.status)}>
@@ -120,13 +121,13 @@ export default function BackupsTable({
                       {backup.size}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
-                      {backup.files}
+                      {backup.files ? backup.files.map(({ storagePath }) => storagePath).join(", ") : "-"}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
                       {backup.storage}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
-                      {new Date(backup.createdAt).toLocaleString()}
+                      {moment(backup.createdAt).format("YYYY-MM-DD hh:mm")}
                     </TableCell>
                     <TableCell className="px-5 py-4">
                       <div className="relative inline-flex">

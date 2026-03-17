@@ -13,7 +13,7 @@ class BackupController {
             const userId = req.params.userId;
             if (!userId) 
                 throw new Error("userId is required on params");
-            const result = await backupService.findBackups({userId});
+            const result = await backupService.getBackups({userId});
             if (result.success !== true) 
                 throw new Error(result.message);
             response.success(res, result);

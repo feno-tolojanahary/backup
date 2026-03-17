@@ -1,3 +1,9 @@
+export type BackupStatus = "completed" | "failed" | "archived";
+
+export type JobBackup = {
+    id: number;
+    name: string;
+}
 
 export type BackupFile = {
     id: number;
@@ -15,10 +21,14 @@ export type Backup = {
     name: string;
     backupUid: string;
     userId: number; 
-    status: string;
+    status: BackupStatus;
     lastSynced?: string;
     storage: string;
     storageConf: string;
-    jobId: string;
+    jobId: number;
+    size: number;
     files: BackupFile[];
+    isEncrypted: boolean;
+    job: JobBackup;
+    createdAt: string;
 }

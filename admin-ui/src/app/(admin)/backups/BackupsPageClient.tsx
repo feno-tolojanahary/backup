@@ -9,72 +9,18 @@ import BackupsTable from "./components/BackupsTable";
 import BackupsPagination from "./components/BackupsPagination";
 import BackupDetailsModal from "./components/BackupDetailsModal";
 import BackupDeleteModal from "./components/BackupDeleteModal";
-import { BackupRecord, statusBadgeColor } from "./components/BackupsTypes";
+import { statusBadgeColor } from "./components/BackupsTypes";
+import { useBackupList } from "@/handlers/backups/backupHooks";
+import { Backup } from "@/handlers/backups/type";
+import { useJobList } from "@/handlers/jobs/jobHooks";
 
-const backups: BackupRecord[] = [
-  {
-    id: "1",
-    uid: "bkp_2026_03_04_0001",
-    job: "mongodb-prod",
-    status: "completed",
-    size: "3.2 GB",
-    files: 1284,
-    storage: "s3",
-    createdAt: "2026-03-04T09:12:00Z",
-    encryption: "AES-256",
-    fileList: [
-      { path: "/var/lib/mongo/oplog.bson", size: "1.3 GB" },
-      { path: "/var/lib/mongo/metadata.json", size: "12 KB" },
-      { path: "/var/lib/mongo/data.tar", size: "1.9 GB" },
-    ],
-  },
-  {
-    id: "2",
-    uid: "bkp_2026_03_03_0042",
-    job: "postgres-app",
-    status: "completed",
-    size: "820 MB",
-    files: 412,
-    storage: "local",
-    createdAt: "2026-03-03T22:10:00Z",
-    encryption: "None",
-    fileList: [
-      { path: "/db/pg_base.tar", size: "780 MB" },
-      { path: "/db/pg_wal.tar", size: "40 MB" },
-    ],
-  },
-  {
-    id: "3",
-    uid: "bkp_2026_03_03_0007",
-    job: "files-backup",
-    status: "failed",
-    size: "0 B",
-    files: 0,
-    storage: "sftp",
-    createdAt: "2026-03-03T06:30:00Z",
-    encryption: "AES-256",
-    fileList: [{ path: "/var/data", size: "-" }],
-  },
-  {
-    id: "4",
-    uid: "bkp_2026_03_02_0018",
-    job: "mongodb-prod",
-    status: "archived",
-    size: "3.1 GB",
-    files: 1202,
-    storage: "s3",
-    createdAt: "2026-03-02T04:05:00Z",
-    encryption: "AES-256",
-    fileList: [
-      { path: "/var/lib/mongo/oplog.bson", size: "1.2 GB" },
-      { path: "/var/lib/mongo/data.tar", size: "1.9 GB" },
-    ],
-  },
-];
 
 export default function BackupsPageClient() {
   const detailsModal = useModal();
   const deleteModal = useModal();
+
+  const { data: backups } = useBackupList();
+  const { data: jobs } = useJobList();
 
   const [search, setSearch] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -83,26 +29,25 @@ export default function BackupsPageClient() {
   const [dateTo, setDateTo] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [page, setPage] = useState(1);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [selectedBackup, setSelectedBackup] = useState<BackupRecord | null>(
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [selectedBackup, setSelectedBackup] = useState<Backup | null>(
     null
   );
-  const [deleteTarget, setDeleteTarget] = useState<BackupRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Backup | null>(null);
 
   const jobOptions = useMemo(() => {
-    const uniqueJobs = Array.from(new Set(backups.map((item) => item.job)));
-    return uniqueJobs.map((job) => ({ value: job, label: job }));
-  }, []);
+    return jobs.map((job) => ({ label: job.name, value: `${job.id}` }));
+  }, [jobs]);
 
   const filteredBackups = useMemo(() => {
     return backups.filter((backup) => {
       if (
         search &&
-        !backup.uid.toLowerCase().includes(search.toLowerCase().trim())
+        !backup.name.toLowerCase().includes(search.toLowerCase().trim())
       ) {
         return false;
       }
-      if (jobFilter && backup.job !== jobFilter) {
+      if (jobFilter && `${backup.jobId}` !== jobFilter) {
         return false;
       }
       if (statusFilter && backup.status !== statusFilter) {
@@ -144,21 +89,14 @@ export default function BackupsPageClient() {
     return sortedBackups.slice(start, start + itemsPerPage);
   }, [sortedBackups, page, itemsPerPage]);
 
-  const openDetails = (backup: BackupRecord) => {
+  const openDetails = (backup: Backup) => {
     setSelectedBackup(backup);
     detailsModal.openModal();
   };
 
-  const openDeleteConfirm = (backup: BackupRecord) => {
+  const openDeleteConfirm = (backup: Backup) => {
     setDeleteTarget(backup);
     deleteModal.openModal();
-  };
-
-  const handleDelete = () => {
-    if (deleteTarget) {
-      console.log("Delete backup", deleteTarget.uid);
-    }
-    deleteModal.closeModal();
   };
 
   return (
@@ -190,10 +128,10 @@ export default function BackupsPageClient() {
             onOpenDetails={openDetails}
             onOpenDelete={openDeleteConfirm}
             onRestore={(backup) =>
-              console.log("Restore backup", backup.uid)
+              console.log("Restore backup", backup.backupUid)
             }
             onDownload={(backup) =>
-              console.log("Download backup", backup.uid)
+              console.log("Download backup", backup.backupUid)
             }
             statusBadgeColor={statusBadgeColor}
           />
@@ -222,7 +160,6 @@ export default function BackupsPageClient() {
       <BackupDeleteModal
         isOpen={deleteModal.isOpen}
         onClose={deleteModal.closeModal}
-        onConfirm={handleDelete}
         deleteTarget={deleteTarget}
       />
     </div>
