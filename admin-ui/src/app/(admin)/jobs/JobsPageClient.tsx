@@ -15,7 +15,7 @@ import JobTable from "./table/JobTable";
 export default function JobsPageClient() {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
-  const [destinationFilter, setDestinationFilter] = useState("");
+  const [destinationFilter, setDestinationFilter] = useState<string[]>([]);
 
   const { data: jobs, isLoading } = useJobList();
   const { sources } = useSources();
@@ -31,8 +31,8 @@ export default function JobsPageClient() {
       }
 
       if (sourceFilter && job.source?.name !== sourceFilter) return false;
-      if (destinationFilter) {
-        if (!job.destinations?.find(({name}) => name === destinationFilter))
+      if (destinationFilter.length > 0) {
+        if (!job.destinations?.find(({name}) => destinationFilter.includes(name)))
           return false;
       }
       
@@ -76,7 +76,7 @@ export default function JobsPageClient() {
                   options={sourceList}
                   placeholder="Source"
                   onChange={(value) => {
-                    setSourceFilter(value);
+                    setSourceFilter(value as string);
                   }}
                 />
               </div>
@@ -88,7 +88,7 @@ export default function JobsPageClient() {
                   options={destinationList}
                   placeholder="Destination"
                   onChange={(value) => {
-                    setDestinationFilter(value);
+                    setDestinationFilter(value as string[]);
                   }}
                 />
               </div>

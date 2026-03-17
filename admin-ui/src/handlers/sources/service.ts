@@ -28,7 +28,7 @@ export async function createSource(url: string, { arg }: { arg: CreateSourcePayl
     return data;
 }
 
-export async function updateSource(url: string, { arg }: { arg: { id: string, payload: UpdateSourcePayload }}): Promise<any> {
+export async function updateSource(url: string, { arg }: { arg: { id: number, payload: UpdateSourcePayload }}): Promise<any> {
     const res = await callFetch(`${url}/${arg.id}`, "PUT", arg.payload);
     if (!res.ok) {
         const text = await res.text();
@@ -38,7 +38,7 @@ export async function updateSource(url: string, { arg }: { arg: { id: string, pa
     return data;
 }
 
-export async function deleteSource(url: string, { arg }: { arg: { id: string } }) : Promise<any> {
+export async function deleteSource(url: string, { arg }: { arg: { id: number } }) : Promise<any> {
     const res = await callFetch(`${url}/${arg.id}`, "DELETE");
     if (!res.ok) {
         const text = await res.text();
@@ -50,5 +50,10 @@ export async function deleteSource(url: string, { arg }: { arg: { id: string } }
 
 export async function testSourceConnection(source: SourceConfig): Promise<SourceConfig> {
     const res = await api.post(`${BASE_URL}`, source);
+    return res.data;
+}
+
+export async function getApi<Entity>(url: string): Promise<Entity[]> {
+    const res = await api.get(url)
     return res.data;
 }

@@ -1,7 +1,7 @@
 import api from "../globalAxios";
 import createRessourceService from "../utils/ressourceService";
 import { fetchJson } from "../utils/utils";
-import { CreateJobPayload, Job, JobDetail, UpdateJobPayload } from "./type";
+import { CreateJobPayload, Job, JobDetail, JobRun, UpdateJobPayload } from "./type";
 
 const baseUrl = "/jobs";
 
@@ -31,3 +31,7 @@ export async function runJobService(url: string): Promise<RunJobSuccess> {
     return res.data;
 }
 
+export async function getJobRuns(url: string): Promise<JobRun[]> {
+    const res = await api.get(url);
+    return res.data;
+}

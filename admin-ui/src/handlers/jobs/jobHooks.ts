@@ -1,10 +1,11 @@
 import useSWR, { mutate } from "swr";
 import { createCrudHooks } from "../utils/crudHooks";
-import { createJob, deleteJob, getDetail, getListJob, runJobService, updateJob } from "./jobService";
-import { CreateJobPayload, Job, JobDetail, UpdateJobPayload } from "./type";
-
+import { createJob, deleteJob, getDetail, getJobRuns, getListJob, runJobService, updateJob } from "./jobService";
+import { CreateJobPayload, Job, JobDetail, JobRun, UpdateJobPayload } from "./type";
+import { useToast } from "@/context/ToastContext";
 
 const baseUrl = "/jobs";
+const jobRunUrl = "/jobs/job-runs";
 
 const crud = createCrudHooks<Job, CreateJobPayload, UpdateJobPayload>(baseUrl, {
     create: createJob,
@@ -30,14 +31,35 @@ export function useDetail(id: string) {
     }
 }
 
-export async function runJob(id: number) {
-    try {
-    mutate(baseUrl, 
-            (jobs?: any[]) => jobs?.map((job) => job.id === id ? ({...job, status: "running"}) : job)
-        )
-        const res = await runJobService(`${baseUrl}/${id?.toString()}`);
-        mutate(baseUrl);
-    } catch (error: any) {
-        console.log("Error running job: ", error.message);
+export function useRunJob() {
+    const { toastError, toastSuccess } = useToast();
+
+    const runJob = async (id: number) => {
+        try {
+            mutate(baseUrl, 
+                (jobs?: any[]) => jobs?.map((job) => job.id === id ? ({...job, status: "running"}) : job)
+            )
+            const res = await runJobService(`${baseUrl}/${id?.toString()}`);
+            mutate(baseUrl);
+            toastSuccess("Running job with success.")
+        } catch (error: any) {
+            console.log("Error running job: ", error.message);
+            toastError();
+        }
+    }
+
+    return {
+        runJob
+    }
+}
+
+
+export function useJobRun(jobId: number) {
+    const { data, isLoading, error, mutate } = useSWR<JobRun[]>(jobId ? `${jobRunUrl}/${jobId}` : null, getJobRuns);
+    return {
+        jobRuns: data || [],
+        isLoading,
+        error,
+        refresh: mutate
     }
 }

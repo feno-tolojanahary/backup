@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -12,7 +12,6 @@ import JobTableRaw from "./JobTableRow";
 
 type JobTableProps = {
   filteredJobs: Job[];
-  handleEdit: (job: Job) => void;
 }
 
 export default function JobTable({
@@ -25,7 +24,7 @@ export default function JobTable({
     setDeleteJob(job);
     setIsOpenDeleteJob(true);
   }
-  
+
   return (
     <div className="min-w-[1100px]">
       <Table>

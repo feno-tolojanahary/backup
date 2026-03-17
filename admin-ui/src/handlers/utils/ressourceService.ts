@@ -24,7 +24,7 @@ export default function createRessourceService<Entity, CreateEntityPayload = Par
         return res.json();
     }
     
-    async function update(url: string, { arg }: { arg: { id: string, payload: UpdateEntityPayload } }): Promise<any> {
+    async function update(url: string, { arg }: { arg: { id: number, payload: UpdateEntityPayload } }): Promise<any> {
         const res = await callFetch(`${url}/${arg.id}`, "PUT", arg.payload);
         if (!res.ok) {
             const text = await res.text();
@@ -33,7 +33,7 @@ export default function createRessourceService<Entity, CreateEntityPayload = Par
         return res.json()
     }
     
-    async function deleteById(url: string, { arg }: { arg: { id: string } }): Promise<any> {
+    async function deleteById(url: string, { arg }: { arg: { id: number } }): Promise<any> {
         const res = await callFetch(`${url}/${arg.id}`, "DELETE");
         if (!res.ok) {
             const text = await res.text();

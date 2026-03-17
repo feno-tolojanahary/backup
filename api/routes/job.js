@@ -12,4 +12,6 @@ router.route(':id')
     .get(jobController.getJobDetail)
     .post(jobController.runJobNow);
 
+router.get("/job-runs/:jobId", jobController.getJobRunList);
+
 module.exports = router;

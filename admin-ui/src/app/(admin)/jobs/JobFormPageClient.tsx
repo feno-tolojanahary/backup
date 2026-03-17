@@ -82,7 +82,7 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
     const payload = formatJob(values);
     if (job?.id) {
       try {
-        const res = await update(job.id.toString(), payload as UpdateJobPayload);
+        const res = await update(job.id, payload as UpdateJobPayload);
         if (!res)
           throw new Error("No response.");
         toastSuccess("Job saved with success.");

@@ -1,11 +1,17 @@
-    import { Source } from "../sources/type"
+import { Source } from "../sources/type"
 import { Destination } from "../destinations/type";
 
 export type JobStatus = "success" | "failed" | "running" | "canceled";
+export type JobRunStatus = "success" | "failed" | "canceled" | "running";
 
 export type DestinationJob = {
     id: string;
     name: string;
+}
+
+type LastJobRun = {
+    finishedAt: string;
+    status: JobRunStatus;
 }
 
 export type SourceJob = {
@@ -23,7 +29,7 @@ export type Job = {
     isEncrypted: boolean;
     createdBy?: number;
     createdAt?: string;
-    lastRun?: string;
+    lastJobRun?: LastJobRun;
     updatedAt?: string;
     destinations?: DestinationJob[];
     source?: SourceJob;
@@ -33,13 +39,14 @@ export type Job = {
 export type JobRun = {
     id: number;
     jobId: number;
-    status: string;
+    status: JobRunStatus;
     startedAt: string;
     finishedAt: string;
     errorCode?: string;
     errorMessage?: string;
     duration?: number;
     createdAt?: string;
+    backupCount: number;
 }
 
 export type CreateJobPayload = {

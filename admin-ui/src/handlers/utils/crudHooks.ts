@@ -3,12 +3,12 @@ import useSWR, { mutate } from "swr";
 import useSWRMutation from "swr/mutation";
 
 type UpdateArgs<T> = {
-    id: string,
+    id: number,
     payload: T
 }
 
 type DeleteArgs = {
-    id: string
+    id: number
 }
 
 export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, UpdatePayload = Partial<Entity>> (
@@ -16,7 +16,7 @@ export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, Update
     service: {
         create: (url: string, { arg }: { arg: { payload: CreatePayload }}) => Promise<any>,
         update: (url: string, { arg }: { arg: UpdateArgs<UpdatePayload> }) => Promise<any>,
-        delete: (url: string, { arg }: { arg: { id: string } }) => Promise<any>,
+        delete: (url: string, { arg }: { arg: { id: number } }) => Promise<any>,
         getList: (url: string, { arg }: { arg: { query: any } }) => Promise<any>
     }
 ) {
@@ -47,7 +47,7 @@ export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, Update
     
     function useUpdate() {
         const { trigger, isMutating, error } = useSWRMutation<Entity, Error, string, UpdateArgs<UpdatePayload>>(url, service.update);
-        async function update(id: string, payload: UpdatePayload) {
+        async function update(id: number, payload: UpdatePayload) {
             const result = await trigger({ id, payload });
             mutate(url);
             return result;
@@ -62,7 +62,7 @@ export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, Update
 
     function useDelete() {
         const { trigger, isMutating, error } = useSWRMutation<Entity, Error, string, DeleteArgs>(url, service.delete);
-        async function deleteEntity(id: string) {
+        async function deleteEntity(id: number) {
             const result = await trigger({id});
             mutate(url);
             return result;

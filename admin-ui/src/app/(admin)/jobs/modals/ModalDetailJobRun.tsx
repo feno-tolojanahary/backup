@@ -2,14 +2,15 @@
 
 import Badge from "@/components/ui/badge/Badge";
 import { Modal } from "@/components/ui/modal";
-import {
-  Table,
+// import {
+//   Table,
 //   TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+//   TableCell,
+//   TableHeader,
+//   TableRow,
+// } from "@/components/ui/table";
 import { Job, JobRun } from "@/handlers/jobs/type";
+import moment from "moment";
 
 type RunStatus = JobRun["status"];
 
@@ -17,18 +18,8 @@ const statusBadgeColor = (status: RunStatus) => {
   if (status === "success") return "success";
   if (status === "failed") return "error";
   if (status === "running") return "info";
-  if (status === "pending") return "dark";
+  // if (status === "pending") return "dark";
   return "warning";
-};
-
-const formatDateTime = (value: string) => {
-  if (!value || value === "-") return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const pad = (num: number) => num.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
 
 type ModalPropsType = { 
@@ -68,11 +59,11 @@ export default function ModalDetailJobRun({ job, selectedRun, isOpen, onClose }:
               </div>
               <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Started At</p>
-                <p className="mt-1 text-sm font-medium text-gray-800 dark:text-white/90">{formatDateTime(selectedRun.startedAt)}</p>
+                <p className="mt-1 text-sm font-medium text-gray-800 dark:text-white/90">{moment(selectedRun.startedAt).format("YYYY-MM-DD hh:mm")}</p>
               </div>
               <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Finished At</p>
-                <p className="mt-1 text-sm font-medium text-gray-800 dark:text-white/90">{formatDateTime(selectedRun.finishedAt)}</p>
+                <p className="mt-1 text-sm font-medium text-gray-800 dark:text-white/90">{moment(selectedRun.finishedAt).format("YYYY-MM-DD hh:mm")}</p>
               </div>
               <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Duration</p>
@@ -83,7 +74,7 @@ export default function ModalDetailJobRun({ job, selectedRun, isOpen, onClose }:
               <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Error message</p>
               <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{selectedRun.errorMessage ?? "-"}</p>
             </div>
-            <div className="mt-6">
+            {/* <div className="mt-6">
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">Produced Backups</h4>
               <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
                 <div className="max-w-full overflow-x-auto">
@@ -106,7 +97,7 @@ export default function ModalDetailJobRun({ job, selectedRun, isOpen, onClose }:
                         ))}
                       </TableRow>
                     </TableHeader>
-                    {/* <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                    <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                       {selectedRunBackups.length === 0 ? (
                         <TableRow>
                           <TableCell
@@ -134,11 +125,11 @@ export default function ModalDetailJobRun({ job, selectedRun, isOpen, onClose }:
                           </TableRow>
                         ))
                       )}
-                    </TableBody> */}
+                    </TableBody>
                   </Table>
                 </div>
               </div>
-            </div>
+            </div> */}
             {/* <div className="mt-6">
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">Execution Logs</h4>
               <div className="mt-3 h-56 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900">

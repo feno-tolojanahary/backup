@@ -146,7 +146,11 @@ class JobController {
 
     async getJobRunList(req, res, next) {
         try {
-            
+            const jobId = req.params.jobId;
+            if (!jobId) 
+                throw new Error("The jobId in params is required.");
+            const jobRuns = await jobService.getJobRuns({ jobId });
+            response.success(res, jobRuns);
         } catch (error) {
             console.log(error);
             response.error(res, { success: false });

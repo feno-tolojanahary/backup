@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 // import Badge from "@/components/ui/badge/Badge";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
@@ -7,10 +7,11 @@ import {
     TableCell,
     TableRow,
 } from "@/components/ui/table";
-import { Job, JobStatus } from "@/handlers/jobs/type";
+import { Job } from "@/handlers/jobs/type";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
-import { runJob } from "@/handlers/jobs/jobHooks";
+import { useRunJob, useUpdateJob } from "@/handlers/jobs/jobHooks";
+import Switch from "@/components/form/switch/Switch";
 
 type TableRowProps = {
     job: Job;
@@ -27,24 +28,35 @@ type TableRowProps = {
 export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
     const [openMenu, setOpenMenu] = useState(false);
     const router = useRouter();
-    const { toastSuccess, toastError } = useToast();
+    const { toastError } = useToast();
+    const { update } = useUpdateJob();
+    const [isEnable, setIsEnable] = useState(true);
+    const { runJob } = useRunJob();
 
     const toggleEnableJob = async (checked: boolean) => {
-
+        try {
+            const jobUpdate = {
+                isEnable: checked
+            }
+            const res = await update(job.id, jobUpdate);
+        } catch(error: any) {
+            console.log("Error checking job: ", error.message);
+            toastError();
+        }
     }
 
     const runJobNow = async () => {
-        try {  
-            const res = await runJob(job.id);
-            toastSuccess("Running job with success.")
-        } catch (error: any) {
-            console.log("Error run job: ", error.message)
-        }
+        setOpenMenu(false);
+        await runJob(job.id);
     }
 
     const handleEditJob = () => {
         router.push(`/jobs/${job.id}/edit`);
     }
+
+    useEffect(() => {
+        setIsEnable(job?.isEnable);
+    }, [job?.isEnable])
     
     return (
         <TableRow key={job.id}>
@@ -66,15 +78,13 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
                 {job.scheduleType} - {job.scheduleValue}
             </TableCell>
             <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
-                {job.lastRun ? new Date(job.lastRun).toLocaleString() : "-"}
+                {job.lastJobRun?.finishedAt ? new Date(job.lastJobRun.finishedAt).toLocaleString() : "-"}
             </TableCell>
             <TableCell className="px-5 py-4">
                 <Switch
                     label="Enabled"
-                    defaultChecked={job.isEnable}
-                    onChange={(checked: boolean) =>
-                        console.log("Toggle job", job.id, checked)
-                    }
+                    onChange={toggleEnableJob}
+                    checked={isEnable}
                 />
             </TableCell>
             <TableCell className="px-5 py-4">
@@ -102,10 +112,7 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
                             View job
                         </DropdownItem>
                         <DropdownItem
-                            onItemClick={() => {
-                                setOpenMenu(false);
-                                console.log("Run job now", job.id);
-                            }}
+                            onItemClick={runJobNow}
                             className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                         >
                             Run job now
