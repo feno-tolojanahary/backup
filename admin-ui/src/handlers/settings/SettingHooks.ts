@@ -46,7 +46,7 @@ export function useSettingUpsert () {
 export function useSettings() {
     const { data: settings } = useSettingList();
 
-    const getSettingValue = useCallback((key: string): string | boolean | number | null => {
+    const getSettingValue = useCallback((key: string): any => {
         try {
             const foundSetting = settings.find((setting) => setting.key === key);
             return foundSetting?.value ? JSON.parse(foundSetting.value) : null
@@ -56,7 +56,7 @@ export function useSettings() {
     }, [settings])
 
     return {
-        getSetting,
+        getSettingValue,
         settings
     }
 

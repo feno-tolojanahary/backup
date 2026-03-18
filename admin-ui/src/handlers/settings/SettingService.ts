@@ -12,6 +12,6 @@ export const updateSetting = update;
 export const deleteSetting = deleteById;
 
 export async function upsertSetting (url: string, { arg }: { arg: Setting[] }) {
-    const res = await api.post(url, arg.payload);
+    const res = await api.post(url, arg);
     return res.data;
 }

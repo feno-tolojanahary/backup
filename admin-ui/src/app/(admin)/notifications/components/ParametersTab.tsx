@@ -17,14 +17,14 @@ export default function ParametersTab() {
   
   const { toastError, toastSuccess } = useToast();
   const { upsert } = useSettingUpsert();
-  const { settings, getSetting } = useSettings();
+  const { settings, getSettingValue } = useSettings();
 
   useEffect(() => {
       const defaultNotifyTriggers = {
-        completed: getSetting("completed"),
-        backupFailed: getSetting("backupFailed"),
-        jobFailed: getSetting("jobFailed"),
-        storageError: getSetting("storageError")
+        completed: getSettingValue("completed") ?? false,
+        backupFailed: getSettingValue("backupFailed") ?? false,
+        jobFailed: getSettingValue("jobFailed") ?? false,
+        storageError: getSettingValue("storageError") ?? false
       }
       setNotifyTriggers(defaultNotifyTriggers);
   }, [settings]);
