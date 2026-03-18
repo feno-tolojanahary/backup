@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import Button from "@/components/ui/button/Button";
-import CreateNotificationProviderModal from "@/components/notifications/CreateNotificationProviderModal";
+import UpsertNotificationProviderModal from "@/app/(admin)/notifications/modals/UpsertNotificationProviderModal";
 import { useModal } from "@/hooks/useModal";
 import {
   ActionDropdown,
@@ -11,102 +11,43 @@ import {
   StatusBadge,
   statusTone,
 } from "@/app/(admin)/notifications/components/NotificationsShared";
-
-type ProviderStatus = "enabled" | "disabled";
-
-type ProviderRecord = {
-  id: number;
-  name: string;
-  type: string;
-  config: string;
-  status: ProviderStatus;
-  createdAt: string;
-};
-
-const providers: ProviderRecord[] = [
-  {
-    id: 1,
-    name: "Admin Email",
-    type: "email",
-    config: "smtp",
-    status: "enabled",
-    createdAt: "2026-03-01",
-  },
-  {
-    id: 2,
-    name: "Ops Slack",
-    type: "slack",
-    config: "webhook",
-    status: "enabled",
-    createdAt: "2026-03-02",
-  },
-  {
-    id: 3,
-    name: "Monitoring Hook",
-    type: "webhook",
-    config: "http",
-    status: "disabled",
-    createdAt: "2026-03-03",
-  },
-];
-
-const providerDetails: Record<
-  number,
-  {
-    lastUpdated: string;
-    config: {
-      host: string;
-      port: string;
-      username: string;
-      senderEmail: string;
-      password: string;
-    };
-  }
-> = {
-  1: {
-    lastUpdated: "2026-03-08",
-    config: {
-      host: "smtp.company.com",
-      port: "587",
-      username: "alerts@company.com",
-      senderEmail: "backups@company.com",
-      password: "********",
-    },
-  },
-  2: {
-    lastUpdated: "2026-03-07",
-    config: {
-      host: "hooks.slack.com",
-      port: "443",
-      username: "ops-alerts",
-      senderEmail: "masked",
-      password: "********",
-    },
-  },
-  3: {
-    lastUpdated: "2026-03-05",
-    config: {
-      host: "hooks.company.com",
-      port: "443",
-      username: "monitoring-hook",
-      senderEmail: "masked",
-      password: "********",
-    },
-  },
-};
+import { useListNotificationProviders, useUdpateNotificationProvider } from "@/handlers/notifications/notification-providers/notificationProviderHooks";
+import { NotificationProvider } from "@/handlers/notifications/notification-providers/type";
+import { useToast } from "@/context/ToastContext";
+import DeleteNotificationProviderModal from "../modals/DeleteNotificationProviderModal";
 
 export default function ProvidersTab() {
-  const createProviderModal = useModal();
-  const [openProviderMenu, setOpenProviderMenu] = useState<number | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<ProviderRecord | null>(
+  const upsertProviderModal = useModal();
+  const [openProviderMenu, setOpenProviderMenu] = useState<number | string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<NotificationProvider | null>(
     null
   );
   const [providerDrawerOpen, setProviderDrawerOpen] = useState(false);
+  const { data: providers } = useListNotificationProviders();
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
 
-  const openProviderDetails = (provider: ProviderRecord) => {
+  const { toastError } = useToast();
+  
+  const { update: updateProvider } = useUdpateNotificationProvider();
+
+  const openProviderDetails = (provider: NotificationProvider) => {
     setSelectedProvider(provider);
     setProviderDrawerOpen(true);
   };
+
+  const handleToggleEnable = async (provider: NotificationProvider) => {
+    try { 
+      const update = {
+        isEnable: provider.isEnable
+      }
+      const res = await updateProvider(provider.id, update);
+      if (!res)
+        throw new Error("Error when updating provider.");
+    } catch (error: any) {
+      console.log("Error update: ", error.message);
+      toastError();
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -119,7 +60,7 @@ export default function ProvidersTab() {
             Manage delivery channels for alerts and reports.
           </p>
         </div>
-        <Button size="sm" type="button" onClick={createProviderModal.openModal}>
+        <Button size="sm" type="button" onClick={upsertProviderModal.openModal}>
           Add Provider
         </Button>
       </div>
@@ -140,7 +81,7 @@ export default function ProvidersTab() {
             sortable: true,
             render: (row) => (
               <StatusBadge tone={statusTone(row.status)}>
-                {row.status}
+                {row.status === "connected" ? "Connected" : "Disconnected"}
               </StatusBadge>
             ),
           },
@@ -160,15 +101,21 @@ export default function ProvidersTab() {
                   },
                   {
                     label: "Edit provider",
-                    onClick: () => console.log("Edit provider", row.id),
+                    onClick: () => {
+                      setSelectedProvider(row);
+                      upsertProviderModal.openModal();                      
+                    },
                   },
                   {
                     label: row.status === "enabled" ? "Disable" : "Enable",
-                    onClick: () => console.log("Toggle provider", row.id),
+                    onClick: () => handleToggleEnable(row),
                   },
                   {
                     label: "Delete provider",
-                    onClick: () => console.log("Delete provider", row.id),
+                    onClick: () => {
+                      setSelectedProvider(row);
+                      setOpenDeleteModal(true);
+                    },
                     danger: true,
                   },
                 ]}
@@ -214,7 +161,7 @@ export default function ProvidersTab() {
                     Configuration type
                   </p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
-                    {selectedProvider.config}
+                    {selectedProvider.type.toUpperCase()}
                   </p>
                 </div>
                 <div>
@@ -222,7 +169,7 @@ export default function ProvidersTab() {
                     Status
                   </p>
                   <StatusBadge tone={statusTone(selectedProvider.status)}>
-                    {selectedProvider.status}
+                    {selectedProvider.status.toUpperCase()}
                   </StatusBadge>
                 </div>
                 <div>
@@ -233,14 +180,6 @@ export default function ProvidersTab() {
                     {selectedProvider.createdAt}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Last updated
-                  </p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
-                    {providerDetails[selectedProvider.id].lastUpdated}
-                  </p>
-                </div>
               </div>
             </div>
 
@@ -249,7 +188,7 @@ export default function ProvidersTab() {
                 Configuration
               </h4>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {Object.entries(providerDetails[selectedProvider.id].config).map(
+                {Object.entries(selectedProvider.config).map(
                   ([key, value]) => (
                     <div key={key}>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -272,12 +211,18 @@ export default function ProvidersTab() {
         )}
       </DetailDrawer>
 
-      <CreateNotificationProviderModal
-        isOpen={createProviderModal.isOpen}
-        onClose={createProviderModal.closeModal}
+      <UpsertNotificationProviderModal
+        isOpen={upsertProviderModal.isOpen}
+        onClose={upsertProviderModal.closeModal}
+        notificationProvider={selectedProvider}
         onSubmit={(payload) =>
           console.log("Create provider from notifications page", payload)
         }
+      />
+      <DeleteNotificationProviderModal 
+        isOpen={openDeleteModal}
+        onClose={() => {}}
+        deleteNotification={selectedProvider}    
       />
     </div>
   );

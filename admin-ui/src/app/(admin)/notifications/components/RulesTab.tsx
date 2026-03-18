@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Button from "@/components/ui/button/Button";
-import CreateNotificationRuleModal from "@/components/notifications/CreateNotificationRuleModal";
+import CreateNotificationRuleModal from "@/app/(admin)/notifications/modals/CreateNotificationRuleModal";
 import { useModal } from "@/hooks/useModal";
 import {
   ActionDropdown,

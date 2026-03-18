@@ -32,6 +32,30 @@ class SettingController {
         }
     }
 
+    async multiUpsert(req, res, next) {
+        try {
+            if (!req.body || !Array.isArray(req.body))
+                throw new Error("Req body is required and must be an array.")
+            let results = [];
+            for (const setting of req.body) {
+                let result;
+                const foundSetting = await settingService.findByKey(setting.key);
+                if (!foundSetting) {
+                    result = await settingService.insert(setting)
+                } else {
+                    result = await settingService.update(setting.key, req.value)
+                }
+                results.push(result);
+            }
+            response.success(res, result);
+            next();
+        } catch (error) {
+            console.log(error);
+            response.error(res, error.message);
+            next(error);
+        }
+    }
+
     async findAll(req, res, next) {
         try {
             const result = await settingService.findAll();

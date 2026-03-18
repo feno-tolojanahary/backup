@@ -23,7 +23,7 @@ export async function createNotificationProvider(url: string, { arg }: { arg: { 
     return res.json();
 }
 
-export async function updateNotificationProvider(url: string, { arg }: { arg: { id: string, payload: UpdateNotificationProvider } }): Promise<any> {
+export async function updateNotificationProvider(url: string, { arg }: { arg: { id: number, payload: UpdateNotificationProvider } }): Promise<any> {
     const res = await callFetch(`${url}/${arg.id}`, "PUT", arg.payload);
     if (!res.ok) {
         const text = await res.text();
@@ -32,7 +32,7 @@ export async function updateNotificationProvider(url: string, { arg }: { arg: { 
     return res.json()
 }
 
-export async function deleteNotificationProvider(url: string, { arg }: { arg: { id: string } }): Promise<any> {
+export async function deleteNotificationProvider(url: string, { arg }: { arg: { id: number } }): Promise<any> {
     const res = await callFetch(`${url}/${arg.id}`, "DELETE");
     if (!res.ok) {
         const text = await res.text();

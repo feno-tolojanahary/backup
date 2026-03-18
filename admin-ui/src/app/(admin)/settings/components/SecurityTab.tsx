@@ -1,7 +1,7 @@
 import React from "react";
 import Input from "@/components/form/input/InputField";
 import Switch from "@/components/form/switch/Switch";
-import { FieldLabel, SectionCard, TabActions } from "./SettingsShared";
+import { FieldLabel, SectionCard, TabActions } from "../../notifications/components/SettingsShared";
 
 export default function SecurityTab() {
   return (

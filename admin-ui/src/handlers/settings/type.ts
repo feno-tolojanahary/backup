@@ -1,9 +1,9 @@
 
 export type Setting = {
     key: string,
-    value: string,
-    updatedAt: string,
-    createdBy: string
+    value: any,
+    updatedAt?: string,
+    createdBy?: string
 }
 
 export type CreateSettingPayload = {

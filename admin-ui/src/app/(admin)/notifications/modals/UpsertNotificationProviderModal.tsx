@@ -7,44 +7,17 @@ import Select from "@/components/form/Select";
 import Switch from "@/components/form/switch/Switch";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
+import { CreateNotificationProvider, NotificationProvider, ProviderType, SESConfigType, SmtpConfigType, UpdateNotificationProvider } from "@/handlers/notifications/notification-providers/type";
+import { useToast } from "@/context/ToastContext";
+import { useCreateNotificationProvider, useUdpateNotificationProvider } from "@/handlers/notifications/notification-providers/notificationProviderHooks";
 
 type ConfigMethod = "smtp" | "ses";
-type ProviderType = "email";
-type EncryptionType = "none" | "ssl" | "starttls";
 
-type NotificationProviderPayload =
-  | {
-      name: string;
-      type: ProviderType;
-      enabled: boolean;
-      method: "smtp";
-      config: {
-        host: string;
-        port: number;
-        username: string;
-        password: string;
-        senderEmail: string;
-        encryption: EncryptionType;
-      };
-    }
-  | {
-      name: string;
-      type: ProviderType;
-      enabled: boolean;
-      method: "ses";
-      config: {
-        region: string;
-        accessKey: string;
-        secretKey: string;
-        senderEmail: string;
-        configurationSet?: string;
-      };
-    };
-
-type CreateNotificationProviderModalProps = {
+type UpsertNotficationProviderModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit?: (payload: NotificationProviderPayload) => void;
+  onSubmit?: (payload: NotificationProvider) => void;
+  notificationProvider: NotificationProvider | null;
 };
 
 type FormValues = {
@@ -57,12 +30,12 @@ type FormValues = {
   smtpUsername: string;
   smtpPassword: string;
   smtpSenderEmail: string;
-  smtpEncryption: EncryptionType;
+  smtpDestinations: string;
   sesRegion: string;
   sesAccessKey: string;
   sesSecretKey: string;
   sesSenderEmail: string;
-  sesConfigurationSet: string;
+  sesDestinations: string;
 };
 
 const providerTypeOptions = [{ value: "email", label: "Email" }];
@@ -72,58 +45,89 @@ const methodOptions = [
   { value: "ses", label: "SES" },
 ];
 
-const encryptionOptions = [
-  { value: "none", label: "None" },
-  { value: "ssl", label: "SSL" },
-  { value: "starttls", label: "STARTTLS" },
-];
-
 const sesRegionOptions = [
   { value: "us-east-1", label: "us-east-1" },
   { value: "us-west-2", label: "us-west-2" },
   { value: "eu-west-1", label: "eu-west-1" },
 ];
 
-const buildDefaults = (): FormValues => ({
-  name: "",
-  type: "email",
-  enabled: true,
-  method: "smtp",
-  smtpHost: "",
-  smtpPort: "",
-  smtpUsername: "",
-  smtpPassword: "",
-  smtpSenderEmail: "",
-  smtpEncryption: "starttls",
-  sesRegion: "",
-  sesAccessKey: "",
-  sesSecretKey: "",
-  sesSenderEmail: "",
-  sesConfigurationSet: "",
+const buildDefaults = (notificationProvider: NotificationProvider | null): FormValues => ({
+  name: notificationProvider?.name ?? "",
+  type: notificationProvider?.type ?? "smtp",
+  enabled: notificationProvider?.isEnable ?? true,
+  method: notificationProvider?.type ?? "smtp",
+  smtpHost: (notificationProvider?.config as SmtpConfigType)?.host ?? "",
+  smtpPort: (notificationProvider?.config as SmtpConfigType)?.port ?? "",
+  smtpUsername: (notificationProvider?.config as SmtpConfigType)?.username ?? "",
+  smtpPassword: (notificationProvider?.config as SmtpConfigType)?.auth ?? "",
+  smtpSenderEmail: (notificationProvider?.config as SmtpConfigType)?.senderEmail ?? "",
+  smtpDestinations: (notificationProvider?.config as SmtpConfigType)?.destinations?.join(";") ?? "",
+  sesRegion: (notificationProvider?.config as SESConfigType)?.region ?? "",
+  sesAccessKey: (notificationProvider?.config as SESConfigType)?.accessKeyId ?? "",
+  sesSecretKey: (notificationProvider?.config as SESConfigType)?.secretAccessKey ?? "",
+  sesSenderEmail: (notificationProvider?.config as SESConfigType)?.senderEmail ?? "",
+  sesDestinations: (notificationProvider?.config as SESConfigType)?.destinations?.join(";") ?? ""
 });
 
-const CreateNotificationProviderModal: React.FC<
-  CreateNotificationProviderModalProps
-> = ({ isOpen, onClose, onSubmit }) => {
+
+const getPayloadData = (values: FormValues): CreateNotificationProvider | UpdateNotificationProvider => {
+    const defaultVal = {
+      name: values.name,
+      type: values.type,
+      isEnable: values.enabled
+    }
+    if (values.type === "smtp") {
+      return {
+        ...defaultVal,
+        config: {
+          host: values.smtpHost,
+          port: values.smtpPort,
+          username: values.smtpUsername,
+          auth: values.smtpPassword,
+          senderEmail: values.smtpSenderEmail,
+          destinations: values.smtpDestinations.split(";")
+        }
+      }
+    } else {
+      return {
+        ...defaultVal,
+        config: {
+          region: values.sesRegion,
+          accessKeyId: values.sesAccessKey,
+          secretAccessKey: values.sesSecretKey,
+          senderEmail: values.sesSenderEmail,
+          destinations: values.sesDestinations.split(";")
+        }
+      }
+    }
+}
+
+const UpsertNotficationProviderModal: React.FC<
+  UpsertNotficationProviderModalProps
+> = ({ isOpen, onClose, onSubmit, notificationProvider }) => {
   const {
     control,
     register,
     handleSubmit,
     reset,
     watch,
-    formState: { errors },
+    formState: { errors }
   } = useForm<FormValues>({
-    defaultValues: buildDefaults(),
+    defaultValues: buildDefaults(notificationProvider),
     shouldUnregister: true,
   });
 
   const method = watch("method");
   const enabled = watch("enabled");
 
+  const { toastSuccess, toastError } = useToast();
+  const { create: createProvider, isMutating: isLoadingCreate } = useCreateNotificationProvider();
+  const { update: updateProvider, isMutating: isLoadingUpdate } = useUdpateNotificationProvider();
+
   useEffect(() => {
     if (!isOpen) return;
-    reset(buildDefaults());
-  }, [isOpen, reset]);
+    reset(buildDefaults(notificationProvider));
+  }, [isOpen, reset, notificationProvider]);
 
   const requiredFields = useMemo(() => {
     if (method === "smtp") {
@@ -134,46 +138,36 @@ const CreateNotificationProviderModal: React.FC<
         "smtpUsername",
         "smtpPassword",
         "smtpSenderEmail",
-        "smtpEncryption",
       ];
     }
     return ["name", "sesRegion", "sesAccessKey", "sesSecretKey", "sesSenderEmail"];
   }, [method]);
 
-  const onSubmitForm = (values: FormValues) => {
-    const payload: NotificationProviderPayload =
-      values.method === "smtp"
-        ? {
-            name: values.name.trim(),
-            type: values.type,
-            enabled: values.enabled,
-            method: "smtp",
-            config: {
-              host: values.smtpHost.trim(),
-              port: Number(values.smtpPort),
-              username: values.smtpUsername.trim(),
-              password: values.smtpPassword,
-              senderEmail: values.smtpSenderEmail.trim(),
-              encryption: values.smtpEncryption,
-            },
-          }
-        : {
-            name: values.name.trim(),
-            type: values.type,
-            enabled: values.enabled,
-            method: "ses",
-            config: {
-              region: values.sesRegion.trim(),
-              accessKey: values.sesAccessKey.trim(),
-              secretKey: values.sesSecretKey,
-              senderEmail: values.sesSenderEmail.trim(),
-              configurationSet: values.sesConfigurationSet?.trim() || undefined,
-            },
-          };
-
-    onSubmit?.(payload);
-    console.log("Create notification provider payload", payload);
-    onClose();
+  const onSubmitForm = async (values: FormValues) => {
+    const payloadData = getPayloadData(values);
+    if (notificationProvider?.id) {
+      try {
+        const res = await updateProvider(notificationProvider?.id, payloadData as UpdateNotificationProvider)
+        if (!res)
+          throw new Error("no result.");
+        toastSuccess("Notification provider updated.");
+        onClose();
+      } catch (error: any) {
+        console.log("Error update notification: ", error.message)
+        toastError();
+      }
+    } else {
+      try {
+        const result = await createProvider(payloadData as CreateNotificationProvider);
+        if (!result)
+          throw new Error("no result.") 
+        toastSuccess("Notification provider created.");
+        onClose();
+      } catch (error: any) {
+        console.log("Error save notification: ", error.message);
+        toastError();
+      }
+    }
   };
 
   const requiredMarker = (key: string) =>
@@ -357,28 +351,17 @@ const CreateNotificationProviderModal: React.FC<
                   </div>
                   <div>
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Encryption{requiredMarker("smtpEncryption")}
+                      Destination Emails{requiredMarker("smtpDestinations")}
                     </label>
-                    <Controller
-                      name="smtpEncryption"
-                      control={control}
-                      rules={{ required: "Encryption is required." }}
-                      render={({ field }) => (
-                        <Select
-                          options={encryptionOptions}
-                          placeholder="Select encryption"
-                          value={field.value}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                        />
-                      )}
+                    <Input
+                      type="text"
+                      placeholder="email@receiver.com;email2@receiver.com;email3@receiver.com"
+                      {...register("smtpDestinations", {
+                        required: "Sender email is required.",
+                      })}
+                      error={Boolean(errors.smtpDestinations)}
+                      hint={errors.smtpDestinations?.message}
                     />
-                    {errors.smtpEncryption && (
-                      <p className="mt-1.5 text-xs text-error-500">
-                        {errors.smtpEncryption.message}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -456,13 +439,18 @@ const CreateNotificationProviderModal: React.FC<
                       hint={errors.sesSenderEmail?.message}
                     />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Configuration Set
+                      Destination Emails{requiredMarker("sesDestinations")}
                     </label>
                     <Input
-                      placeholder="optional-config-set"
-                      {...register("sesConfigurationSet")}
+                      type="text"
+                      placeholder="email@receiver.com;email2@receiver.com;email3@receiver.com"
+                      {...register("sesDestinations", {
+                        required: "Sender email is required.",
+                      })}
+                      error={Boolean(errors.sesDestinations)}
+                      hint={errors.sesDestinations?.message}
                     />
                   </div>
                 </div>
@@ -475,7 +463,7 @@ const CreateNotificationProviderModal: React.FC<
           <Button size="sm" variant="outline" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" type="submit">
+          <Button size="sm" type="submit" isLoading={isLoadingCreate || isLoadingUpdate}>
             Create Provider
           </Button>
         </div>
@@ -484,4 +472,4 @@ const CreateNotificationProviderModal: React.FC<
   );
 };
 
-export default CreateNotificationProviderModal;
+export default UpsertNotficationProviderModal;

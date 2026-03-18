@@ -34,6 +34,16 @@ class SettingService {
         }
     }
 
+    async findByKey(key) {
+        try {
+            const foundSetting = db.prepare(`SELECT * FROM settings WHERE key = ?`).get(key);
+            return foundSetting;
+        } catch (error) {
+            console.log("Error upsert setting: ", error.message)
+            return;
+        }
+    }
+
     async updateByKey(key, update) {
         try {
             const setUpdate = Object.keys(update).map(key => `${key} = ?`);

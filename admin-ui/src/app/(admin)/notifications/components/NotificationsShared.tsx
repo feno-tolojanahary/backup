@@ -2,8 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
-import Button from "@/components/ui/button/Button";
-import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
@@ -17,12 +15,8 @@ import {
 } from "@/components/ui/table";
 
 export const statusTone = (status: string) => {
-  if (status === "enabled" || status === "sent") return "success";
-  if (status === "failed") return "error";
-  if (status === "warning") return "warning";
-  if (status === "info") return "info";
-  if (status === "critical") return "error";
-  return "dark";
+  if (status === "connected") return "success";
+  return "error";
 };
 
 type StatusBadgeProps = {
@@ -138,12 +132,6 @@ export const DataTable = <T extends { id: number | string }>({
 }: DataTableProps<T>) => {
   const [sortKey, setSortKey] = useState<string | null>(initialSortKey ?? null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    setPage(1);
-  }, [rows.length, itemsPerPage]);
 
   const sortedRows = useMemo(() => {
     if (!sortKey) return rows;
@@ -163,19 +151,6 @@ export const DataTable = <T extends { id: number | string }>({
         : stringB.localeCompare(stringA);
     });
   }, [rows, sortKey, sortDirection, columns]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / itemsPerPage));
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
-
-  const pagedRows = useMemo(() => {
-    const start = (page - 1) * itemsPerPage;
-    return sortedRows.slice(start, start + itemsPerPage);
-  }, [sortedRows, page, itemsPerPage]);
 
   const handleSort = (key: string) => {
     if (sortKey !== key) {
@@ -226,7 +201,7 @@ export const DataTable = <T extends { id: number | string }>({
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {pagedRows.length === 0 ? (
+                {sortedRows.length === 0 ? (
                   <TableRow>
                     <TableCell
                       className="px-5 py-6 text-center text-gray-500 text-theme-sm dark:text-gray-400"
@@ -236,7 +211,7 @@ export const DataTable = <T extends { id: number | string }>({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  pagedRows.map((row) => (
+                  sortedRows.map((row) => (
                     <TableRow key={row.id}>
                       {columns.map((column) => (
                         <TableCell
@@ -252,49 +227,6 @@ export const DataTable = <T extends { id: number | string }>({
               </TableBody>
             </Table>
           </div>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Items per page
-          </span>
-          <div className="w-24">
-            <Select
-              options={[
-                { value: "5", label: "5" },
-                { value: "10", label: "10" },
-                { value: "25", label: "25" },
-              ]}
-              placeholder={`${itemsPerPage}`}
-              defaultValue={`${itemsPerPage}`}
-              onChange={(value) => setItemsPerPage(Number(value))}
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            type="button"
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            disabled={page === 1}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            type="button"
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={page === totalPages}
-          >
-            Next
-          </Button>
         </div>
       </div>
     </div>

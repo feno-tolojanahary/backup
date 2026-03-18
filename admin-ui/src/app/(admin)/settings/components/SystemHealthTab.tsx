@@ -1,6 +1,6 @@
 import React from "react";
 import Input from "@/components/form/input/InputField";
-import { FieldLabel, SectionCard, TabActions } from "./SettingsShared";
+import { FieldLabel, SectionCard, TabActions } from "../../notifications/components/SettingsShared";
 
 export default function SystemHealthTab() {
   return (
