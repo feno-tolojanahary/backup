@@ -22,6 +22,7 @@
     "apexcharts": "^4.7.0",
     "autoprefixer": "^10.4.22",
     "flatpickr": "^4.6.13",
+    "jose": "^6.2.2",
     "moment": "^2.30.1",
     "moment-timezone": "^0.6.0",
     "next": "16.0.10",

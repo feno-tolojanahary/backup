@@ -27,15 +27,15 @@ export default function SettingsPageClient() {
       return <GeneralTab />;
     }
 
-    if (activeTab === "backup-engine") {
-      return <BackupEngineTab />;
-    }
+    // if (activeTab === "backup-engine") {
+    //   return <BackupEngineTab />;
+    // }
 
-    if (activeTab === "security") {
-      return <SecurityTab />;
-    }
+    // if (activeTab === "security") {
+    //   return <SecurityTab />;
+    // }
 
-    return <SystemHealthTab />;
+    // return <SystemHealthTab />;
   }, [activeTab]);
 
   return (

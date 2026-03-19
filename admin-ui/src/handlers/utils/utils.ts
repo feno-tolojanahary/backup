@@ -1,3 +1,5 @@
+const API_URL = process.env.NEXT_API_PUBLIC_URL;
+
 export function callFetch(url: string, method: "POST" | "PUT" | "DELETE" | "GET", payload: any = {}): Promise<Response> {
     return fetch(url, {
         method,
@@ -13,6 +15,20 @@ export function fetchJson(url: string): Promise<Response> {
     })
 }
 
+type ApiFetchOptions = {
+    headers?: Record<string, string>
+}
+
+export function apiFetch(url: string, method: "POST" | "PUT" | "DELETE" | "GET", payload: any = {}, { headers = {} }: ApiFetchOptions = {}): Promise<Response> {
+    return fetch(`${API_URL}/${url}`, {
+        method,
+        headers: { 
+            "Content-Type": "application/json",
+            ...headers
+        },
+        body: JSON.stringify(payload)
+    })
+}
 
 export function formatBytes(bytes: number, decimals = 2): string {
     if (!Number.isFinite(bytes)) return "0 B"
