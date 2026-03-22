@@ -7,10 +7,10 @@ const job = require("./job");
 const backup = require("./backup");
 const notificationEvent = require("./notifications/notificationEvent");
 const notificationRule = require('./notifications/notificationRule');
-const user = require("./user");
+const auth = require("./auth");
 const { tokenAccess } = require("../middlewares/auth");
 
-router.use("/users", user); 
+router.use("/auth", auth); 
 router.use(tokenAccess)
 router.use("/source", source);
 router.use("/destination", destination);

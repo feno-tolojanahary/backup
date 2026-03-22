@@ -1,9 +1,9 @@
 const crypto = require("crypto");
-const response = require("./../utils/response");
+const response = require("../utils/response");
 const { stmts, buildAccessToken, EXPIRATION_TIME_MS } = require("../services/authService");
 const argon2 = require("argon2");
 
-class UserController {
+class AuthController {
     constructor() {}
 
     async login(req, res, next) {
@@ -113,4 +113,4 @@ class UserController {
     
 }
 
-module.exports = new UserController();
+module.exports = new AuthController();
