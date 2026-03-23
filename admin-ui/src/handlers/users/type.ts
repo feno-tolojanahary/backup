@@ -6,3 +6,10 @@ export interface User {
     token?: string;
     isActive: string;
 }
+
+export interface CreateUserPayload {
+    email: string;
+    fullName: string;
+    password: string;
+    companyName: string;
+}

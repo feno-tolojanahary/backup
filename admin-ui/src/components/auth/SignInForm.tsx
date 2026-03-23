@@ -3,8 +3,10 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
+import { useToast } from "@/context/ToastContext";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 
 type UserRecord = {
   id: string;
@@ -14,13 +16,29 @@ type UserRecord = {
   active: boolean;
 };
 
+type SignInFormValues = {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+};
+
 export default function SignInForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { isSubmitting },
+  } = useForm<SignInFormValues>({
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+  });
+
+  const { toastError, toastSuccess } = useToast();
 
   const users = useMemo<UserRecord[]>(
     () => [
@@ -44,59 +62,23 @@ export default function SignInForm() {
     []
   );
 
-  const hashPassword = async (value: string) => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(value);
-    const digest = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const onSubmit = async (data: SignInFormValues) => {
     setErrorMessage("");
 
-    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedEmail = data.email.trim().toLowerCase();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(trimmedEmail)) {
       setErrorMessage("Invalid email format.");
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      const user = users.find((item) => item.email === trimmedEmail);
-      if (!user) {
-        setErrorMessage("Invalid email or password.");
-        return;
-      }
+      
+    } catch (error: any) {
+      console.error("Login validation error: ", error.emssage);
 
-      const passwordHash = await hashPassword(password);
-      if (passwordHash !== user.passwordHash) {
-        setErrorMessage("Invalid email or password.");
-        return;
-      }
-
-      if (!user.active) {
-        setErrorMessage("Account disabled.");
-        return;
-      }
-
-      const now = Date.now();
-      const session = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        loginAt: new Date(now).toISOString(),
-        expiresAt: new Date(now + 24 * 60 * 60 * 1000).toISOString(),
-      };
-      const storage = rememberMe ? localStorage : sessionStorage;
-      storage.setItem("backup_admin_session", JSON.stringify(session));
-      router.push("/");
-    } finally {
-      setIsSubmitting(false);
     }
+
   };
 
   return (
@@ -118,15 +100,14 @@ export default function SignInForm() {
             </div>
           ) : null}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-5">
               <div>
                 <Label>Email address</Label>
                 <Input
                   placeholder="admin@mail.com"
                   type="email"
-                  defaultValue={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  {...register("email")}
                 />
               </div>
               <div>
@@ -134,12 +115,20 @@ export default function SignInForm() {
                 <Input
                   type="password"
                   placeholder="Enter password"
-                  defaultValue={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  {...register("password")}
                 />
               </div>
               <div className="flex items-center gap-3">
-                <Checkbox checked={rememberMe} onChange={setRememberMe} />
+                <Controller
+                  name="rememberMe"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   Remember me
                 </span>

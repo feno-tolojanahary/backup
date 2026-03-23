@@ -8,9 +8,11 @@ const backup = require("./backup");
 const notificationEvent = require("./notifications/notificationEvent");
 const notificationRule = require('./notifications/notificationRule');
 const auth = require("./auth");
+const user = require("./user");
 const { tokenAccess } = require("../middlewares/auth");
 
 router.use("/auth", auth); 
+router.use("/users", user);
 router.use(tokenAccess)
 router.use("/source", source);
 router.use("/destination", destination);

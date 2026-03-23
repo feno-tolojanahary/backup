@@ -4,7 +4,7 @@ import { AuthState } from "./authTypes";
 
 const initialState: AuthState = {
     user: null,
-    token: null,
+    accessToken: null,
     refreshToken: null,
     loading: "idle",
     error: null
@@ -15,9 +15,6 @@ const authSlice = createSlice({
     initialState,
     reducers: {
         clearError: (state) => { state.error = null; }
-    },
-    extraReducers: (builder) => {
-
     }
 })
 

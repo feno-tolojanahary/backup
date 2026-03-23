@@ -1,22 +1,10 @@
 import React, { forwardRef } from "react";
 
-interface InputProps {
-  type?: "text" | "number" | "email" | "password" | "date" | "time" | string;
-  id?: string;
-  name?: string;
-  placeholder?: string;
-  defaultValue?: string | number;
-  value?: string | number;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  className?: string;
-  min?: string;
-  max?: string;
-  step?: number;
-  disabled?: boolean;
+interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   success?: boolean;
   error?: boolean;
-  hint?: string; // Optional hint text
+  hint?: string;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -38,6 +26,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       success = false,
       error = false,
       hint,
+      ...rest
     },
     ref
   ) => {
@@ -72,6 +61,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         disabled={disabled}
         className={inputClasses}
         ref={ref}
+        {...rest}
       />
 
       {/* Optional Hint Text */}

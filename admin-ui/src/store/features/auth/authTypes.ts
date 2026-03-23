@@ -4,7 +4,7 @@ export type LoadingState = "idle" | "pending" | "succeeded" | "failed";
 
 export interface AuthState {
     user: User | null;
-    token: string | null;
+    accessToken: string | null;
     refreshToken: string | null;
     loading: LoadingState,
     error: string | null

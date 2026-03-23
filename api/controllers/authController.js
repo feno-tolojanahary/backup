@@ -68,7 +68,7 @@ class AuthController {
             const refreshToken = crypto.randomBytes(64).toString();
             stmts.setRefreshToken.run(refreshToken, (Date.now() + EXPIRATION_TIME_MS) / 1000, user.id);
 
-            res.cookie("refreshToken", refreshToken, {
+            res.cookie("refresh_token", refreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
@@ -78,15 +78,11 @@ class AuthController {
 
             response.success(res, {
                 accessToken,
-                user: {
-                    ...user,
-                    roles,
-                    permissions
-                }
+                refreshToken
             })
         } catch(error) {    
-            console.log("Error refresh token: ", error.message);
-            res.clearCookie("refreshToken", { path: "/auth/refresh" });
+            console.log("Error refresh tok  en: ", error.message);
+            res.clearCookie("refresh_token", { path: "/auth/refresh" });
             response.error(res, error.message);
             next(error);
         }
