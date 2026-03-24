@@ -4,17 +4,11 @@ import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/context/ToastContext";
+import { login } from "@/store/features/auth/authThunk";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-
-type UserRecord = {
-  id: string;
-  email: string;
-  passwordHash: string;
-  role: "Owner" | "Admin" | "Operator" | "Read-only";
-  active: boolean;
-};
 
 type SignInFormValues = {
   email: string;
@@ -24,7 +18,10 @@ type SignInFormValues = {
 
 export default function SignInForm() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { isLoading } = useAppSelector((state) => state.auth);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loginError, setLoginError] = useState("");
   const {
     register,
     handleSubmit,
@@ -40,30 +37,9 @@ export default function SignInForm() {
 
   const { toastError, toastSuccess } = useToast();
 
-  const users = useMemo<UserRecord[]>(
-    () => [
-      {
-        id: "user-admin",
-        email: "admin@mail.com",
-        passwordHash:
-          "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
-        role: "Admin",
-        active: true,
-      },
-      {
-        id: "user-disabled",
-        email: "disabled@mail.com",
-        passwordHash:
-          "dde79399fb85ad1dfbaec103d360520c2590f9106832d830dff673eae18c39d9",
-        role: "Read-only",
-        active: false,
-      },
-    ],
-    []
-  );
-
   const onSubmit = async (data: SignInFormValues) => {
     setErrorMessage("");
+    setLoginError("");
 
     const trimmedEmail = data.email.trim().toLowerCase();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,10 +49,15 @@ export default function SignInForm() {
     }
 
     try {
-      
+      const result = await dispatch(login(data))
+      if (login.fulfilled.match(result)) {
+        router.push("/");
+      } else {
+        throw new Error("Login not success.");
+      }
     } catch (error: any) {
-      console.error("Login validation error: ", error.emssage);
-
+      console.error("Login validation error: ", error.message);
+      setLoginError("Email or password is not valid.");
     }
 
   };
@@ -97,6 +78,12 @@ export default function SignInForm() {
           {errorMessage ? (
             <div className="mb-5 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-500/40 dark:bg-error-500/10 dark:text-error-200">
               {errorMessage}
+            </div>
+          ) : null}
+
+          {loginError ? (
+            <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+              {loginError}
             </div>
           ) : null}
 
@@ -133,7 +120,7 @@ export default function SignInForm() {
                   Remember me
                 </span>
               </div>
-              <Button className="w-full" size="sm" disabled={isSubmitting}>
+              <Button className="w-full" size="sm" isLoading={isLoading} disabled={isSubmitting}>
                 {isSubmitting ? "Signing in..." : "Sign In"}
               </Button>
             </div>

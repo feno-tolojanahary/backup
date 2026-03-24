@@ -1,5 +1,5 @@
-import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 import { store } from "@/store";
+import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 
 interface RetryAxiosRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
@@ -32,7 +32,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-    const token = store.getState().auth.accessToken;
+    const token = localStorage.getItem("access_token");
     if (token) config.headers["Authorization"] = `Bearer ${token}`;
     return config;
 })
@@ -59,7 +59,7 @@ api.interceptors.response.use(
         try {  
             const { data } = await axios.post<{accessToken: string}>("/api/auth/refresh");
             const newAccessToken = data.accessToken;
-            localStorage.setItem("refresh_token", newAccessToken);
+            localStorage.setItem("access_token", newAccessToken);
             api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`            ;
             processQueue(null, newAccessToken);
         
@@ -67,7 +67,7 @@ api.interceptors.response.use(
             return api(originalRequest);
         } catch (refreshError: any) {
             processQueue(refreshError);
-            localStorage.removeItem("refresh_token");
+            localStorage.removeItem("access_token");
 
             return Promise.reject(refreshError)
         } finally {

@@ -9,7 +9,7 @@ export function useNotificationEvents() {
     const { data, error, isLoading } = useSWR<NotificationEvent[]>(url, getNotificationEvents);
 
     return {
-        notificationEvents: data,
+        notificationEvents: data || [],
         isLoading,
         error
     }

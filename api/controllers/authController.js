@@ -34,8 +34,8 @@ class AuthController {
 
             response.success(res, {
                 accessToken,
-                user: {
-                    ...user,
+                auth: {
+                    user,
                     roles,
                     permissions
                 }

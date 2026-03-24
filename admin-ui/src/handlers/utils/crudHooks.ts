@@ -1,4 +1,3 @@
-import { fetcher } from "@/handlers/fetcher";
 import useSWR, { mutate } from "swr";
 import useSWRMutation from "swr/mutation";
 
@@ -83,3 +82,4 @@ export function createCrudHooks <Entity, CreatePayload = Partial<Entity>, Update
     }
 }
 
+            

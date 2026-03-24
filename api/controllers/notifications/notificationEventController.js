@@ -1,4 +1,4 @@
-const notificationService = require("../services/notificationService");
+const notificationEventService = require("./../../services/notifications/notificationEventService");
 const response = require("../utils/response");
 
 class NotificationEventController {
@@ -6,7 +6,7 @@ class NotificationEventController {
 
     async getNotifications() {
         try {
-            const notifications = await notificationService.getList();
+            const notifications = await notificationEventService.getList();
             response.success(res, notifications);
         } catch (error) {
             console.log(error);
