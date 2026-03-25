@@ -16,3 +16,19 @@ export function timeAgo(date: string | Date | number): string {
 
   return then.format('YYYY-MM-DD HH:mm');
 }
+
+export function formatBytes(
+  bytes: number,
+  decimals = 2,
+  base: 1000 | 1024 = 1024
+): string {
+  if (!Number.isFinite(bytes)) return '0 B'
+  if (bytes === 0) return '0 B'
+
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+  const i = Math.floor(Math.log(bytes) / Math.log(base))
+
+  const value = bytes / Math.pow(base, i)
+
+  return `${parseFloat(value.toFixed(decimals))} ${sizes[i]}`
+}

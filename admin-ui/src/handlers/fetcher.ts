@@ -1,3 +1,4 @@
+import api from "./globalAxios";
 const API_URL = process.env.NEXT_API_PUBLIC_URL;
 
 export async function fetcher<T>(path: string): Promise<T> {
@@ -7,4 +8,9 @@ export async function fetcher<T>(path: string): Promise<T> {
         throw new Error(error || "Request failed");
     }
     return res.json();
+}
+
+export async function getData<T>(path: string): Promise<T> {
+    const result = await api.get(path)
+    return result.data.data;
 }

@@ -9,6 +9,7 @@ const notificationEvent = require("./notifications/notificationEvent");
 const notificationRule = require('./notifications/notificationRule');
 const auth = require("./auth");
 const user = require("./user");
+const stats = require("./stats");
 const { tokenAccess } = require("../middlewares/auth");
 
 router.use("/auth", auth); 
@@ -22,5 +23,6 @@ router.use("/notification-rules", notificationRule);
 router.use("/setting", setting);
 router.use("/jobs", job);
 router.use("/backups", backup);
+router.use("/stats", stats)
 
 module.exports = router;
