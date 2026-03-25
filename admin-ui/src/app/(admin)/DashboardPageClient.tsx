@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
 import Button from "@/components/ui/button/Button";
@@ -129,18 +130,24 @@ export default function DashboardPageClient() {
           No backup activity detected yet.
         </h1>
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Create a target, configure storage, or run a backup job to get started.
+          Create a source, configure destination, or run a backup job to get started.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Button size="sm" variant="outline" type="button">
-            Create a target
-          </Button>
-          <Button size="sm" variant="outline" type="button">
-            Configure storage
-          </Button>
-          <Button size="sm" type="button">
-            Run a backup job
-          </Button>
+          <Link href="/infrastructure/sources?create=1">
+            <Button size="sm" variant="outline" type="button">
+              Create a source
+            </Button>
+          </Link>
+          <Link href="/infrastructure/destinations?create=1">
+            <Button size="sm" variant="outline" type="button">
+              Configure destination
+            </Button>
+          </Link>
+          <Link href="/jobs/new">
+            <Button size="sm" type="button">
+              Run a backup job
+            </Button>
+          </Link>
         </div>
       </div>
     );

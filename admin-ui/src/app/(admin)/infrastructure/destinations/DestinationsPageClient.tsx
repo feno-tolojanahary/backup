@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import { useModal } from "@/hooks/useModal";
@@ -28,6 +29,10 @@ export default function DestinationsPageClient() {
   const testModal = useModal();
   const deleteModal = useModal();
   const createModal = useModal();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const handledCreateParam = useRef(false);
 
   const filteredDestinations = useMemo(() => {
     return destinationItems.filter((destination) => {
@@ -66,6 +71,20 @@ export default function DestinationsPageClient() {
     }
     deleteModal.closeModal();
   };
+
+  useEffect(() => {
+    if (handledCreateParam.current) return;
+    const createParam = searchParams.get("create");
+    if (createParam === "1" || createParam === "true") {
+      handledCreateParam.current = true;
+      setEditTarget(null);
+      createModal.openModal();
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("create");
+      const nextQuery = params.toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+    }
+  }, [searchParams, createModal, pathname, router]);
 
 
   return (

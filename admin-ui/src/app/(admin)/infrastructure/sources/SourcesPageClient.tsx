@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import SourceUpsertModal from "@/app/(admin)/infrastructure/sources/components/modals/SourceUpsertModal";
@@ -24,6 +25,10 @@ export default function SourcesPageClient() {
   const [editSource, setEditSource] = useState<Source | null>(null);
   const createModal = useModal();
   const detailModal = useModal();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const handledCreateParam = useRef(false);
 
   const { sources, isLoading } = useSources()
 
@@ -50,6 +55,20 @@ export default function SourcesPageClient() {
     setEditSource(source);
     createModal.openModal();
   };
+
+  useEffect(() => {
+    if (handledCreateParam.current) return;
+    const createParam = searchParams.get("create");
+    if (createParam === "1" || createParam === "true") {
+      handledCreateParam.current = true;
+      setEditSource(null);
+      createModal.openModal();
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("create");
+      const nextQuery = params.toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+    }
+  }, [searchParams, createModal, pathname, router]);
 
   return (
     <div>
