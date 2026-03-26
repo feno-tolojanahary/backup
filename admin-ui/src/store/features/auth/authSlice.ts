@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { AuthState } from "./authTypes";
 import { login, logout } from "./authThunk";
+import { User } from "@/handlers/users/type";
 
 const initialState: AuthState = {
     user: null,
@@ -15,7 +16,12 @@ const authSlice = createSlice({
     initialState,
     reducers: {
 
-        clearError: (state) => { state.error = null; }
+        clearError: (state) => { state.error = null; },
+        // Used by profile page updates to keep Redux auth.user in sync.
+        setUserProfile: (state, action: { payload: Partial<User> }) => {
+            if (!state.user) return;
+            state.user = { ...state.user, ...action.payload };
+        }
     },
     extraReducers: (builder) => {
         builder.addCase(login.pending, (state) => {
@@ -42,4 +48,5 @@ const authSlice = createSlice({
     }
 })
 
+export const { clearError, setUserProfile } = authSlice.actions;
 export default authSlice.reducer;

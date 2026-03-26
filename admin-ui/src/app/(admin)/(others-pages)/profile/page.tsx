@@ -1,8 +1,16 @@
-import UserAddressCard from "@/components/user-profile/UserAddressCard";
+"use client";
+
+import UserAccessCard from "@/components/user-profile/UserAccessCard";
 import UserInfoCard from "@/components/user-profile/UserInfoCard";
 import UserMetaCard from "@/components/user-profile/UserMetaCard";
+import UserSecurityCard from "@/components/user-profile/UserSecurityCard";
+import { FormProvider, useForm } from "react-hook-form";
 import { Metadata } from "next";
-import React from "react";
+import { UpdateUserPayload, User, UserForm } from "@/handlers/users/type";
+import { updateUser } from "@/handlers/users/userService";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setUserProfile } from "@/store/features/auth/authSlice";
+import { useEffect } from "react";
 
 export const metadata: Metadata = {
   title: "Next.js Profile | TailAdmin - Next.js Dashboard Template",
@@ -10,7 +18,73 @@ export const metadata: Metadata = {
     "This is Next.js Profile page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
 };
 
-export default function Profile() {
+export default function Profile() {  
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+
+  const methods = useForm<UserForm>({
+    defaultValues: {
+      fullName: user?.fullName ?? "",
+      email: user?.email ?? "",
+      companyName: user?.companyName ?? "",
+      role: "",
+      avatarUrl: "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      twoFactorEnabled: "false",
+      twoFactorSecret: "",
+      lastPasswordChangeAt: "",
+    },
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    methods.reset({
+      fullName: user.fullName ?? "",
+      email: user.email ?? "",
+      companyName: user.companyName ?? "",
+      role: (user as User).twoFactorEnable ? "Admin" : "",
+      avatarUrl: "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      twoFactorEnabled: user.twoFactorEnable ?? "false",
+      twoFactorSecret: "",
+      lastPasswordChangeAt: "",
+    });
+  }, [user, methods]);
+
+  const saveUsers = async (data: UserForm) => {
+    if (!user?.id) return;
+
+    const nextEmail = data.email || user.email;
+    const nextFullName = data.fullName || user.fullName;
+    const nextCompanyName = data.companyName || user.companyName;
+    const nextTwoFactorEnable = data.twoFactorEnabled || user.twoFactorEnable || "false";
+
+    const payload: UpdateUserPayload = {
+      email: nextEmail,
+      firstName: nextFullName,
+      companyName: nextCompanyName,
+      password: data.newPassword ? data.newPassword : undefined,
+      twoFactorEnable: nextTwoFactorEnable,
+    };
+
+    await updateUser(user.id, payload);
+
+    dispatch(
+      setUserProfile({
+        fullName: nextFullName,
+        email: nextEmail,
+        companyName: nextCompanyName,
+        twoFactorEnable: nextTwoFactorEnable,
+      })
+    );
+  };
+
+  if (!user) return <div>Loading...</div>;
+
   return (
     <div>
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
@@ -18,9 +92,12 @@ export default function Profile() {
           Profile
         </h3>
         <div className="space-y-6">
-          <UserMetaCard />
-          <UserInfoCard />
-          <UserAddressCard />
+          <FormProvider {...methods}>
+            <UserMetaCard />
+            <UserInfoCard onSubmit={saveUsers} user={user} />
+            <UserSecurityCard onSubmit={saveUsers} />
+            <UserAccessCard />
+          </FormProvider>
         </div>
       </div>
     </div>

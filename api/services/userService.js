@@ -28,6 +28,22 @@ class UserService {
             }
         }
     }
+
+    async updateById(id, update) {
+        const fieldMapName = {
+            "fullName": "full_name",
+            "companyName": "company_name",
+            "expiresAt": "expires_at",
+            "isActive": "is_active",
+            "createdAt": "created_at",
+            "twoFactorEnabled": "two_factor_enabled",
+            "lastPasswordChangedAt": "last_password_changed_at"
+        }
+        const setUpdate = Object.keys(update).map(key => fieldMapName[key] ? `${fieldMapName[key]} = ?` : `${key} = ?`);
+        const values = Object.values(update).map(value => value);
+        const res = db.prepare(`UPDATE users SET ${setUpdate.join(', ')} WHERE id = ?`).run(...values, id);
+        return res;
+    }
 }
 
 module.exports = new UserService();

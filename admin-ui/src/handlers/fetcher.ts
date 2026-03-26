@@ -14,3 +14,8 @@ export async function getData<T>(path: string): Promise<T> {
     const result = await api.get(path)
     return result.data.data;
 }
+
+export async function updateData<T, U>(url: string, { arg }: { arg: U }): Promise<T> {
+    const res = await api.put(url, arg);
+    return res.data?.data;
+}

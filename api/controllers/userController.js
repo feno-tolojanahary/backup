@@ -26,6 +26,24 @@ class UserController {
             next(error);
         }
     }
+
+    async updateById(req, res, next) {
+        try {
+            const id = req.params.id;
+            if (!id || !req.body)
+                throw new Error("id is required in params and body is required");
+            const updateRes = await userService.updateById(id, req.body);
+            if (updateRes.changes === 0) {
+                response.notFound(res, "User id not found");
+                return;
+            }
+            response.success(res, { ok: true, changes: updateRes.changes })
+        } catch (error) {
+            console.log(error);
+            response.error(res, error.message);
+            next(error);
+        }
+    }
 }
 
 module.exports = new UserController();
