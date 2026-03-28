@@ -5,8 +5,10 @@ export interface User {
     fullName: string;
     token?: string;
     isActive: string;
-    twoFactorEnable?: string;
+    twoFactorEnabled?: string;
     companyName: string;
+    avatarUrl?: string;
+    passwordChangedAt?: string;
 }
 
 export interface CreateUserPayload {

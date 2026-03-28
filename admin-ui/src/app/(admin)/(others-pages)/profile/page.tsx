@@ -1,4 +1,4 @@
-"use client";
+²"use client";
 
 import UserAccessCard from "@/components/user-profile/UserAccessCard";
 import UserInfoCard from "@/components/user-profile/UserInfoCard";
@@ -11,6 +11,7 @@ import { updateUser } from "@/handlers/users/userService";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setUserProfile } from "@/store/features/auth/authSlice";
 import { useEffect } from "react";
+import { useToast } from "@/context/ToastContext";
 
 export const metadata: Metadata = {
   title: "Next.js Profile | TailAdmin - Next.js Dashboard Template",
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
 export default function Profile() {  
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { toastError, toastSuccess } = useToast();
 
   const methods = useForm<UserForm>({
     defaultValues: {
@@ -57,30 +59,39 @@ export default function Profile() {
 
   const saveUsers = async (data: UserForm) => {
     if (!user?.id) return;
+    try {
+      const nextEmail = data.email || user.email;
+      const nextFullName = data.fullName || user.fullName;
+      const nextCompanyName = data.companyName || user.companyName;
+      const nextTwoFactorEnable = data.twoFactorEnabled || user.twoFactorEnable || "false";
 
-    const nextEmail = data.email || user.email;
-    const nextFullName = data.fullName || user.fullName;
-    const nextCompanyName = data.companyName || user.companyName;
-    const nextTwoFactorEnable = data.twoFactorEnabled || user.twoFactorEnable || "false";
-
-    const payload: UpdateUserPayload = {
-      email: nextEmail,
-      firstName: nextFullName,
-      companyName: nextCompanyName,
-      password: data.newPassword ? data.newPassword : undefined,
-      twoFactorEnable: nextTwoFactorEnable,
-    };
-
-    await updateUser(user.id, payload);
-
-    dispatch(
-      setUserProfile({
-        fullName: nextFullName,
+      const payload: UpdateUserPayload = {
         email: nextEmail,
+        firstName: nextFullName,
         companyName: nextCompanyName,
+        password: data.newPassword ? data.newPassword : undefined,
         twoFactorEnable: nextTwoFactorEnable,
-      })
-    );
+      };
+      const formData = new FormData();
+      for (const [key, value] of Object.entries((payload))) {
+        formData.append(key, value);
+      }
+      formData.append("avatar", data.avatarUrl);
+      await updateUser(user.id, formData);
+
+      dispatch(
+        setUserProfile({
+          fullName: nextFullName,
+          email: nextEmail,
+          companyName: nextCompanyName,
+          twoFactorEnable: nextTwoFactorEnable,
+        })
+      );
+      toastSuccess("Saving user information with success.");
+    } catch (error: any) {
+      console.error("Error save user profile: ", error.message);
+      toastError();
+    }
   };
 
   if (!user) return <div>Loading...</div>;

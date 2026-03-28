@@ -1,5 +1,33 @@
+const fs = require("fs/promises");
+
 class UserService {
     constructor() {}
+
+    async getUserProfile(id) {
+        const stmt = db.prepare(`
+                    SELECT 
+                        u.id AS id,
+                        u.email AS email,
+                        u.full_name AS fullName,
+                        u.token AS token,
+                        u.company_name AS companyName,
+                        u.expires_at AS exipresAt,
+                        u.created_at AS createdAt,
+                        u.two_factor_enabled AS twoFactorEnable,
+                        u.password_changed_at AS passwordChangedAt,
+                        (
+                            SELECT 
+                                ufs.filename AS avatarUrl 
+                            FROM user_files ufs WHERE type = 'profile' AND user_id = u.id
+                        ) AS file
+                    FROM users u 
+            
+                    WHERE id = ?`);
+        const userData = stmt.get(id);
+        if (userData.file?.avatarUrl)
+            userData.avatar = userData.file.avatarUrl;
+        return userData;
+    }
 
     async insert(userData) {
         try {
@@ -27,6 +55,25 @@ class UserService {
                 message: error.message
             }
         }
+    }
+
+    async upsertUserFile(userFile) {
+        const {
+            type = "profile",
+            filename,
+            userId,
+            metadata
+        } = userFile;
+        const existingFile = db.prepare(`SELECT * FROM user_files WHERE user_id = ?`).get(userId);
+        const res = db.prepare(`INSERT INTO user_files (type, filename, user_id, metadata) VALUES (?, ?, ?, ?)`)
+                            .run(type, filename, userId, JSON.stringify(metadata))
+        // remove old file
+        if (res.changes > 0 && existingFile) {
+            const existMetadata = JSON.parse(existMetadata.metadata);
+            db.prepare(`DELETE FROM user_files WHERE id = ?`).run(existingFile.id);
+            await fs.unlink(existMetadata.metadata.path)
+        }
+        return res;
     }
 
     async updateById(id, update) {

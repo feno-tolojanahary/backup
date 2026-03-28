@@ -42,7 +42,6 @@ export default function UserSecurityCard({ onSubmit }: UserSecurityCardType) {
   } = useFormContext<UserForm>();
   useEffect(() => {
     if (!isOpen) return;
-    // Only patch security-related fields; keep identity fields intact.
     reset({ ...getValues(), ...defaults });
   }, [isOpen, reset, getValues]);
 

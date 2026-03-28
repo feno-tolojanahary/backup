@@ -1,3 +1,4 @@
+const express = require("express");
 const router = require("express").Router();
 const source = require("./source");
 const destination = require("./destination");
@@ -11,10 +12,12 @@ const auth = require("./auth");
 const user = require("./user");
 const stats = require("./stats");
 const { tokenAccess } = require("../middlewares/auth");
+const { config } = require("../../config");
 
 router.use("/auth", auth); 
 router.use("/users", user);
-router.use(tokenAccess)
+router.use("/profile", express.static(config.publicDirectory));
+router.use(tokenAccess);
 router.use("/source", source);
 router.use("/destination", destination);
 router.use("/notification-providers", notificationProvider);

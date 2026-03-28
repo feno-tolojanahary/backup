@@ -11,7 +11,7 @@ export type ResultUpdateType = {
     changes: number
 }
 
-export async function updateUser(id: number, payload: UpdateUserPayload): Promise<ResultUpdateType> {
+export async function updateUser(id: number, payload: FormData): Promise<ResultUpdateType> {
     const res = await api.put(`/users/${id}`, payload);
     return res.data?.data;
 }

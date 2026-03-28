@@ -3,7 +3,7 @@ import { jwtVerify } from "jose";
 
 const PROTECTED_PATH = ["/backups", "/infrastructure", "/jobs", "/notificatons", "/settings"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
     const isProtected = PROTECTED_PATH.some(p => pathname.startsWith(p))
 
@@ -11,7 +11,7 @@ export async function middleware(req: NextRequest) {
 
     const token = req.cookies.get("access_token")?.value;
     if (!token) {
-        return NextResponse.redirect(new URL("/login", req.url));
+        return NextResponse.redirect(new URL("/signin", req.url));
     }
 
     try {
@@ -30,7 +30,7 @@ export async function middleware(req: NextRequest) {
             return res;
         }
 
-        return NextResponse.redirect(new URL("/login", req.url));
+        return NextResponse.redirect(new URL("/signin", req.url));
     }
 }
 

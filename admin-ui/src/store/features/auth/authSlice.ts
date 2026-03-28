@@ -17,7 +17,6 @@ const authSlice = createSlice({
     reducers: {
 
         clearError: (state) => { state.error = null; },
-        // Used by profile page updates to keep Redux auth.user in sync.
         setUserProfile: (state, action: { payload: Partial<User> }) => {
             if (!state.user) return;
             state.user = { ...state.user, ...action.payload };

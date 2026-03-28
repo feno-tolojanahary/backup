@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const response = require("../utils/response");
 const { stmts, buildAccessToken, EXPIRATION_TIME_MS } = require("../services/authService");
 const argon2 = require("argon2");
+const userService = require("../services/userService");
 
 class AuthController {
     constructor() {}
@@ -24,6 +25,8 @@ class AuthController {
             const expirationTime = (Date.now() + EXPIRATION_TIME_MS) / 1000;
             stmts.setRefreshToken.run(refreshToken, expirationTime, user.id);
 
+            const userInfo = await userService.getUserProfile(user.id);
+
             res.cookie("refreshToken", refreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
@@ -31,11 +34,11 @@ class AuthController {
                 maxAge: EXPIRATION_TIME_MS,
                 path: "/auth/refresh"
             })
-
+            
             response.success(res, {
                 accessToken,
                 auth: {
-                    user,
+                    user: userInfo,
                     roles,
                     permissions
                 }

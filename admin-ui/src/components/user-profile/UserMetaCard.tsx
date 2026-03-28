@@ -1,27 +1,68 @@
 "use client";
-import React from "react";
-import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { UserForm } from "@/handlers/users/type";
 
 export default function UserMetaCard() {
-  const { control } = useFormContext<UserForm>();
+  const { control, setValue } = useFormContext<UserForm>();
   const [fullName, email, companyName, role, avatarUrl] = useWatch({
     control,
     name: ["fullName", "email", "companyName", "role", "avatarUrl"],
   });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [createdBlobUrl, setCreatedBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (createdBlobUrl) {
+        URL.revokeObjectURL(createdBlobUrl);
+      }
+    };
+  }, [createdBlobUrl]);
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onChangeAvatar: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (createdBlobUrl) {
+      URL.revokeObjectURL(createdBlobUrl);
+    }
+
+    const nextBlobUrl = URL.createObjectURL(file);
+    setCreatedBlobUrl(nextBlobUrl);
+    setValue("avatarUrl", nextBlobUrl, { shouldDirty: true, shouldTouch: true });
+  };
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-          <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
-            <Image
-              width={80}
-              height={80}
-              src={avatarUrl || "/images/user/owner.jpg"}
-              alt="user"
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
+              <img
+                src={avatarUrl || "/images/user/owner.jpg"}
+                alt="user"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onChangeAvatar}
             />
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="text-xs font-medium text-brand-500 hover:underline"
+            >
+              Change photo
+            </button>
           </div>
           <div className="order-3 xl:order-2">
             <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
