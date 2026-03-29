@@ -13,15 +13,15 @@ class UserController {
             }
             let user = req.body;
             
-            const hashPassword = argon2.hash(user.password, {
+            const hashPassword = await argon2.hash(user.password, {
                 type: argon2.argon2d,
                 memoryCost: 2 ** 16,
                 timeCost: 3,
                 parallelism: 1
             });
             user.password = hashPassword;
-            const res = await userService.insert(user);
-            response.success(res, res);
+            const result = await userService.insert(user);
+            response.success(res, result);
         } catch (error) {
             console.log(error);
             response.error(res, error.message);
@@ -66,6 +66,17 @@ class UserController {
                 await userService.upsertUserFile(dataFile);
             }
             response.success(res, { ok: true, changes: updateRes.changes })
+        } catch (error) {
+            console.log(error);
+            response.error(res, error.message);
+            next(error);
+        }
+    }
+
+    async getUserCount(req, res, next) {
+        try {
+            const userCount = await userService.stmt.userCount.get();
+            response.success(res, userCount.total);
         } catch (error) {
             console.log(error);
             response.error(res, error.message);

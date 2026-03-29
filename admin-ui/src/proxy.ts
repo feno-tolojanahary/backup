@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { getUserCount } from "./handlers/users/userService";
 
 const PROTECTED_PATH = ["/backups", "/infrastructure", "/jobs", "/notificatons", "/settings"];
 
 export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
-    const isProtected = PROTECTED_PATH.some(p => pathname.startsWith(p))
+    const isProtected = PROTECTED_PATH.some(p => pathname.startsWith(p)) || pathname === "/"
 
     if (!isProtected) return NextResponse.next();
 
+    const userCount = await getUserCount();
+    console.log("user count: ", userCount)
+    if (userCount === 0)
+        return NextResponse.redirect(new URL("/signup", req.url));
+
     const token = req.cookies.get("access_token")?.value;
+
     if (!token) {
         return NextResponse.redirect(new URL("/signin", req.url));
     }
@@ -35,5 +42,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/backups/:path*", "/infrastructure/:path*", "/jobs/:path*", "/notificatons/:path*", "/settings/:path*"]
+    matcher: ["/", "/backups/:path*", "/infrastructure/:path*", "/jobs/:path*", "/notificatons/:path*", "/settings/:path*"]
 }

@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { apiFetch } from "@/handlers/utils/utils";
 import { NextResponse } from "next/server";
 import api from "@/handlers/globalAxios";
 
@@ -7,8 +6,8 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const res = await api.post("/auth/login", body);
-    const data = res.data;
-    if (!data?.ok) {
+    const data = res.data?.data;
+    if (res.statusText !== "OK") {
         return NextResponse.json({ message: "Invalid credentials", success: false }, { status: 401 });
     }
 

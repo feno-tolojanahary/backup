@@ -55,7 +55,7 @@ class BackupController {
             response.success(res, { success: true })            
         } catch (error) {
             console.log(error);
-            response.error(res, { success: false, errorMsg: error.message}&&);
+            response.error(res, { success: false, errorMsg: error.message});
             next(error);
         }
     }

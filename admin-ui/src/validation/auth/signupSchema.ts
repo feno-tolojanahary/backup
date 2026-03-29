@@ -14,8 +14,19 @@ export const signupSchema = z
     fullName: z
       .string()
       .trim()
-      .min(2, "Full name must be at least 2 characters.")
-      .or(z.literal("")),
+      .superRefine((val, ctx) => {
+        if (!val) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Full name is required.",
+          });
+        } else if (val.length < 2) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Full name must be at least 2 characters.",
+          });
+        }
+      }),
     companyName: z
       .string()
       .trim()

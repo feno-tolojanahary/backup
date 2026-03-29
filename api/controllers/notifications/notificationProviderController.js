@@ -1,4 +1,4 @@
-const response = require("../utils/response");
+const response = require("../../utils/response");
 const notificationProviderService = require("../../services/notifications/notificationProviderService");;
 
 class NotificationProviderController {

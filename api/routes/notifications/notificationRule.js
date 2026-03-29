@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const notificationRuleController = require("../controllers/notificationRuleController");
+const notificationRuleController = require("../../controllers/notifications/notificationRuleController");
 
 router.route('/')
     .post(notificationRuleController.saveRules)

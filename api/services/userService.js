@@ -1,7 +1,12 @@
+const db = require("../../lib/db/db");  
 const fs = require("fs/promises");
 
 class UserService {
     constructor() {}
+
+    stmt = {
+        userCount: db.prepare("SELECT COUNT(*) AS total FROM users")
+    }
 
     async getUserProfile(id) {
         const stmt = db.prepare(`
@@ -13,7 +18,7 @@ class UserService {
                         u.company_name AS companyName,
                         u.expires_at AS exipresAt,
                         u.created_at AS createdAt,
-                        u.two_factor_enabled AS twoFactorEnable,
+                        u.two_factor_enable AS twoFactorEnable,
                         u.password_changed_at AS passwordChangedAt,
                         (
                             SELECT 
@@ -24,7 +29,7 @@ class UserService {
             
                     WHERE id = ?`);
         const userData = stmt.get(id);
-        if (userData.file?.avatarUrl)
+        if (userData?.file?.avatarUrl)
             userData.avatar = userData.file.avatarUrl;
         return userData;
     }
@@ -39,6 +44,7 @@ class UserService {
                 expiresAt,
                 password
             } = userData;
+            console.log(userData)
             const res = db.prepare(`INSERT INTO users 
                     (email, full_name, password, token, company_name, expires_at, is_active)
                     VALUES (?, ?, ?, ?, ?, ?, ?)`)
@@ -83,7 +89,7 @@ class UserService {
             "expiresAt": "expires_at",
             "isActive": "is_active",
             "createdAt": "created_at",
-            "twoFactorEnabled": "two_factor_enabled",
+            "twoFactorEnable": "two_factor_enable",
             "lastPasswordChangedAt": "last_password_changed_at"
         }
         const setUpdate = Object.keys(update).map(key => fieldMapName[key] ? `${fieldMapName[key]} = ?` : `${key} = ?`);

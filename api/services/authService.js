@@ -6,7 +6,7 @@ const EXPIRATION_TIME_MS = 30 * 24 * 60 * 60 * 1000;
 const stmts = {
     findByEmail: db.prepare(`SELECT * FROM users WHERE email = ?`),
     findById: db.prepare(`SELECT * FROM users WHERE id = ?`),
-    findRoles: db.preprare(`
+    findRoles: db.prepare(`
             SELECT r.id, r.name FROM roles r
                 LEFT JOIN user_roles ur ON ur.role_id = r.id
                 LEFT JOIN users u ON u.id = ur.user_id
@@ -32,10 +32,10 @@ const stmts = {
 async function getOrCreateJwtSecret() {
     const key = "jwt_secret";
     const foundSetting = db.prepare(`SELECT * FROM settings WHERE key = ?`).get(key);
-    if (!foundSetting) return foundSetting;
+    if (foundSetting) return Buffer.from(foundSetting.value, "hex");
     const jwtSecret = crypto.randomBytes(64).toString("hex");
-    db.prepare(`INSERT INTO settings (key, values) VALUES (?, ?)`).run(key, secret);
-    return jwtSecret;
+    db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)`).run(key, jwtSecret);
+    return Buffer.from(jwtSecret, "hex");
 }
 
 async function rotateJwtSecret() {
@@ -62,7 +62,6 @@ async function verifyAccessToken(token) {
 module.exports = {
     stmts,
     buildAccessToken,
-    getJwtAttributes,
     getOrCreateJwtSecret,
     EXPIRATION_TIME_MS,
     verifyAccessToken

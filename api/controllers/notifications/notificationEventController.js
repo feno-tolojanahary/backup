@@ -1,5 +1,5 @@
 const notificationEventService = require("./../../services/notifications/notificationEventService");
-const response = require("../utils/response");
+const response = require("../../utils/response");
 
 class NotificationEventController {
     constructor() {}

@@ -5,14 +5,15 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { UserForm } from "@/handlers/users/type";
+import Switch from "../form/switch/Switch";
 
 export type SecurityForm = {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
-  twoFactorEnabled: string;
+  twoFactorEnabled: boolean;
   twoFactorSecret: string;
   lastPasswordChangeAt: string;
 };
@@ -21,7 +22,7 @@ const defaults: SecurityForm = {
   currentPassword: "",
   newPassword: "",
   confirmPassword: "",
-  twoFactorEnabled: "true",
+  twoFactorEnabled: true,
   twoFactorSecret: "Hidden until reset",
   lastPasswordChangeAt: "2026-03-12 09:45",
 };
@@ -38,11 +39,19 @@ export default function UserSecurityCard({ onSubmit }: UserSecurityCardType) {
     handleSubmit,
     reset,
     getValues,
+    control,
+    watch,
     formState: { errors },
   } = useFormContext<UserForm>();
+  const twoFactorEnabled = watch("twoFactorEnabled");
   useEffect(() => {
     if (!isOpen) return;
-    reset({ ...getValues(), ...defaults });
+    const values = getValues();
+    reset({
+      ...values,
+      ...defaults,
+      twoFactorEnabled: values.twoFactorEnabled ?? defaults.twoFactorEnabled,
+    });
   }, [isOpen, reset, getValues]);
 
   const callOnSubmit = () => {
@@ -74,7 +83,7 @@ export default function UserSecurityCard({ onSubmit }: UserSecurityCardType) {
                   Two-Factor
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Enabled
+                  {twoFactorEnabled ? "Enabled" : "Disabled"}
                 </p>
               </div>
 
@@ -188,7 +197,17 @@ export default function UserSecurityCard({ onSubmit }: UserSecurityCardType) {
 
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Two-Factor Enabled</Label>
-                  <Input type="text" {...register("twoFactorEnabled")} />
+                  <Controller
+                    name="twoFactorEnabled"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        label={field.value ? "Enabled" : "Disabled"}
+                        checked={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">

@@ -1,4 +1,3 @@
-import { store } from "@/store";
 import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 
 interface RetryAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -25,55 +24,56 @@ const processQueue = (error: unknown, token: string | null = null) => {
 let isRefreshing = false;
 
 const api = axios.create({
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3030",
     headers: {
         "Content-Type": "application/json"
     }
 })
 
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
-    if (token) config.headers["Authorization"] = `Bearer ${token}`;
-    return config;
-})
+// api.interceptors.request.use((config) => {
+//     const token = localStorage.getItem("access_token");
+//     if (token) config.headers["Authorization"] = `Bearer ${token}`;
+//     return config;
+// })
 
-api.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config as RetryAxiosRequestConfig;
+// api.interceptors.response.use(
+//     (response) => response,
+//     async (error) => {
+//         const originalRequest = error.config as RetryAxiosRequestConfig;
+//         console.log("error: ", error)
+//         console.log("------- original request: ", originalRequest)
+//         if (error.response?.status === 401 && !originalRequest?._retry) {
+//             if (isRefreshing) {
+//                 return new Promise<string | null>((resolve, reject) => {
+//                     failedQueue.push({ resolve, reject })
+//                 }).then((token: string | null) => {
+//                     originalRequest.headers["Authorization"] = `Bearer ${token}`;
+//                     return api(originalRequest);
+//                 })
+//                 .catch((error) => Promise.reject(error))
+//             }
+//         }
+//         originalRequest._retry = true;
+//         isRefreshing = true;
 
-        if (error.response?.status === 401 && !originalRequest?._retry) {
-            if (isRefreshing) {
-                return new Promise<string | null>((resolve, reject) => {
-                    failedQueue.push({ resolve, reject })
-                }).then((token: string | null) => {
-                    originalRequest.headers["Authorization"] = `Bearer ${token}`;
-                    return api(originalRequest);
-                })
-                .catch((error) => Promise.reject(error))
-            }
-        }
-        originalRequest._retry = true;
-        isRefreshing = true;
-
-        try {  
-            const { data } = await axios.post<{accessToken: string}>("/api/auth/refresh");
-            const newAccessToken = data.accessToken;
-            localStorage.setItem("access_token", newAccessToken);
-            api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`            ;
-            processQueue(null, newAccessToken);
+//         try {  
+//             const { data } = await axios.post<{accessToken: string}>("/api/auth/refresh");
+//             const newAccessToken = data.accessToken;
+//             localStorage.setItem("access_token", newAccessToken);
+//             api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`            ;
+//             processQueue(null, newAccessToken);
         
-            originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
-            return api(originalRequest);
-        } catch (refreshError: any) {
-            processQueue(refreshError);
-            localStorage.removeItem("access_token");
+//             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+//             return api(originalRequest);
+//         } catch (refreshError: any) {
+//             processQueue(refreshError);
+//             localStorage.removeItem("access_token");
 
-            return Promise.reject(refreshError)
-        } finally {
-            isRefreshing = false;
-        }
-    }
-)
+//             return Promise.reject(refreshError)
+//         } finally {
+//             isRefreshing = false;
+//         }
+//     }
+// )
 
 export default api;

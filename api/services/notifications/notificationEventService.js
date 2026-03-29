@@ -1,4 +1,4 @@
-const db = require("../../lib/db/db");
+const db = require("../../../lib/db/db");
 
 class NotificationEventService {
     constructor() {}

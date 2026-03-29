@@ -1,4 +1,4 @@
-²"use client";
+"use client";
 
 import UserAccessCard from "@/components/user-profile/UserAccessCard";
 import UserInfoCard from "@/components/user-profile/UserInfoCard";
@@ -34,7 +34,7 @@ export default function Profile() {
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
-      twoFactorEnabled: "false",
+      twoFactorEnabled: false,
       twoFactorSecret: "",
       lastPasswordChangeAt: "",
     },
@@ -51,7 +51,7 @@ export default function Profile() {
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
-      twoFactorEnabled: user.twoFactorEnable ?? "false",
+      twoFactorEnabled: user.twoFactorEnable === "true",
       twoFactorSecret: "",
       lastPasswordChangeAt: "",
     });
@@ -63,7 +63,7 @@ export default function Profile() {
       const nextEmail = data.email || user.email;
       const nextFullName = data.fullName || user.fullName;
       const nextCompanyName = data.companyName || user.companyName;
-      const nextTwoFactorEnable = data.twoFactorEnabled || user.twoFactorEnable || "false";
+      const nextTwoFactorEnable = data.twoFactorEnabled ? "true" : "false";
 
       const payload: UpdateUserPayload = {
         email: nextEmail,
@@ -85,6 +85,7 @@ export default function Profile() {
           email: nextEmail,
           companyName: nextCompanyName,
           twoFactorEnable: nextTwoFactorEnable,
+          
         })
       );
       toastSuccess("Saving user information with success.");

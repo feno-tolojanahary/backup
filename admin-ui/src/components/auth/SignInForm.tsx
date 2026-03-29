@@ -50,13 +50,15 @@ export default function SignInForm() {
 
     try {
       const result = await dispatch(login(data))
+      console.log("result: ", result)
+      console.log("login fullfiled: ", login.fulfilled)
       if (login.fulfilled.match(result)) {
         router.push("/");
       } else {
         throw new Error("Login not success.");
       }
     } catch (error: any) {
-      console.error("Login validation error: ", error.message);
+      console.log("Login validation error: ", error.message);
       setLoginError("Email or password is not valid.");
     }
 

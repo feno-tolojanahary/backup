@@ -11,7 +11,7 @@ router.route(':id')
     .delete(destinationController.delete)
     .get(destinationController.findById)
 
-router.post("/test-connection", sourceController.testConnection);
+router.post("/test-connection", destinationController.testConnection);
 
 
 module.exports = router;

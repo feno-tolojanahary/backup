@@ -5,7 +5,7 @@ export interface User {
     fullName: string;
     token?: string;
     isActive: string;
-    twoFactorEnabled?: string;
+    twoFactorEnable?: string;
     companyName: string;
     avatarUrl?: string;
     passwordChangedAt?: string;
@@ -36,7 +36,7 @@ export interface UserForm {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
-    twoFactorEnabled: string;
+    twoFactorEnabled: boolean;
     twoFactorSecret: string;
     lastPasswordChangeAt: string;
 }

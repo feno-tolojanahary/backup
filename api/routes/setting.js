@@ -9,6 +9,6 @@ router.route(':id')
     .put(settingController.update)
 
 router.route('/multi-upsert')
-    .post(settingController.upsert)
+    .post(settingController.multiUpsert)
 
 module.exports = router;
