@@ -8,8 +8,9 @@ class UserService {
         userCount: db.prepare("SELECT COUNT(*) AS total FROM users")
     }
 
-    async getUserProfile(id) {
-        const stmt = db.prepare(`
+    async getUserProfile(filters) {
+        const params = [];
+        let query = `
                     SELECT 
                         u.id AS id,
                         u.email AS email,
@@ -27,8 +28,17 @@ class UserService {
                         ) AS file
                     FROM users u 
             
-                    WHERE id = ?`);
-        const userData = stmt.get(id);
+                    WHERE 1=1`
+        if (filters.id) {
+            query += ` AND u.id = ?`;
+            params.push(filters.id);
+        }
+        if (filters.token) {
+            query += ` AND u.token = ?`;
+            params.push(filters.token)
+        }
+        const stmt = db.prepare(query);
+        const userData = stmt.get(...params);
         if (userData?.file?.avatarUrl)
             userData.avatar = userData.file.avatarUrl;
         return userData;

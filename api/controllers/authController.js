@@ -25,7 +25,7 @@ class AuthController {
             const expirationTime = (Date.now() + EXPIRATION_TIME_MS) / 1000;
             stmts.setRefreshToken.run(refreshToken, expirationTime, user.id);
 
-            const userInfo = await userService.getUserProfile(user.id);
+            const userInfo = await userService.getUserProfile({ id: user.id });
 
             res.cookie("refreshToken", refreshToken, {
                 httpOnly: true,
@@ -80,6 +80,7 @@ class AuthController {
             })
 
             response.success(res, {
+        
                 accessToken,
                 refreshToken
             })

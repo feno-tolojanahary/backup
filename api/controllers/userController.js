@@ -29,13 +29,13 @@ class UserController {
         }
     }
 
-    async getUser(req, res, next) {
+    async getUserByToken(req, res, next) {
         try {
-            const id = req.params.id;
-            if (!id) {
-                throw new Error("The id in params is required");
+            const token = req.body;
+            if (!token) {
+                throw new Error("The token in body is required");
             }
-            const user = await userService.getUserProfile(id);
+            const user = await userService.getUserProfile({ token });
             response.success(res, user);
         } catch (error) {
             console.log(error);

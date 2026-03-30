@@ -5,7 +5,6 @@ import { serverFetch } from "@/lib/serverApi";
 export async function POST(req: Request, { params }: { params: { id: string } }) {
     try {
         const { id: userId } = params;
-        
         await serverFetch(`/auth/logout/${userId}`, { method: "POST" });
         
         const cookieStore = await cookies();

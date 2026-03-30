@@ -5,19 +5,12 @@ import UserInfoCard from "@/components/user-profile/UserInfoCard";
 import UserMetaCard from "@/components/user-profile/UserMetaCard";
 import UserSecurityCard from "@/components/user-profile/UserSecurityCard";
 import { FormProvider, useForm } from "react-hook-form";
-import { Metadata } from "next";
 import { UpdateUserPayload, User, UserForm } from "@/handlers/users/type";
 import { updateUser } from "@/handlers/users/userService";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setUserProfile } from "@/store/features/auth/authSlice";
 import { useEffect } from "react";
 import { useToast } from "@/context/ToastContext";
-
-export const metadata: Metadata = {
-  title: "Next.js Profile | TailAdmin - Next.js Dashboard Template",
-  description:
-    "This is Next.js Profile page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
-};
 
 export default function Profile() {  
   const dispatch = useAppDispatch();
