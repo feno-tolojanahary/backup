@@ -1,10 +1,10 @@
 import { CreateNotificationProvider, UpdateNotificationProvider } from "./type";
-import { callFetch } from "../../utils/utils";
+import { callFetch, fetchJson } from "../../utils/utils";
 
 const baseUrl = "/notification-providers";
 
 export async function getListNotificationProviders(): Promise<CreateNotificationProvider[]> {
-    const res = await fetch(baseUrl)
+    const res = await fetchJson(baseUrl)
     if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "Error notificationProvider get list.")

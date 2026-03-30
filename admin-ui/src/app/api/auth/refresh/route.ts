@@ -1,6 +1,6 @@
-import { apiFetch } from "@/handlers/utils/utils";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { serverJson } from "@/lib/serverApi";
 
 interface RefreshResponse {
     accessToken: string;
@@ -15,7 +15,10 @@ export async function POST() {
         return NextResponse.json({ message: "No refresh token" }, { status: 401 });
     }
 
-    const res = await apiFetch("/auth/refresh", "POST", refreshToken);
+    const { res, data } = await serverJson<{ data: RefreshResponse }>("/auth/refresh", {
+        method: "POST",
+        json: refreshToken
+    });
 
     if (!res.ok) {
         cookieStore.delete("access_token");
@@ -23,16 +26,24 @@ export async function POST() {
         return NextResponse.json({ message: "Session expired" }, { status: 401 });
     }
 
-    const data: RefreshResponse = (await res.json()).data ?? {};
+    const payload: RefreshResponse = data?.data ?? ({} as RefreshResponse);
 
-    const response = NextResponse.json({ accessToken: data.accessToken });
+    const response = NextResponse.json({ accessToken: payload.accessToken });
 
-    cookieStore.set("refresh_token", data.accessToken, {
+    cookieStore.set("access_token", payload.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: 'lax',
+        sameSite: "lax",
         path: "/",
-        maxAge: 60 * 5
+        maxAge: 60 * 15
+    });
+
+    cookieStore.set("refresh_token", payload.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7
     })
 
     return response;

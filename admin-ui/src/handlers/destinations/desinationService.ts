@@ -1,12 +1,12 @@
 
-import { callFetch } from "../utils/utils";
+import { callFetch, fetchJson } from "../utils/utils";
 import { CreateDestinationPayload, Destination, UpdateDestinationPayload } from "./type";
 
 
 const BASE_URL = "/destinations";
 
 export async function getDestinations(): Promise<Destination[]> {
-    const res = await fetch(BASE_URL);
+    const res = await fetchJson(BASE_URL);
 
     if (!res.ok) {
         const text = await res.text();

@@ -1,12 +1,12 @@
 import api from "../globalAxios";
-import { callFetch } from "../utils/utils";
+import { callFetch, fetchJson } from "../utils/utils";
 import { CreateSourcePayload, Source, SourceConfig, UpdateSourcePayload } from "./type";
 
 
 const BASE_URL = "/sources";
 
 export async function getSources(): Promise<Source[]> {
-    const res = await fetch(BASE_URL);
+    const res = await fetchJson(BASE_URL);
 
     if (!res.ok) {
         const text = await res.text();

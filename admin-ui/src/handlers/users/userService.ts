@@ -19,7 +19,6 @@ export async function updateUser(id: number, payload: FormData): Promise<ResultU
 export async function getUserCount() {
     try {
         const res = await api.get(`/users/count`);
-        console.log("res of user count dsds: ", res)
         return +res.data?.data;
     } catch (error) {
         console.log("Error login user");

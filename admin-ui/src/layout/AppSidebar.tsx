@@ -81,7 +81,7 @@ const AppSidebar: React.FC = () => {
             <ul className="flex flex-col gap-4">
               <li>
                 <Link
-                  href="/dashboard"
+                  href="/"
                   className={`menu-item group ${
                     isDashboardActive ? "menu-item-active" : "menu-item-inactive"
                   }`}

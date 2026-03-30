@@ -39,7 +39,7 @@ class StatService {
         const jobs = db.prepare("SELECT COUNT(*) AS total FROM jobs WHERE is_enable=1").get();
         const backups = db.prepare("SELECT COUNT(*) AS total FROM backups").get();
     
-        const backupSize = db.get(`SELECT SUM(bf.size) AS totalSize FROM backup_files WHERE status='online'`);
+        const backupSize = db.prepare(`SELECT SUM(size) AS totalSize FROM backup_files WHERE status='online'`).get();
     
         return {
             totalTarget: target?.total ?? 0,
@@ -50,8 +50,8 @@ class StatService {
     }
 
     async getStorageUsedByDest() {
-        const storageUsedByDest = db.preprare(`
-            SELECT COUNT(bf.size) AS totalSize, b.storage AS storage FROM backup_files
+        const storageUsedByDest = db.prepare(`
+            SELECT COUNT(bf.size) AS totalSize, b.storage AS storage FROM backup_files bf
                 LEFT JOIN backups b ON b.id = bf.backup_id
             WHERE b.status = 'completed'
             GROUP BY b.storage

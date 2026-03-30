@@ -4,7 +4,7 @@ const response = require("../../utils/response");
 class NotificationEventController {
     constructor() {}
 
-    async getNotifications() {
+    async getNotifications(req, res, next) {
         try {
             const notifications = await notificationEventService.getList();
             response.success(res, notifications);

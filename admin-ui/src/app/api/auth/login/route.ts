@@ -1,19 +1,23 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import api from "@/handlers/globalAxios";
+import { serverJson } from "@/lib/serverApi";
 
 export async function POST(req: Request) {
     const body = await req.json();
 
-    const res = await api.post("/auth/login", body);
-    const data = res.data?.data;
-    if (res.statusText !== "OK") {
+    const { res, data } = await serverJson<{ data: any }>("/auth/login", {
+        method: "POST",
+        json: body
+    });
+
+    const authData = data?.data;
+    if (!res.ok) {
         return NextResponse.json({ message: "Invalid credentials", success: false }, { status: 401 });
     }
 
     const cookieStore = await cookies();
     
-    cookieStore.set("access_token", data.accessToken, {
+    cookieStore.set("access_token", authData.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -21,12 +25,12 @@ export async function POST(req: Request) {
         path: "/"
     })
 
-    cookieStore.set("refresh_token", data.refreshToken, {
+    cookieStore.set("refresh_token", authData.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 60 * 60 * 24 * 7
     })
 
-    return NextResponse.json({ auth: data.auth, success: true });
+    return NextResponse.json({ auth: authData.auth, success: true });
 }

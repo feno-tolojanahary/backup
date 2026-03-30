@@ -10,6 +10,16 @@ export default function NotificationDropdown() {
   const [notifying, setNotifying] = useState(true);
 
   const { notificationEvents } = useNotificationEvents();
+  const notificationCount = notificationEvents.length;
+  const maxVisibleItems = 6;
+  // Approx. height per NotificationDropdownItem (avatar + padding)
+  const itemRowHeightPx = 84;
+  const emptyStateHeightPx = 220;
+
+  const visibleItemsCount =
+    notificationCount === 0 ? 0 : Math.min(notificationCount, maxVisibleItems);
+  const listHeightPx =
+    notificationCount === 0 ? emptyStateHeightPx : visibleItemsCount * itemRowHeightPx;
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -54,7 +64,7 @@ export default function NotificationDropdown() {
       <Dropdown
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="absolute -right-[240px] mt-[17px] flex h-[480px] w-[350px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark sm:w-[361px] lg:right-0"
+        className="absolute -right-[240px] mt-[17px] flex w-[350px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark sm:w-[361px] lg:right-0"
       >
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 dark:border-gray-700">
           <h5 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
@@ -80,22 +90,35 @@ export default function NotificationDropdown() {
             </svg>
           </button>
         </div>
-        <ul className="flex flex-col h-auto overflow-y-auto custom-scrollbar">
-          {notificationEvents.map((item) => (
-            <li key={item.id}>
-              <NotificationDropdownItem
-                onItemClick={closeDropdown}
-                name={item.jobName}
-                actionText={item.message}
-                project={item.backupName}
-                category={item.category}
-                time={item.createdAt}
-                avatarSrc="/images/user/user-02.jpg"
-                status={item.eventType}
-                href={item.redirection}
-              />
+        <ul
+          className="flex flex-col overflow-y-auto custom-scrollbar"
+          style={{ height: `${listHeightPx}px` }}
+        >
+          {notificationEvents.length > 0 ? (
+            notificationEvents.map((item) => (
+              <li key={item.id}>
+                <NotificationDropdownItem
+                  onItemClick={closeDropdown}
+                  name={item.jobName}
+                  actionText={item.message}
+                  project={item.backupName}
+                  category={item.category}
+                  time={item.createdAt}
+                  avatarSrc="/images/user/user-02.jpg"
+                  status={item.eventType}
+                  href={item.redirection}
+                />
+              </li>
+            ))
+          ) : (
+            <li className="flex h-full items-center justify-center px-3 py-10">
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  No notifications yet
+                </p>
+              </div>
             </li>
-          ))}
+          )}
         </ul>
         <Link
           href="/"

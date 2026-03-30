@@ -50,8 +50,6 @@ export default function SignInForm() {
 
     try {
       const result = await dispatch(login(data))
-      console.log("result: ", result)
-      console.log("login fullfiled: ", login.fulfilled)
       if (login.fulfilled.match(result)) {
         router.push("/");
       } else {

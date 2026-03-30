@@ -24,7 +24,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 let isRefreshing = false;
 
 const api = axios.create({
-    baseURL: "http://localhost:3030",
+    baseURL: "/api",
     headers: {
         "Content-Type": "application/json"
     }

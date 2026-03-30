@@ -1,5 +1,5 @@
 import ReactSelect, { type SelectInstance } from "react-select";
-import React, { useEffect, useMemo, useState, forwardRef } from "react";
+import React, { useEffect, useMemo, useState, forwardRef, useId } from "react";
 
 export interface Option {
   value: string;
@@ -16,6 +16,7 @@ interface SelectProps {
   defaultValue?: string | string[];
   value?: string | string[];
   name?: string;
+  instanceId?: string;
   disabled?: boolean;
   isMulti?: boolean;
 }
@@ -32,6 +33,7 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
       defaultValue = "",
       value,
       name,
+      instanceId,
       disabled = false,
       isMulti = false,
     },
@@ -39,6 +41,8 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
   ) => {
     const isControlled = value !== undefined;
     const [selectedValue, setSelectedValue] = useState<string | string[]>(defaultValue);
+    const reactId = useId();
+    const resolvedInstanceId = instanceId ?? name ?? reactId;
 
     useEffect(() => {
       if (!isControlled) {
@@ -80,6 +84,7 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
   return (
     <ReactSelect
       ref={ref}
+      instanceId={resolvedInstanceId}
       isMulti={isMulti}
       options={options}
       placeholder={placeholder}

@@ -118,9 +118,9 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
               </label>
               <Input
                 placeholder="Enter job name"
-                {...register("name"), {
+                {...register("name", {
                   required: "Job name is required"
-                }}
+                })}
                 error={Boolean(errors.name)}
                 hint={errors.name?.message}
               />

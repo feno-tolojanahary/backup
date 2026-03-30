@@ -134,6 +134,7 @@ export const DataTable = <T extends { id: number | string }>({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const sortedRows = useMemo(() => {
+    if (!Array.isArray(rows)) return [];
     if (!sortKey) return rows;
     const column = columns.find((col) => col.key === sortKey);
     const getValue = (row: T) =>

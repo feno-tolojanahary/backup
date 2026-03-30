@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import api from "@/handlers/globalAxios";
+import { serverFetch } from "@/lib/serverApi";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
     try {
         const { id: userId } = params;
         
-        await api.post(`/auth/logout/${userId}`);
+        await serverFetch(`/auth/logout/${userId}`, { method: "POST" });
         
         const cookieStore = await cookies();
         cookieStore.delete("access_token");

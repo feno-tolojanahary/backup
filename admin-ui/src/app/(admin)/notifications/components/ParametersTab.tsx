@@ -20,14 +20,22 @@ export default function ParametersTab() {
   const { settings, getSettingValue } = useSettings();
 
   useEffect(() => {
-      const defaultNotifyTriggers = {
-        completed: getSettingValue("completed") ?? false,
-        backupFailed: getSettingValue("backupFailed") ?? false,
-        jobFailed: getSettingValue("jobFailed") ?? false,
-        storageError: getSettingValue("storageError") ?? false
-      }
-      setNotifyTriggers(defaultNotifyTriggers);
-  }, [settings]);
+    if (!settings) return;
+    const next = {
+      completed: getSettingValue("completed") ?? false,
+      backupFailed: getSettingValue("backupFailed") ?? false,
+      jobFailed: getSettingValue("jobFailed") ?? false,
+      storageError: getSettingValue("storageError") ?? false,
+    };
+    setNotifyTriggers((prev) =>
+      prev.completed === next.completed &&
+      prev.backupFailed === next.backupFailed &&
+      prev.jobFailed === next.jobFailed &&
+      prev.storageError === next.storageError
+        ? prev
+        : next
+    );
+  }, [settings, getSettingValue]);
 
   const handleSave = async () => {
       try {
@@ -40,6 +48,16 @@ export default function ParametersTab() {
         console.log("setting notification save: ", error.message);
         toastError();
       } 
+  }
+
+  const handleCancel = () => {
+    if (!settings) return;
+    setNotifyTriggers({
+      completed: getSettingValue("completed") ?? false,
+      backupFailed: getSettingValue("backupFailed") ?? false,
+      jobFailed: getSettingValue("jobFailed") ?? false,
+      storageError: getSettingValue("storageError") ?? false,
+    });
   }
 
   return (
@@ -97,7 +115,7 @@ export default function ParametersTab() {
         <Button size="sm" type="button" onClick={handleSave}>
           Save Changes
         </Button>
-        <Button size="sm" variant="outline" type="button">
+        <Button size="sm" variant="outline" type="button" onClick={handleCancel}>
           Cancel
         </Button>
       </div>

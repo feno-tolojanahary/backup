@@ -1,7 +1,14 @@
-const API_URL = process.env.NEXT_API_PUBLIC_URL;
+const API_BASE = "/api";
+
+function withApiBase(url: string): string {
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (url.startsWith("/api/")) return url;
+    if (url.startsWith("/")) return `${API_BASE}${url}`;
+    return `${API_BASE}/${url}`;
+}
 
 export function callFetch(url: string, method: "POST" | "PUT" | "DELETE" | "GET", payload: any = {}): Promise<Response> {
-    return fetch(url, {
+    return fetch(withApiBase(url), {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -9,7 +16,7 @@ export function callFetch(url: string, method: "POST" | "PUT" | "DELETE" | "GET"
 }
 
 export function fetchJson(url: string): Promise<Response> {
-    return fetch(url, {
+    return fetch(withApiBase(url), {
         method: "GET",
         headers: { "Content-Type": "application/json" }
     })
@@ -20,7 +27,7 @@ type ApiFetchOptions = {
 }
 
 export function apiFetch(url: string, method: "POST" | "PUT" | "DELETE" | "GET", payload: any = {}, { headers = {} }: ApiFetchOptions = {}): Promise<Response> {
-    return fetch(`${API_URL}/${url}`, {
+    return fetch(withApiBase(url), {
         method,
         headers: { 
             "Content-Type": "application/json",
