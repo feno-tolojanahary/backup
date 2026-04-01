@@ -14,7 +14,7 @@ import { useToast } from "@/context/ToastContext";
 
 export default function Profile() {  
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const user = useAppSelector((state) => state.auth.user);
   const { toastError, toastSuccess } = useToast();
 
   const methods = useForm<UserForm>({
@@ -77,8 +77,7 @@ export default function Profile() {
           fullName: nextFullName,
           email: nextEmail,
           companyName: nextCompanyName,
-          twoFactorEnable: nextTwoFactorEnable,
-          
+          twoFactorEnable: nextTwoFactorEnable          
         })
       );
       toastSuccess("Saving user information with success.");

@@ -22,9 +22,10 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (!user) {
+      console.log("get profile data");
       (async () => {
         try {
-          const res = await api.get<User>("/api/auth/user-token");
+          const res = await api.get<User>("/auth/user-token");
           dispatch(setUserProfile(res.data));
         } catch(error: any) {
           console.log("error get user info: ", error.message);

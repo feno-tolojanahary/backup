@@ -13,4 +13,4 @@ export function useNotificationEvents() {
         isLoading,
         error
     }
-}
+}           

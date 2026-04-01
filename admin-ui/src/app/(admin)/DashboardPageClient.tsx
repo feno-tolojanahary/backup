@@ -1,11 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import type { ApexOptions } from "apexcharts";
 import Button from "@/components/ui/button/Button";
 import useStats from "@/handlers/stats/statHooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setUserProfile } from "@/store/features/auth/authSlice";
+import api from "@/handlers/globalAxios";
+import { User } from "@/handlers/users/type";
 // import Badge from "@/components/ui/badge/Badge";
 // import {
 //   Table,
@@ -122,6 +125,34 @@ export default function DashboardPageClient() {
   const hasData =
     activitySeries?.[0]?.data.length > 0 ||
     statusSeries.length > 0
+  
+  const user = useAppSelector(state => state.auth?.user);
+  const accessToken = useAppSelector(state => state.auth?.accessToken)
+  const dispatch = useAppDispatch();
+  
+  // useEffect(() => {
+  //   console.log("users: ", user)
+  //   if (!user) {
+  //     console.log("get profile data dashboard");
+  //     (async () => {
+  //       try {
+  //         const res = await api.get<User>("/auth/user-token");
+  //         dispatch(setUserProfile(res.data));
+  //       } catch(error: any) {
+  //         console.log("error get user info: ", error.message);
+  //       }
+  //     })()
+  //   } else {
+  //     (async () => {
+  //       const res = await api.get<User>("/auth/user-token");
+  //     })()
+  //   }
+  // }, [user])
+
+  useEffect(() => {
+    console.log("users: ", user)
+    console.log("access token: ", accessToken)
+  }, [user])
 
   if (!hasData) {
     return (

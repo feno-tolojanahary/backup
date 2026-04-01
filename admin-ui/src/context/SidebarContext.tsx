@@ -1,5 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { Provider } from "react-redux";
+import { store } from '@/store';
 
 type SidebarContextType = {
   isExpanded: boolean;
@@ -78,7 +80,9 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
         toggleSubmenu,
       }}
     >
-      {children}
+      <Provider store={store}>
+        {children}
+      </Provider>
     </SidebarContext.Provider>
   );
 };

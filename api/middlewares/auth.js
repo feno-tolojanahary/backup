@@ -1,7 +1,6 @@
 const { verifyAccessToken } = require("../services/authService");
 const response = require("../utils/response");
 
-
 async function tokenAccess(req, res, next) {
     try {
         const auth = req.headers["authorization"] || "";
@@ -9,7 +8,6 @@ async function tokenAccess(req, res, next) {
         if (!token) {
             return response.unauthorized(res, "Unauthorized")
         }
-
         await verifyAccessToken(token);
         next();
     } catch (error) {

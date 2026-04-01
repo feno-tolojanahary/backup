@@ -6,7 +6,9 @@ class NotificationEventController {
 
     async getNotifications(req, res, next) {
         try {
+            console.log("get notifications")
             const notifications = await notificationEventService.getList();
+            console.log("notification list: ", notifications)
             response.success(res, notifications);
         } catch (error) {
             console.log(error);

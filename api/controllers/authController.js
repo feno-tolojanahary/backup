@@ -21,27 +21,18 @@ class AuthController {
             const permissions = stmts.findRoles.all(user.id);
 
             const accessToken = await buildAccessToken(user, permissions, roles);
-            const refreshToken = crypto.randomBytes(64).toString();
+            const refreshToken = crypto.randomBytes(64).toString("hex");
             const expirationTime = (Date.now() + EXPIRATION_TIME_MS) / 1000;
             stmts.setRefreshToken.run(refreshToken, expirationTime, user.id);
 
             const userInfo = await userService.getUserProfile({ id: user.id });
 
-            res.cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                maxAge: EXPIRATION_TIME_MS,
-                path: "/auth/refresh"
-            })
-            
             response.success(res, {
+                refreshToken,
                 accessToken,
-                auth: {
-                    user: userInfo,
-                    roles,
-                    permissions
-                }
+                user: userInfo,
+                roles,
+                permissions
             })
         } catch(error) {
             console.log("Error login: ", error.message);
@@ -52,10 +43,11 @@ class AuthController {
 
     async refreshToken(req, res, next) {
         try {
-            if (!req.body) {
-                throw new Error("Body is required.")
+            const token = req.body.refreshToken;
+            if (!token) {
+                throw new Error("No refresh token available");
             }
-            const user = stmts.findByRefreshToken.get(req.body);
+            const user = stmts.findByRefreshToken.get(token);
             if (!user) {
                 response.badRequest(res, "Invalid refresh token.");
                 return;
@@ -67,26 +59,21 @@ class AuthController {
             const roles = stmts.findPermissions.all(user.id);
             const permissions = stmts.findRoles.all(user.id);
 
-            const accessToken = buildAccessToken(user, permission, roles);
-            const refreshToken = crypto.randomBytes(64).toString();
+            const accessToken = await buildAccessToken(user, permissions, roles);
+            const refreshToken = crypto.randomBytes(64).toString("hex");
             stmts.setRefreshToken.run(refreshToken, (Date.now() + EXPIRATION_TIME_MS) / 1000, user.id);
 
-            res.cookie("refresh_token", refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                maxAge: EXPIRATION_TIME_MS,
-                path: "/auth/refresh"
-            })
+            const userInfo = await userService.getUserProfile({ id: user.id });
 
             response.success(res, {
-        
                 accessToken,
-                refreshToken
+                refreshToken,
+                user: userInfo,
+                roles,
+                permissions
             })
         } catch(error) {    
-            console.log("Error refresh tok  en: ", error.message);
-            res.clearCookie("refresh_token", { path: "/auth/refresh" });
+            console.log("Error refresh token: ", error.message);
             response.error(res, error.message);
             next(error);
         }
@@ -94,13 +81,12 @@ class AuthController {
 
     async logout(req, res, next) {
         try {
-            if (!req.params.id)
-                throw new Error("The user id is required.");
-            const user = stmts.findById.get(req.params.id);
-            if (!user) 
-                throw new Error("User not found.");
-            stmts.clearRefreshToken.run(user.id);
-            res.clearCookie("refreshToken", { path: "/auth/refresh" });
+            const { token } = req.body;
+            if (!token)
+                throw new Error("The refresh token as a body is required.");
+            const user = stmts.findByRefreshToken.get(token);
+            if (user)
+                stmts.clearRefreshToken.run(user.id);
             response.success(res, { ok: true });
         } catch (error) {
             console.log("Error logout: ", error.message);
@@ -110,4 +96,4 @@ class AuthController {
     }
 }
 
-module.exports = new AuthController();
+module.exports = new AuthController();      

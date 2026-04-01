@@ -16,7 +16,7 @@ export default function UserDropdown() {
   const router = useRouter();
 
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const user = useAppSelector((state) => state.auth.user);
 
   const { toastError } = useToast();
 
@@ -30,9 +30,9 @@ export default function UserDropdown() {
   }
 
   const logoutUser = async () => {
-    console.log("user to logout: ", user)
     if (user?.id) {
-      const result = await dispatch(logout(user.id))
+      const result = await dispatch(logout())
+      console.log("result: ", result)
       if (logout.fulfilled.match(result)) {
         router.push("/signin");
       } else {
@@ -40,6 +40,7 @@ export default function UserDropdown() {
       }
     } else {
       toastError();
+      router.push("/signin");
     }
   }
 
@@ -153,4 +154,5 @@ export default function UserDropdown() {
       </Dropdown>
     </div>
   );
+
 }

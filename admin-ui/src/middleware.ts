@@ -9,12 +9,16 @@ function isProtectedPath(pathname: string) {
 async function getUserCount(): Promise<number> {
     const apiUrl = process.env.API_URL;
     if (!apiUrl) return 0;
+    try {
+        const res = await fetch(new URL("/users/count", apiUrl), { method: "GET" });
+        if (!res.ok) return 0;
 
-    const res = await fetch(new URL("/users/count", apiUrl), { method: "GET" });
-    if (!res.ok) return 0;
-
-    const data = (await res.json()) as { data?: number };
-    return data?.data ?? 0;
+        const data = (await res.json()) as { data?: number };
+        return data?.data ?? 0;
+    } catch (error: any) {
+        console.log("Error count user: ", error.message);
+        return 0;
+    }
 }
 
 export async function middleware(req: NextRequest) {
@@ -26,21 +30,8 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL("/signup", req.url));
     }
 
-    const accessToken = req.cookies.get("access_token")?.value;
-    if (accessToken) return NextResponse.next();
-
-    const refreshRes = await fetch(new URL("/api/auth/refresh", req.url), {
-        method: "POST",
-        headers: { cookie: req.headers.get("cookie") ?? "" }
-    });
-
-    if (refreshRes.ok) {
-        const res = NextResponse.next();
-        refreshRes.headers.getSetCookie().forEach((cookie) => {
-            res.headers.append("Set-Cookie", cookie);
-        });
-        return res;
-    }
+    const refreshToken = req.cookies.get("refresh_token")?.value;
+    if (refreshToken) return NextResponse.next();
 
     return NextResponse.redirect(new URL("/signin", req.url));
 }

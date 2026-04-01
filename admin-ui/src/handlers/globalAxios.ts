@@ -1,4 +1,7 @@
 import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
+import { store } from "@/store/index";
+import { setAccessToken, setAuth, setPermissions, setRoles, setUserProfile } from "@/store/features/auth/authSlice";
+import { AuthData } from "./auth/type";
 
 interface RetryAxiosRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
@@ -24,56 +27,54 @@ const processQueue = (error: unknown, token: string | null = null) => {
 let isRefreshing = false;
 
 const api = axios.create({
-    baseURL: "/api",
+    baseURL: "http://localhost:3030",
     headers: {
         "Content-Type": "application/json"
     }
 })
 
-// api.interceptors.request.use((config) => {
-//     const token = localStorage.getItem("access_token");
-//     if (token) config.headers["Authorization"] = `Bearer ${token}`;
-//     return config;
-// })
+api.interceptors.request.use((config) => {
+    const token = store.getState().auth.accessToken;
+    if (token) config.headers["Authorization"] = `Bearer ${token}`;
+    return config;
+})
 
-// api.interceptors.response.use(
-//     (response) => response,
-//     async (error) => {
-//         const originalRequest = error.config as RetryAxiosRequestConfig;
-//         console.log("error: ", error)
-//         console.log("------- original request: ", originalRequest)
-//         if (error.response?.status === 401 && !originalRequest?._retry) {
-//             if (isRefreshing) {
-//                 return new Promise<string | null>((resolve, reject) => {
-//                     failedQueue.push({ resolve, reject })
-//                 }).then((token: string | null) => {
-//                     originalRequest.headers["Authorization"] = `Bearer ${token}`;
-//                     return api(originalRequest);
-//                 })
-//                 .catch((error) => Promise.reject(error))
-//             }
-//         }
-//         originalRequest._retry = true;
-//         isRefreshing = true;
-
-//         try {  
-//             const { data } = await axios.post<{accessToken: string}>("/api/auth/refresh");
-//             const newAccessToken = data.accessToken;
-//             localStorage.setItem("access_token", newAccessToken);
-//             api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`            ;
-//             processQueue(null, newAccessToken);
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config as RetryAxiosRequestConfig;
+        if (error.response?.status !== 401)
+            return;
+        if (!originalRequest?._retry) {
+            if (isRefreshing) {
+                return new Promise<string | null>((resolve, reject) => {
+                    failedQueue.push({ resolve, reject })
+                }).then((token: string | null) => {
+                    originalRequest.headers["Authorization"] = `Bearer ${token}`;
+                    return api(originalRequest);
+                })
+                .catch((error) => Promise.reject(error))
+            }
+        }
+        originalRequest._retry = true;
+        isRefreshing = true;
         
-//             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
-//             return api(originalRequest);
-//         } catch (refreshError: any) {
-//             processQueue(refreshError);
-//             localStorage.removeItem("access_token");
+        try {  
+            const { data } = await axios.post<{ auth: AuthData }>("/api/auth/refresh", {}, { headers: { "Content-Type": "application/json" } });
+            const newAccessToken = data.auth?.accessToken;
+            store.dispatch(setAuth(data.auth));
+            api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`            ;
+            processQueue(null, newAccessToken);
+            originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+            return api(originalRequest);
+        } catch (refreshError: any) {
+            processQueue(refreshError);
 
-//             return Promise.reject(refreshError)
-//         } finally {
-//             isRefreshing = false;
-//         }
-//     }
-// )
+            return Promise.reject(refreshError)
+        } finally {
+            isRefreshing = false;
+        }
+    }
+)
 
 export default api;

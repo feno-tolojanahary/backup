@@ -12,10 +12,11 @@ export type PermissionAuth = {
 
 export interface AuthState {
     user: User | null;
-    roles: RoleAuth[],
-    permissions: PermissionAuth[],
-    isLoading: boolean,
-    error: any
+    roles: RoleAuth[];
+    permissions: PermissionAuth[];
+    isLoading: boolean;
+    error: any;
+    accessToken: string;
 }
 
 export interface LoginPayload {

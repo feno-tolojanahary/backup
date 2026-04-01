@@ -3,7 +3,6 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { useToast } from "@/context/ToastContext";
 import { login } from "@/store/features/auth/authThunk";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
@@ -34,8 +33,6 @@ export default function SignInForm() {
       rememberMe: false,
     },
   });
-
-  const { toastError, toastSuccess } = useToast();
 
   const onSubmit = async (data: SignInFormValues) => {
     setErrorMessage("");

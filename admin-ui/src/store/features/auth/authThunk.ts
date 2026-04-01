@@ -23,12 +23,17 @@ type LogoutRes = {
 
 export const logout = createAppThunk(
     'auth/logout',
-    async (userId: number, { rejectWithValue }) => {
+    async (_, { rejectWithValue }) => {
         try {
-            const res = await axios.post<LogoutRes>(`/api/auth/logout/${userId}`);
+            const res = await axios.post<LogoutRes>(`/api/auth/logout`);
             if (!res.data?.ok)
                 throw new Error("Logout failed.");
-            return true;
+            return {
+                user: null,
+                permissions: [],
+                roles: [],
+                accessToken: ""
+            };
         } catch (err: any) {
             return rejectWithValue({
                 message: "Logout failed",
