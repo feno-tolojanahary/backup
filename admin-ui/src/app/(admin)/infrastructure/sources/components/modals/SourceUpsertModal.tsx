@@ -10,6 +10,7 @@ import { useCreateSource, useTestConnection, useUpdateSource } from "@/handlers/
 import { CreateSourcePayload, MongodbConfig, S3Config, Source, SourceType } from "@/handlers/sources/type";
 import { useToast } from "@/context/ToastContext";
 import { ModalType } from "@/types/common";
+import { useAppSelector } from "@/store/hooks";
 
 export type SourceFormPayload = {
   name: string;
@@ -45,6 +46,7 @@ type SourceFormValues = {
   path: string;
   secretKey: string;
   accessKey: string;
+  status: string;
 };
 
 const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
@@ -71,6 +73,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
       secretKey: isS3 ? (config as S3Config)?.secretKey || "" : "",
       accessKey: isS3 ? (config as S3Config)?.accessKey || "" : "",
       path: "",
+      status: "disconnected"
     };
   };
 
@@ -80,6 +83,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
     });
 
   const [isConnected, setIsConnected] = useState(false)
+  const user = useAppSelector(state => state.auth.user);
 
   const sourceType = watch("type");
 
@@ -90,7 +94,13 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
   const { toastError, toastSuccess, toastWarning } = useToast();
 
   useEffect(() => {
+    if (isConnected)
+      setIsConnected(false);
+  }, [isOpen])
+
+  useEffect(() => {
     if (!isOpen) return;
+    console.log("initial data: ", initialData)
     reset(buildDefaults(initialData));
   }, [isOpen, initialData, reset]);
   
@@ -102,7 +112,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
     };
 
     if (values.type === "mongodb") {
-      payload.config.host = values.uri.trim();
+      payload.config.uri = values.uri.trim();
       payload.config.database = values.database.trim();
     }
 
@@ -110,6 +120,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
       payload.config.bucketName = values.bucketName.trim();
       payload.config.prefix = values.prefix.trim();
     }
+    payload.config.type = values.type;
     return payload;
   };
 
@@ -144,6 +155,9 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
       }
     } else {
      try {
+        payload.status = isConnected ? "connected" : "disconnected";
+        payload.createdBy = user?.id;
+        console.log("payload to create: ", payload)
         await createSource(payload);
         toastSuccess("The source was created successfully.")
         modal.closeModal();
@@ -167,7 +181,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
         <div className="mt-6 space-y-5">
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Source type
+              Source type 
             </label>
             <Controller
               name="type"

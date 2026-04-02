@@ -1,7 +1,7 @@
 import React from "react";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
-import { BoxIcon, FolderIcon, PlugInIcon } from "@/icons";
+import { BoxIcon, PlugInIcon } from "@/icons";
 import { Source, SourceType, StatusType } from "@/handlers/sources/type";
 
 type SourceCardProps = {
@@ -14,14 +14,14 @@ type SourceCardProps = {
 
 const statusLabel: Record<StatusType, string> = {
   connected: "Connected",
-  warning: "Warning",
-  error: "Connection Failed",
+  disconnected: "Warning",
+  failed: "Connection Failed",
 };
 
 const statusColor: Record<StatusType, "success" | "warning" | "error"> = {
   connected: "success",
-  warning: "warning",
-  error: "error",
+  disconnected: "warning",
+  failed: "error",
 };
 
 const typeLabel: Record<SourceType, string> = {

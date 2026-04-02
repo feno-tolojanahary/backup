@@ -9,15 +9,17 @@ class SourceService {
                 name,
                 type,
                 config,
-                created_by
+                status,
+                createdBy
             } = data;
 
-            const res = db.prepare(`INSERT INTO sources (name, type, config, created_by)
-                                    VALUES (?, ?, ?, ?)`)
-                        .run(name, type, JSON.stringify(config), created_by);
+            const res = db.prepare(`INSERT INTO sources (name, type, config, status, created_by)
+                                    VALUES (?, ?, ?, ?, ?)`)
+                        .run(name, type, JSON.stringify(config), status, createdBy);
 
             return res.lastInsertRowid;
         } catch (error) {
+            console.log("error insert source: ", error.message);
             return;
         }
     }
@@ -37,13 +39,14 @@ class SourceService {
             const res = db.prepare(query).run(...values, ...params);
             return res.changes > 0;
         } catch (error) {
+            console.log("Error update source: ", error.message);
             return;
         }
     }
 
-    async find(filters) {
+    async find(filters = {}) {
         try {
-            let query = `SELECT name, type, config, created_by AS createdBy FROM sources WHERE 1=1`;
+            let query = `SELECT id, name, type, config, status, created_by AS createdBy FROM sources WHERE 1=1`;
             let values = [];
             if (filters.id) {
                 query += " AND id = ?";
@@ -55,6 +58,7 @@ class SourceService {
                 config: source.config ? JSON.parse(source.config) : {}
             }));
         } catch (error) {
+            console.log("Error find source: ", error.message);
             return;
         }
     }
@@ -65,6 +69,7 @@ class SourceService {
             const data = db.prepare(query).get(id);
             return data;
         } catch (error) {
+            console.log("Error find by id source: ", error.message);
             return;
         }
     }
@@ -74,6 +79,7 @@ class SourceService {
             const res = db.prepare(`DELETE FROM sources WHERE id = ?`).run(id);
             return res.changes;
         } catch (error) {
+            console.log("error delete by id source: ", error.message);
             return false;
         }
     }

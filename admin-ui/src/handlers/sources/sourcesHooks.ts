@@ -1,13 +1,13 @@
 import useSWR, { mutate } from "swr";
 import useSWRMutation from "swr/mutation";
 import { CreateSourcePayload, Source, SourceConfig, UpdateSourcePayload } from "./type";
-import { fetcher } from "@/handlers/fetcher";
+import { getData } from "@/handlers/fetcher";
 import { createSource, deleteSource, testSourceConnection, updateSource } from "./service";
 
 const SOURCE_URL = "/sources";
 
 export function useSources () {
-    const { data, error, isLoading } = useSWR<Source[]>(SOURCE_URL, fetcher);
+    const { data, error, isLoading } = useSWR<Source[]>(SOURCE_URL, getData);
 
     return {
         sources: data || [],

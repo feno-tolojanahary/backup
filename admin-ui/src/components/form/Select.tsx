@@ -85,6 +85,7 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
     <ReactSelect
       ref={ref}
       instanceId={resolvedInstanceId}
+      unstyled
       isMulti={isMulti}
       options={options}
       placeholder={placeholder}

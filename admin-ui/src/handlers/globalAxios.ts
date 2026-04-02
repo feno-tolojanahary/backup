@@ -1,6 +1,6 @@
-import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
+import axios, { InternalAxiosRequestConfig } from "axios";
 import { store } from "@/store/index";
-import { setAccessToken, setAuth, setPermissions, setRoles, setUserProfile } from "@/store/features/auth/authSlice";
+import { setAuth } from "@/store/features/auth/authSlice";
 import { AuthData } from "./auth/type";
 
 interface RetryAxiosRequestConfig extends InternalAxiosRequestConfig {

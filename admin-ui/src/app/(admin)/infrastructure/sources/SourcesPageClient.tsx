@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import SourceUpsertModal from "@/app/(admin)/infrastructure/sources/components/modals/SourceUpsertModal";
+import SourceDeleteModal from "@/app/(admin)/infrastructure/sources/components/modals/SourceDeleteModal";
 import { useModal } from "@/hooks/useModal";
 import {
   Source,
@@ -23,8 +24,10 @@ export default function SourcesPageClient() {
   const [statusFilter, setStatusFilter] = useState<StatusType | "">("");
   const [viewTarget, setViewTarget] = useState<Source | null>(null);
   const [editSource, setEditSource] = useState<Source | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Source | null>(null);
   const createModal = useModal();
   const detailModal = useModal();
+  const deleteModal = useModal();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -54,6 +57,11 @@ export default function SourcesPageClient() {
   const handleEdit = (source: Source) => {
     setEditSource(source);
     createModal.openModal();
+  };
+
+  const handleDelete = (source: Source) => {
+    setDeleteTarget(source);
+    deleteModal.openModal();
   };
 
   useEffect(() => {
@@ -98,13 +106,13 @@ export default function SourcesPageClient() {
                 ) : (
                   <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {filteredSources.map((source) => (
-                      <SourceCard
+                        <SourceCard
                         key={source.id}
                         source={source}
                         onView={handleView}
                         onEdit={handleEdit}
                         onTest={(source) => console.log("Test source", source.id)}
-                        onDelete={(source) => console.log("Delete source", source.id)}
+                        onDelete={handleDelete}
                       />
                     ))}
                 </div>
@@ -127,6 +135,15 @@ export default function SourcesPageClient() {
             ? editSource
             : null
         }
+      />
+
+      <SourceDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => {
+          setDeleteTarget(null);
+          deleteModal.closeModal();
+        }}
+        deleteTarget={deleteTarget}
       />
 
       <SourceDetailModal
