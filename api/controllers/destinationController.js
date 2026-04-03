@@ -28,7 +28,7 @@ class DestinationController {
             if (!req.params.id) 
                 throw new Error("The id in params is required.");
             const result = await destinationService.update({ id: req.params.id }, req.body);
-            if (!result)
+            if (result === undefined || result === null)
                 throw new Error("Update error.");
             response.success(res, result);
         } catch (error) {
@@ -45,7 +45,7 @@ class DestinationController {
                 throw new Error("Error when get service list.");
             response.success(res, result)
         } catch (error) {
-            console.log(error);
+            console.log("Error find destinations: ", error.message);
             response.error(res, error.message);
             next(error);
         }
@@ -84,7 +84,9 @@ class DestinationController {
             if (!dest) {
                 throw new Error("The params body is required.");
             }
-            const srcRes = await testConf(dest?.config);
+            const config = {...dest?.config, type: dest.type};
+            const srcRes = await testConf(config);
+            
             dest.status = srcRes.connected ? "connected" : "failed";
             dest.errorMsg = srcRes.errorMsg;
             response.success(res, dest);

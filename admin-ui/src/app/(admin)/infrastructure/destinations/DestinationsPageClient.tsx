@@ -8,9 +8,9 @@ import { useModal } from "@/hooks/useModal";
 import { Destination, StatusType } from "@/handlers/destinations/type";
 import DestinationsFilters from "./components/DestinationsFilters";
 import DestinationsGrid from "./components/DestinationsGrid";
-import DestinationTestModal from "./components/DestinationTestModal";
 import DestinationDeleteModal from "./components/DestinationDeleteModal";
 import UpsertDestinationModal from "./components/UpsertDestinationModal";
+import { useListDestinations } from "@/handlers/destinations/destinationHooks";
 
 export default function DestinationsPageClient() {
   const [search, setSearch] = useState("");
@@ -19,20 +19,25 @@ export default function DestinationsPageClient() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [destinationItems, setDestinationItems] =
     useState<Destination[]>([]);
-  const [selectedDestination, setSelectedDestination] =
-    useState<Destination | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Destination | null>(
     null
   );
   const [editTarget, setEditTarget] = useState<Destination | null>(null);
 
-  const testModal = useModal();
   const deleteModal = useModal();
   const createModal = useModal();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const handledCreateParam = useRef(false);
+
+  const { data: destinations, isLoading } = useListDestinations();
+
+  useEffect(() => {
+    if (destinations) {
+      setDestinationItems(destinations);
+    }
+  }, [destinations]);
 
   const filteredDestinations = useMemo(() => {
     return destinationItems.filter((destination) => {
@@ -47,11 +52,6 @@ export default function DestinationsPageClient() {
       return true;
     });
   }, [search, typeFilter, statusFilter, destinationItems]);
-
-  const openTestConnection = (destination: Destination) => {
-    setSelectedDestination(destination);
-    testModal.openModal();
-  };
 
   const openEditDestination = (destination: Destination) => {
     setEditTarget(destination);
@@ -112,18 +112,11 @@ export default function DestinationsPageClient() {
             filteredDestinations={filteredDestinations}
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
-            onTestConnection={openTestConnection}
             onEdit={openEditDestination}
             onDelete={openDeleteConfirm}
           />
         </ComponentCard>
       </div>
-
-      <DestinationTestModal
-        isOpen={testModal.isOpen}
-        onClose={testModal.closeModal}
-        destination={selectedDestination}
-      />
 
       <DestinationDeleteModal
         isOpen={deleteModal.isOpen}

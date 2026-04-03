@@ -1,45 +1,46 @@
 
-import { callFetch, fetchJson } from "../utils/utils";
+import api from "../globalAxios";
 import { CreateDestinationPayload, Destination, UpdateDestinationPayload } from "./type";
 
 
 const BASE_URL = "/destinations";
 
 export async function getDestinations(): Promise<Destination[]> {
-    const res = await fetchJson(BASE_URL);
-
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Failed to get Destinations.");
+    try {
+        const res = await api.get<Destination[]>(BASE_URL);
+        return res.data?.data || [];
+    } catch (error: any) {
+        const message = error?.response?.data?.message || error?.message || "Failed to get Destinations.";
+        throw new Error(message);
     }
-
-    return res.json();
 }
 
 export async function createDestination(url: string, { arg }: { arg: { payload: CreateDestinationPayload }}): Promise<any> {
-    const res = await callFetch(url, "POST", arg.payload);
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Error creating resDestination");
+    try {
+        const res = await api.post(url, arg.payload);
+        return res.data?.data;
+    } catch (error: any) {
+        const message = error?.response?.data?.message || error?.message || "Error creating Destination";
+        throw new Error(message);
     }
-    
-    return res.json();
 }
 
-export async function updateDestination(url: string, { arg }: { arg: { id: string, payload: UpdateDestinationPayload }}): Promise<any> {
-    const res = await callFetch(`${url}/${arg.id}`, "PUT", arg.payload);
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Error updating Destination");
+export async function updateDestination(url: string, { arg }: { arg: { id: number, payload: UpdateDestinationPayload }}): Promise<any> {
+    try {
+        const res = await api.put(`${url}/${arg.id}`, arg.payload);
+        return res.data?.data;
+    } catch (error: any) {
+        const message = error?.response?.data?.message || error?.message || "Error updating Destination";
+        throw new Error(message);
     }
-    return res.json()
 }
 
-export async function deleteDestination(url: string, { arg }: { arg: { id: string } }) : Promise<any> {
-    const res = await callFetch(`${url}/${arg.id}`, "DELETE");
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Error delete Destination.");
+export async function deleteDestination(url: string, { arg }: { arg: { id: number } }) : Promise<any> {
+    try {
+        const res = await api.delete(`${url}/${arg.id}`);
+        return res.data?.data;
+    } catch (error: any) {
+        const message = error?.response?.data?.message || error?.message || "Error delete Destination.";
+        throw new Error(message);
     }
-    return res.json();
 }

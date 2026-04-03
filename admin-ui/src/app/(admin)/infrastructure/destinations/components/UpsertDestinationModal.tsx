@@ -7,7 +7,7 @@ import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
 import { Destination, DestinationType, S3Config, AuthMethodType, HostConfig, LocalStorageConfig, CreateDestinationPayload, UpdateDestinationPayload } from "@/handlers/destinations/type";
-import { useCreateDestination, useUpdateDestination } from "@/handlers/destinations/destinationHooks";
+import { useCreateDestination, useListDestinations, useUpdateDestination } from "@/handlers/destinations/destinationHooks";
 import { useToast } from "@/context/ToastContext";
 
 export type DestinationFormPayload = {
@@ -113,6 +113,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
 
   const { create: createDestination } = useCreateDestination();
   const { update: updateDestination } = useUpdateDestination();
+  const { data: destinations } = useListDestinations();
 
   const { toastError, toastSuccess } = useToast()
 
@@ -163,12 +164,25 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     return destination;
   }
 
+  const buildNameValidator = (destinations?: Destination[], currentId?: number) => (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "Destination name is required.";
+    if (!destinations) return true;
+    const normalized = trimmed.toLowerCase();
+    const conflict = destinations.find((dest) => {
+      if (currentId && dest.id === currentId) return false;
+      return dest.name.trim().toLowerCase() === normalized;
+    });
+    return conflict ? "A destination with this name already exists." : true;
+  };
+  
   const onSubmitForm = async (values: FormValues) => {
     const destData = getDestinationData(values);
     if (destination?.id) {
       try {
-        await updateDestination(destination?.id, destData as UpdateDestinationPayload);
+        await updateDestination(destination.id, destData as UpdateDestinationPayload);
         toastSuccess("Update destination with success.");
+        onClose();
       } catch(error: any) {
         console.log("Error dest update: ", error.message);
         toastError();
@@ -177,6 +191,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
       try {
         await createDestination(destData as CreateDestinationPayload);
         toastSuccess("Destination created with success.");
+        onClose();
       } catch(error: any) {
         console.log("Error create dest: ", error.message);
         toastError();
@@ -210,6 +225,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                   placeholder="prod-backups"
                   {...register("name", {
                     required: "Destination name is required.",
+                    validate: buildNameValidator(destinations, destination?.id),
                   })}
                   error={Boolean(errors.name)}
                   hint={errors.name?.message}
@@ -478,7 +494,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
           )}
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-end gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
           <Button size="sm" variant="outline" type="button" onClick={onClose}>
             Cancel
           </Button>

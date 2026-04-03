@@ -1,16 +1,19 @@
+import { useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { BoxIcon, FolderIcon, PlugInIcon, MoreDotIcon } from "@/icons";
 import { statusBadgeColor, usagePercent } from "./DestinationsUtils";
-import { Destination, HostConfig, LocalStorageConfig, S3Config } from "@/handlers/destinations/type";
+import { Destination, HostConfig, LocalStorageConfig, S3Config, StatusType } from "@/handlers/destinations/type";
+import { testConnection } from "@/handlers/destinations/destinationHooks";
 
 type DestinationCardProps = {
   destination: Destination;
   openMenuId: string | null;
   setOpenMenuId: (value: string | null) => void;
-  onTestConnection: (destination: Destination) => void;
+  onTestResult: (destination: Destination, status: StatusType) => void;
+  onOpenDetail: (destination: Destination) => void;
   onEdit: (destination: Destination) => void;
   onDelete: (destination: Destination) => void;
 };
@@ -19,14 +22,30 @@ export default function DestinationCard({
   destination,
   openMenuId,
   setOpenMenuId,
-  onTestConnection,
+  onTestResult,
+  onOpenDetail,
   onEdit,
   onDelete,
 }: DestinationCardProps) {
+  const [isTesting, setIsTesting] = useState(false);
   const capacityUsage = usagePercent(
     "40",
     "100"
   );
+
+  const handleTestConnection = async () => {
+    if (isTesting) return;
+    setIsTesting(true);
+    try {
+      const result = await testConnection(destination);
+      const status = result.status ?? "failed";
+      onTestResult(result, status);
+    } catch (error) {
+      onTestResult({ ...destination, status: "failed" }, "failed");
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
@@ -74,11 +93,11 @@ export default function DestinationCard({
               <DropdownItem
                 onItemClick={() => {
                   setOpenMenuId(null);
-                  onTestConnection(destination);
+                  onOpenDetail(destination);
                 }}
                 className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
               >
-                Test connection
+                Open detail
               </DropdownItem>
               <DropdownItem
                 onItemClick={() => {
@@ -155,7 +174,8 @@ export default function DestinationCard({
           size="sm"
           variant="outline"
           type="button"
-          onClick={() => onTestConnection(destination)}
+          onClick={handleTestConnection}
+          isLoading={isTesting}
         >
           Test connection
         </Button>

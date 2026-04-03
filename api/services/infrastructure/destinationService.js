@@ -1,4 +1,5 @@
 const db = require("../../../lib/db/db");
+const { deleteEmptyFields } = require("../../../lib/helper/utils")
 
 class DestinationService {
     constructor() {}
@@ -9,12 +10,13 @@ class DestinationService {
                 name,
                 type,
                 config,
-                created_by
+                created_by,
+                createdBy
             } = data;
 
             const res = db.prepare(`INSERT INTO destinations (name, type, config, created_by)
                                     VALUES (?, ?, ?, ?)`)
-                        .run(name, type, JSON.stringify(config), created_by);
+                        .run(name, type, JSON.stringify(config), created_by ?? createdBy);
 
             return res.lastInsertRowid;
         } catch (error) {
@@ -26,24 +28,28 @@ class DestinationService {
         try {
             if (!filters || Object.keys(filters).length === 0)
                 return;
-            let params = []
-            if (update.config) 
-                update.config = JSON.stringify(update.config);
-            const setUpdate = Object.keys(update).map(key => `${key}=?`);
-            const values = Object.values(update);
+            let params = [];
+            const updateData = deleteEmptyFields(update);
+            if (updateData.config) updateData.config = JSON.stringify(updateData.config);
+            const setUpdate = Object.keys(updateData).map(key => `${key}=?`);
+            if (setUpdate.length === 0) {
+                return 0;
+            }
+            const values = Object.values(updateData);
             let query = `UPDATE destinations SET ${setUpdate.join(', ')}`
             if (filters.id) {
                 query += " WHERE id = ?";
                 params.push(filters.id)
             }
             const res = db.prepare(query).run(...values, ...params);
-            return res.changes > 0;
+            return res.changes;
         } catch (error) {
+            console.log("Error destination: ", error.message)
             return;
         }
     }
 
-    async find(filters) {
+    async find(filters = {}) {
         try {
             let query = `SELECT * FROM destinations WHERE 1=1`;
             let values = [];
@@ -57,6 +63,7 @@ class DestinationService {
                 config: dest.config ? JSON.parse(dest.config) : {}
             }));
         } catch (error) {
+            console.log("Error find destinations: ", error.message);
             return;
         }
     }
@@ -65,7 +72,11 @@ class DestinationService {
         try {
             let query = `SELECT * FROM destinations WHERE id=?`;
             const data = db.prepare(query).get(id);
-            return data;
+            if (!data) return;
+            return {
+                ...data,
+                config: data.config ? JSON.parse(data.config) : {}
+            };
         } catch (error) {
             return;
         }

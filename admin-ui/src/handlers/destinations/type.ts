@@ -33,7 +33,7 @@ export type LocalStorageConfig = {
 export type DestinationConfig = S3Config | HostConfig | LocalStorageConfig;
 
 export type Destination = {
-    id: string;
+    id: number;
     name: string;
     type: DestinationType;
     config: DestinationConfig;

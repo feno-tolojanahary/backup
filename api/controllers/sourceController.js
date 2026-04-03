@@ -92,7 +92,6 @@ class SourceController {
                 throw new Error("The params body is required.");
             }
             const srcRes = await testConf(config);
-            console.log("test res: ", srcRes)
             response.success(res, srcRes);
         } catch (error) {
             console.log(error);
