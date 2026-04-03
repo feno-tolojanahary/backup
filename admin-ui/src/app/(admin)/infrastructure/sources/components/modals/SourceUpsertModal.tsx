@@ -94,6 +94,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
   });
 
   const [isConnected, setIsConnected] = useState(false)
+  const [isTestConnection, setIsTestConnection] = useState(false);
   const user = useAppSelector(state => state.auth.user);
 
   const { sources, isLoading: isLoadingSources } = useSources();
@@ -107,6 +108,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
   const { toastError, toastSuccess, toastWarning } = useToast();
 
   useEffect(() => {
+    setIsTestConnection (false);
     if (isConnected)
       setIsConnected(false);
   }, [isOpen])
@@ -143,6 +145,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
     try {
       const resConfig = await testConnection(payload.config);
       setIsConnected(Boolean(resConfig.connected));
+      setIsTestConnection(true);
       if (resConfig.connected) {
         toastSuccess("The source is connected.");
       } else {
@@ -157,8 +160,13 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
     const payload = getCreatePayload(values);
     if (initialData?.id) {
       try {
+        if (isTestConnection) {
+          console.log("is tested connection")
+          payload.status = isConnected ? "connected" : "disconnected";
+        }
         const result = await updateSource(initialData.id, payload);
-        if (result) {
+        
+        if (!result) {
           throw new Error("Error update ressource.")
         }
         toastSuccess("Source updated with success.");
@@ -181,6 +189,28 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
       } 
     }
   };
+
+  const validateCheckDuplicate = (value: string | null) => {
+    const normalized = String(value ?? "").trim().toLowerCase();
+    if (!normalized) return "Source name is required.";
+    if (isLoadingSources) return true;
+
+    const currentId = initialData?.id;
+    const duplicateExists = sources.some((s) => {
+      const nameNormalized = String(s.name ?? "")
+        .trim()
+        .toLowerCase();
+      if (!nameNormalized) return false;
+      if (currentId && String(s.id) === String(currentId)) {
+        return false;
+      }
+      return nameNormalized === normalized;
+    });
+
+    return duplicateExists
+      ? "A source with this name already exists."
+      : true;
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[620px] m-4">
@@ -221,28 +251,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
               placeholder="source-name"
               error={!!errors.name}
               {...register("name", {
-                validate: (value) => {
-                  const normalized = String(value ?? "").trim().toLowerCase();
-                  if (!normalized) return "Source name is required.";
-                  // If the list isn't loaded yet, don't block; backend still enforces.
-                  if (isLoadingSources) return true;
-
-                  const currentId = initialData?.id;
-                  const duplicateExists = sources.some((s) => {
-                    const nameNormalized = String(s.name ?? "")
-                      .trim()
-                      .toLowerCase();
-                    if (!nameNormalized) return false;
-                    if (currentId && String(s.id) === String(currentId)) {
-                      return false;
-                    }
-                    return nameNormalized === normalized;
-                  });
-
-                  return duplicateExists
-                    ? "A source with this name already exists."
-                    : true;
-                },
+                validate: validateCheckDuplicate,
               })}
             />
             {errors.name?.message ? (
