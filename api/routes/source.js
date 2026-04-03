@@ -1,15 +1,29 @@
 const router = require("express").Router();
 const sourceController = require("../controllers/sourceController");
+const {
+    duplicateCheckCreate,
+    duplicateCheckUpdate,
+} = require("../middlewares/checkDuplicate");
 
-router.route('/')
-    .post(sourceController.insert)
+const checkDuplicateSourceCreate = duplicateCheckCreate(
+    "sources",
+    "name"
+);
+
+const checkDuplicateSourceUpdate = duplicateCheckUpdate(
+    "sources",
+    "name"
+);
+
+router.route("/")
+    .post(checkDuplicateSourceCreate, sourceController.insert)
     .get(sourceController.getList);
 
-router.route(':id')
-    .put(sourceController.update)
-    .delete(sourceController.delete)
-    .get(sourceController.findById)
-
 router.post("/test-connection", sourceController.testConnection);
+
+router.route("/:id")
+    .put(checkDuplicateSourceUpdate, sourceController.update)
+    .get(sourceController.findById)
+    .delete(sourceController.delete);
 
 module.exports = router;

@@ -25,9 +25,15 @@ class SourceController {
         try {
             if (!req.body)
                 throw new Error("Req body is required.");
-            if (req.params.id) 
+            if (!req.params.id) 
                 throw new Error("The id in params is required.");
-            const result = await sourceService.update({ id: req.params.id }, req.body);
+            const updateData = req.body;
+            if (updateData.config) {
+                const existSource = await sourceService.findById(req.params.id);
+                updateData.config = { ...(existSource.config ?? {}), ...updateData.config };
+            }
+            console.log("data: ", updateData)
+            const result = await sourceService.update({ id: req.params.id }, updateData);
             if (!result)
                 throw new Error("Update error.");
             response.success(res, result);
@@ -70,7 +76,8 @@ class SourceController {
             const id = req.params.id;
             if (!id) 
                 throw new Error("The id field in params is required");
-            const res = await sourceService.deleteById(id)
+            const result = await sourceService.deleteById(id)
+            response.success(res, result)
         } catch (error) {
             console.log(error);
             response.error(res, error.message);

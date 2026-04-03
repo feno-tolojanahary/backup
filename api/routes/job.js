@@ -1,13 +1,27 @@
 
 const router = require("express").Router();
 const jobController = require("../controllers/jobController");
+const {
+    duplicateCheckCreate,
+    duplicateCheckUpdate,
+} = require("../middlewares/checkDuplicate");
+
+const checkDuplicateJobCreate = duplicateCheckCreate(
+    "jobs",
+    "name"
+);
+
+const checkDuplicateJobUpdate = duplicateCheckUpdate(
+    "jobs",
+    "name"
+);
 
 router.route('/')
-    .post(jobController.insert)
+    .post(checkDuplicateJobCreate, jobController.insert)
     .get(jobController.getAllJobs);
 
 router.route(':id')
-    .put(jobController.update)
+    .put(checkDuplicateJobUpdate, jobController.update)
     .delete(jobController.deleteJob)
     .get(jobController.getJobDetail)
     .post(jobController.runJobNow);

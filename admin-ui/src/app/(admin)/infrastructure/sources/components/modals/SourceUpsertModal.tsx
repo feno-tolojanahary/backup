@@ -6,7 +6,12 @@ import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
-import { useCreateSource, useTestConnection, useUpdateSource } from "@/handlers/sources/sourcesHooks";
+import {
+  useCreateSource,
+  useTestConnection,
+  useUpdateSource,
+  useSources,
+} from "@/handlers/sources/sourcesHooks";
 import { CreateSourcePayload, MongodbConfig, S3Config, Source, SourceType } from "@/handlers/sources/type";
 import { useToast } from "@/context/ToastContext";
 import { ModalType } from "@/types/common";
@@ -77,13 +82,21 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
     };
   };
 
-  const { control, register, handleSubmit, reset, watch } =
-    useForm<SourceFormValues>({
-      defaultValues: buildDefaults(initialData),
-    });
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<SourceFormValues>({
+    defaultValues: buildDefaults(initialData),
+  });
 
   const [isConnected, setIsConnected] = useState(false)
   const user = useAppSelector(state => state.auth.user);
+
+  const { sources, isLoading: isLoadingSources } = useSources();
 
   const sourceType = watch("type");
 
@@ -109,6 +122,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
       name: values.name.trim(),
       type: values.type,
       config: {},
+      status: "disconnected"
     };
 
     if (values.type === "mongodb") {
@@ -203,7 +217,37 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Name
             </label>
-            <Input placeholder="source-name" {...register("name")} />
+            <Input
+              placeholder="source-name"
+              error={!!errors.name}
+              {...register("name", {
+                validate: (value) => {
+                  const normalized = String(value ?? "").trim().toLowerCase();
+                  if (!normalized) return "Source name is required.";
+                  // If the list isn't loaded yet, don't block; backend still enforces.
+                  if (isLoadingSources) return true;
+
+                  const currentId = initialData?.id;
+                  const duplicateExists = sources.some((s) => {
+                    const nameNormalized = String(s.name ?? "")
+                      .trim()
+                      .toLowerCase();
+                    if (!nameNormalized) return false;
+                    if (currentId && String(s.id) === String(currentId)) {
+                      return false;
+                    }
+                    return nameNormalized === normalized;
+                  });
+
+                  return duplicateExists
+                    ? "A source with this name already exists."
+                    : true;
+                },
+              })}
+            />
+            {errors.name?.message ? (
+              <p className="mt-1 text-xs text-error-600">{errors.name.message}</p>
+            ) : null}
           </div>
 
           {sourceType === "mongodb" && (

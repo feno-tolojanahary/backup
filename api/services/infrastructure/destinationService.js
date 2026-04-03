@@ -22,16 +22,18 @@ class DestinationService {
         }
     }
 
-    async update(filters, update) {
+    async update(filters, update = {}) {
         try {
             if (!filters || Object.keys(filters).length === 0)
                 return;
             let params = []
-            const setUpdate = Object.keys(update).map(key => `${key} = ?`);
-            const values = Object.values();
-            let query = `INSERT INTO destinations SET ${setUpdate}`
+            if (update.config) 
+                update.config = JSON.stringify(update.config);
+            const setUpdate = Object.keys(update).map(key => `${key}=?`);
+            const values = Object.values(update);
+            let query = `UPDATE destinations SET ${setUpdate.join(', ')}`
             if (filters.id) {
-                query += " AND id = ?";
+                query += " WHERE id = ?";
                 params.push(filters.id)
             }
             const res = db.prepare(query).run(...values, ...params);

@@ -24,16 +24,18 @@ class SourceService {
         }
     }
 
-    async update(filters, update) {
+    async update(filters, update = {}) {
         try {
             if (!filters || Object.keys(filters).length === 0)
                 return;
             let params = []
-            const setUpdate = Object.keys(update).map(key => `${key} = ?`);
-            const values = Object.values();
-            let query = `INSERT INTO sources SET ${setUpdate}`
+            if (update.config) 
+                update.config = JSON.stringify(update.config);
+            const setUpdate = Object.keys(update).map(key => `${key}=?`);
+            const values = Object.values(update);
+            let query = `UPDATE sources SET ${setUpdate.join(', ')}`
             if (filters.id) {
-                query += " AND id = ?";
+                query += " WHERE id = ?";
                 params.push(filters.id)
             }
             const res = db.prepare(query).run(...values, ...params);
@@ -67,6 +69,7 @@ class SourceService {
         try {
             let query = `SELECT name, type, config, created_by AS createdBy FROM sources WHERE id=?`;
             const data = db.prepare(query).get(id);
+            data.config = data.config ? JSON.parse(data.config) : {};
             return data;
         } catch (error) {
             console.log("Error find by id source: ", error.message);
