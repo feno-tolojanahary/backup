@@ -112,10 +112,6 @@ export default function DestinationsPageClient() {
             filteredDestinations={filteredDestinations}
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
-            onAdd={() => {
-              setEditTarget(null);
-              createModal.openModal();
-            }}
             onTestConnection={openTestConnection}
             onEdit={openEditDestination}
             onDelete={openDeleteConfirm}

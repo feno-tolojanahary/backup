@@ -7,7 +7,7 @@ import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
 import { Destination, DestinationType, S3Config, AuthMethodType, HostConfig, LocalStorageConfig, CreateDestinationPayload, UpdateDestinationPayload } from "@/handlers/destinations/type";
-import { useCreateDestination, useUdpateDestination } from "@/handlers/destinations/destinationHooks";
+import { useCreateDestination, useUpdateDestination } from "@/handlers/destinations/destinationHooks";
 import { useToast } from "@/context/ToastContext";
 
 export type DestinationFormPayload = {
@@ -44,9 +44,9 @@ type FormValues = {
 };
 
 const typeOptions = [
-  { value: "local", label: "local" },
+  { value: "local-storage", label: "local" },
   { value: "s3", label: "s3" },
-  { value: "sftp", label: "sftp (ssh remote)" },
+  { value: "ssh", label: "sftp (ssh remote)" },
 ];
 
 const authMethodOptions = [
@@ -59,7 +59,7 @@ const buildDefaults = (
 ): FormValues => {
   const formValue = {
     name: data?.name ?? "",
-    type: (data?.type ?? "ssh" as DestinationType),
+    type: (data?.type ?? "ssh") as DestinationType,
     
     destinationFolder: "",
     endpoint: "",
@@ -112,7 +112,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
   const authMethod = watch("authMethod");
 
   const { create: createDestination } = useCreateDestination();
-  const { update: updateDestination } = useUdpateDestination();
+  const { update: updateDestination } = useUpdateDestination();
 
   const { toastError, toastSuccess } = useToast()
 
@@ -131,6 +131,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
         ...destination,
         config: {
           destinationFolder: values.destinationFolder,
+          maxDiskUsage: values.maxDiskUsage,
         }
       }
     } else if (values.type === "s3") {
@@ -247,7 +248,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
                 Local Storage
               </h4>
-              <div className="mt-4">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Local path
                 </label>
@@ -259,15 +260,13 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                   error={Boolean(errors.destinationFolder)}
                   hint={errors.destinationFolder?.message}
                 />
-              </div>
-              <div className="mt-4">
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Max disk usage
                 </label>
                 <Input
-                  placeholder="/mnt/backups"
+                  placeholder="e.g. 100GB"
                   {...register("maxDiskUsage", {
-                    required: "Local path is required.",
+                    required: "Max disk usage is required.",
                   })}
                   error={Boolean(errors.maxDiskUsage)}
                   hint={errors.maxDiskUsage?.message}
@@ -427,7 +426,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                     />
                   </div>
                 ) : (
-                  <div>
+                  <>
                     <div className="sm:col-span-2">
                       <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                         Private key
@@ -441,16 +440,16 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                         hint={errors.privateKey?.message}
                       />
                     </div>
-                      <div className="sm:col-span-2">
-                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                          Passphrase
-                        </label>
-                        <Input
-                          placeholder="/path/to/key.pem"
-                          {...register("passphrase")}
-                        />
+                    <div className="sm:col-span-2">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Passphrase
+                      </label>
+                      <Input
+                        placeholder="Optional"
+                        {...register("passphrase")}
+                      />
                     </div>
-                  </div>
+                  </>
                 )}
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -465,7 +464,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                     hint={errors.destinationFolder?.message}
                   />
                 </div>
-                <div className="mt-4">
+                <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Max disk usage
                   </label>

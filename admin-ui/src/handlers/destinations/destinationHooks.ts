@@ -19,7 +19,7 @@ const sourceCrud = createCrudHooks<
 
 export const useListDestinations = sourceCrud.useList;
 export const useCreateDestination = sourceCrud.useCreate;
-export const useUdpateDestination = sourceCrud.useUpdate;
+export const useUpdateDestination = sourceCrud.useUpdate;
 export const useDeleteDestination = sourceCrud.useDelete;
 
 export async function testConnection(dest: Destination): Promise<Destination> {

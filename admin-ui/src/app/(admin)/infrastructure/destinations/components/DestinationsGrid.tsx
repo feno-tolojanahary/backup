@@ -1,14 +1,12 @@
 import React from "react";
 import { Destination } from "@/handlers/destinations/type";
 import DestinationCard from "./DestinationCard";
-import DestinationsEmptyState from "./DestinationsEmptyState";
 
 type DestinationsGridProps = {
   destinations: Destination[];
   filteredDestinations: Destination[];
   openMenuId: string | null;
   setOpenMenuId: (value: string | null) => void;
-  onAdd: () => void;
   onTestConnection: (destination: Destination) => void;
   onEdit: (destination: Destination) => void;
   onDelete: (destination: Destination) => void;
@@ -19,13 +17,16 @@ export default function DestinationsGrid({
   filteredDestinations,
   openMenuId,
   setOpenMenuId,
-  onAdd,
   onTestConnection,
   onEdit,
   onDelete,
 }: DestinationsGridProps) {
   if (destinations.length === 0) {
-    return <DestinationsEmptyState onAdd={onAdd} />;
+    return <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No destinations configured yet.
+            </p>
+          </div>
   }
 
   return (
