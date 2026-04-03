@@ -12,7 +12,7 @@ import {
   useUpdateSource,
   useSources,
 } from "@/handlers/sources/sourcesHooks";
-import { CreateSourcePayload, MongodbConfig, S3Config, Source, SourceType } from "@/handlers/sources/type";
+import { CreateSourcePayload, MongodbConfig, S3Config, Source, SourceType, StatusType } from "@/handlers/sources/type";
 import { useToast } from "@/context/ToastContext";
 import { ModalType } from "@/types/common";
 import { useAppSelector } from "@/store/hooks";
@@ -68,6 +68,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
     const isMongo = data?.type === "mongodb";
     const isS3 = data?.type === "s3";
 
+    console.log("default data: ", data)
     return {
       name: data?.name || "",
       type: data?.type || "mongodb",
@@ -78,7 +79,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
       secretKey: isS3 ? (config as S3Config)?.secretKey || "" : "",
       accessKey: isS3 ? (config as S3Config)?.accessKey || "" : "",
       path: "",
-      status: "disconnected"
+      status: data?.status ?? "disconnected"
     };
   };
 
@@ -115,7 +116,6 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    console.log("initial data: ", initialData)
     reset(buildDefaults(initialData));
   }, [isOpen, initialData, reset]);
   
@@ -124,7 +124,7 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
       name: values.name.trim(),
       type: values.type,
       config: {},
-      status: "disconnected"
+      status: values.status as StatusType
     };
 
     if (values.type === "mongodb") {
@@ -161,7 +161,6 @@ const SourceUpsertModal: React.FC<SourceUpsertModalProps> = ({
     if (initialData?.id) {
       try {
         if (isTestConnection) {
-          console.log("is tested connection")
           payload.status = isConnected ? "connected" : "disconnected";
         }
         const result = await updateSource(initialData.id, payload);
