@@ -22,7 +22,6 @@ export const useCreateJob = crud.useCreate;
 export function useDetail(id: string) {
     if (!id) return;
     const { data, isLoading, error, mutate } = useSWR<JobDetail>(`${baseUrl}/${id}`, getDetail);
-
     return {
         jobDetail: data,
         isLoading,

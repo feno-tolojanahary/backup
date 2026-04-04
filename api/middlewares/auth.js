@@ -8,7 +8,8 @@ async function tokenAccess(req, res, next) {
         if (!token) {
             return response.unauthorized(res, "Unauthorized")
         }
-        await verifyAccessToken(token);
+        const payload = await verifyAccessToken(token);
+        req.userId = Number(payload.sub);
         next();
     } catch (error) {
         if (error.code === "ERR_JWT_EXPIRED") {

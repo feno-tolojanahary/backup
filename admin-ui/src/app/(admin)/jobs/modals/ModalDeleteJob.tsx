@@ -1,9 +1,9 @@
 import React from "react";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
-import { useDeleteDestination } from "@/handlers/destinations/destinationHooks";
 import { useToast } from "@/context/ToastContext";
 import { Job } from "@/handlers/jobs/type";
+import { useDeleteJob } from "@/handlers/jobs/jobHooks";
 
 type DestinationDeleteModalProps = {
   isOpen: boolean;
@@ -19,16 +19,17 @@ export default function ModalDeleteJob({
 
   const { toastError, toastSuccess } = useToast();
 
-  const { deleteById, error, isMutating } = useDeleteDestination();
+  const { deleteById, error, isMutating } = useDeleteJob();
 
   const handleDelete = async () => {
     try {
       if (!deleteJob?.id)
         throw new Error("Target not found.");
-      await deleteById(deleteJob.id.toString())
-      toastSuccess("Destination deleted.");
+      await deleteById(deleteJob.id)
+      toastSuccess("Job deleted.");
       onClose();
     } catch (error) {
+      console.log("Error delete job")
       toastError();
     }
   }

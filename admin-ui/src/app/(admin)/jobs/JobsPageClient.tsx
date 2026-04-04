@@ -38,7 +38,7 @@ export default function JobsPageClient() {
       
       return true;
     });
-  }, [search, sourceFilter, destinationFilter]);
+  }, [search, jobs, sourceFilter, destinationFilter]);
 
   const sourceList = useMemo(() => {
     return sources.map(({id, name}) => ({ value: id, label: name }))

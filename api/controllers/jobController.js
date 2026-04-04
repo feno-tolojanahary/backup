@@ -12,8 +12,8 @@ class JobController {
         try {
             if (!req.body)
                 throw new Error("Req body is required.")
-            const { source: sourceId, destinations: destinationIds, createdBy } = req.body;
-            
+            const { source: sourceId, destinations: destinationIds } = req.body;
+            const createdBy = req.userId;
             // create target
             const source = await sourceService.findById(sourceId);
             const destinationFinds = destinationIds.map(async (destId) => destinationService.findById(destId));
@@ -37,12 +37,14 @@ class JobController {
             // insert job
             const job = {
                 ...req.body,
-                target_id: resTarget.lastId,
-                target: targetName
+                createdBy: req.userId,
+                targetId: resTarget.lastId,
+                target: targetName,
+                status: "running"
             }
             const result = await jobService.insert(job);
             if (!result.success)
-                throw new Error("Error inserting job.");
+                throw new Error("Error insert job: " + result.message)
             response.created(res, result);
         } catch (error) {
             console.log(error);
@@ -57,6 +59,10 @@ class JobController {
                 throw new Error("Req body is required.")
             if (!req.params.id) 
                 throw new Error("The id in params is required.");
+            const job = await jobService.findJob({ id: req.params.id });
+            const targetUpdate = await targetService.update(job.target_id, req.body);
+            if (targetUpdate.errorMsg) 
+                throw new Error("Error update target: " + targetUpdate.errorMsg)
             const result = await jobService.update({id: req.params.id}, req.body);
             if (!result.success)
                 throw new Error(result.message);
@@ -70,13 +76,11 @@ class JobController {
 
     async getAllJobs(req, res, next) {
         try {
-            let adminId = req.params.adminId;
+            let adminId = req.userId;
             if (!adminId)
                 throw new Error("The admin id is required.");
-            const result = await jobService.listJob({ userId: adminId });
-            if (!result.data)
-                throw new Error(result.message);
-            response.success(res, result.data);
+            const data = await jobService.getListJobs({ userId: adminId });
+            response.success(res, data);
         } catch (error) {
             console.log(error);
             response.error(res, error.message);
@@ -98,8 +102,8 @@ class JobController {
             response.noContent(res);
         } catch (error) {
             console.log(error);
-            response.error(res, error.message);
             next(error);
+            response.error(res, error.message);
         }
     }
 

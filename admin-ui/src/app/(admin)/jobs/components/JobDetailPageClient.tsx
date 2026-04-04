@@ -1,14 +1,16 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import moment from "moment";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import Link from "next/link";
-import { useRunJob } from "@/handlers/jobs/jobHooks";
+import { useJobList, useRunJob } from "@/handlers/jobs/jobHooks";
 import { Job, JobStatus } from "@/handlers/jobs/type";
 import JobRunHistory from "./JobRunHistory";
+import { useParams } from "next/navigation";
 
 const statusBadgeColor = (status: JobStatus | undefined) => {
   if (status === "success") return "success";
@@ -17,7 +19,16 @@ const statusBadgeColor = (status: JobStatus | undefined) => {
   return "warning";
 };
 
-export default function JobDetailPageClient({ job }: { job: Job }) {
+export default function JobDetailPageClient() {
+  const params = useParams<{ jobId: string }>();
+  const { data: jobs } = useJobList();
+
+  const job = useMemo(() => {
+    if (!params?.jobId) 
+      return {} as Job;
+    const foundJob = jobs.find((job) => job.id.toString() === params.jobId);
+    return foundJob ?? {} as Job;
+  }, [jobs, params.jobId]);
 
   const { runJob } = useRunJob();
   

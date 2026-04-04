@@ -1,12 +1,23 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
+type SwitchChangeEvent = {
+  target: {
+    name?: string;
+    value: boolean;
+    checked: boolean;
+    type: "checkbox";
+  };
+};
 
 interface SwitchProps {
   label: string;
   defaultChecked?: boolean;
   checked?: boolean;
   disabled?: boolean;
-  onChange?: (checked: boolean) => void;
+  onChange?: (value: boolean | SwitchChangeEvent) => void;
+  name?: string;
+  value?: boolean;
   color?: "blue" | "gray"; // Added prop to toggle color theme
 }
 
@@ -16,16 +27,23 @@ const Switch: React.FC<SwitchProps> = ({
   checked,
   disabled = false,
   onChange,
+  name,
+  value,
   color = "blue", // Default to blue color
 }) => {
-  const isControlled = checked !== undefined;
+  const resolvedChecked = useMemo(() => {
+    if (checked !== undefined) return checked;
+    if (value !== undefined) return value;
+    return undefined;
+  }, [checked, value]);
+  const isControlled = resolvedChecked !== undefined;
   const [isChecked, setIsChecked] = useState(defaultChecked);
 
   useEffect(() => {
     if (isControlled) {
-      setIsChecked(checked);
+      setIsChecked(Boolean(resolvedChecked));
     }
-  }, [checked, isControlled]);
+  }, [resolvedChecked, isControlled]);
 
   const handleToggle = () => {
     if (disabled) return;
@@ -34,7 +52,18 @@ const Switch: React.FC<SwitchProps> = ({
       setIsChecked(newCheckedState);
     }
     if (onChange) {
-      onChange(newCheckedState);
+      if (name) {
+        onChange({
+          target: {
+            name,
+            value: newCheckedState,
+            checked: newCheckedState,
+            type: "checkbox",
+          },
+        });
+      } else {
+        onChange(newCheckedState);
+      }
     }
   };
 

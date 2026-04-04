@@ -3,6 +3,7 @@ import { Destination } from "../destinations/type";
 
 export type JobStatus = "success" | "failed" | "running" | "canceled";
 export type JobRunStatus = "success" | "failed" | "canceled" | "running";
+export type TargetType = "app" | "database" | "object-replication";
 
 export type DestinationJob = {
     id: string;
@@ -27,6 +28,7 @@ export type Job = {
     scheduleType: string;
     scheduleValue: string;
     isEncrypted: boolean;
+    type?: TargetType;
     createdBy?: number;
     createdAt?: string;
     lastJobRun?: LastJobRun;
@@ -58,6 +60,7 @@ export type CreateJobPayload = {
     createdBy: string;
     source: string;
     destinations: string[];
+    type: TargetType;
     isEncrypted: boolean;
     retentionDays?: number;
 }

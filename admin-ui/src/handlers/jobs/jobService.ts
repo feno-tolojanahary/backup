@@ -28,10 +28,10 @@ export async function getDetail(url: string): Promise<JobDetail> {
 
 export async function runJobService(url: string): Promise<RunJobSuccess> {
     const res = await api.post(url);
-    return res.data;
+    return res.data?.data;
 }
 
 export async function getJobRuns(url: string): Promise<JobRun[]> {
     const res = await api.get(url);
-    return res.data;
+    return res.data?.data;
 }

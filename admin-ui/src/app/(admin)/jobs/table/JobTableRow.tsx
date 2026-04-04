@@ -70,7 +70,7 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
             </TableCell>
             <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
                 {job.source?.name}
-            </TableCell>
+            </TableCell>    
             <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
                 {job.destinations ? job.destinations.map(({name}) => name).join(', ') : "-"}
             </TableCell>

@@ -1,45 +1,46 @@
-import { callFetch, fetchJson } from "./utils";
+import api from "../globalAxios";
 
 
 export default function createRessourceService<Entity, CreateEntityPayload = Partial<Entity>, UpdateEntityPayload = Partial<Entity>>(baseUrl: string) {
     
     async function getList(): Promise<Entity[]> {
-        const res = await fetchJson(baseUrl)
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || "Error notificationProvider get list.")
+        try {
+            const res = await api.get(baseUrl);
+            return res.data?.data ?? [];
+        } catch (error: any) {
+            const message = error?.response?.data?.message || error?.message || "Error notificationProvider get list.";
+            throw new Error(message);
         }
-    
-        const data = (await res.json()).data;
-        return data;
     }
     
     async function create(url: string, { arg }: { arg: { payload: CreateEntityPayload } }): Promise<any> {
-        const res = await callFetch(url, "POST", arg.payload)
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || "Error notificationProvider creation.")
+        try {
+            const res = await api.post(url, arg.payload);
+            return res.data;
+        } catch (error: any) {
+            const message = error?.response?.data?.message || error?.message || "Error notificationProvider creation.";
+            throw new Error(message);
         }
-    
-        return res.json();
     }
     
     async function update(url: string, { arg }: { arg: { id: number, payload: UpdateEntityPayload } }): Promise<any> {
-        const res = await callFetch(`${url}/${arg.id}`, "PUT", arg.payload);
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || "Error notificationProvider update.")
+        try {
+            const res = await api.put(`${url}/${arg.id}`, arg.payload);
+            return res.data;
+        } catch (error: any) {
+            const message = error?.response?.data?.message || error?.message || "Error notificationProvider update.";
+            throw new Error(message);
         }
-        return res.json()
     }
     
     async function deleteById(url: string, { arg }: { arg: { id: number } }): Promise<any> {
-        const res = await callFetch(`${url}/${arg.id}`, "DELETE");
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || "Error notificationProvider creation.")
+        try {
+            const res = await api.delete(`${url}/${arg.id}`);
+            return res.data;
+        } catch (error: any) {
+            const message = error?.response?.data?.message || error?.message || "Error notificationProvider creation.";
+            throw new Error(message);
         }
-        return res.json();
     }
 
     return {

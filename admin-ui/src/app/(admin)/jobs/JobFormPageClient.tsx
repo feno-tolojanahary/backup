@@ -1,24 +1,20 @@
 "use client";
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import ComponentCard from "@/components/common/ComponentCard";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Switch from "@/components/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
-import { CreateJobPayload, DestinationJob, UpdateJobPayload } from "@/handlers/jobs/type";
+import { CreateJobPayload, DestinationJob, TargetType, UpdateJobPayload } from "@/handlers/jobs/type";
 import { useDestinationOption, useSourceOption } from "./hooks";
 import { Job } from "@/handlers/jobs/type";
-import { useCreateJob, useUpdateJob } from "@/handlers/jobs/jobHooks";
+import { useCreateJob, useJobList, useUpdateJob } from "@/handlers/jobs/jobHooks";
 import { useToast } from "@/context/ToastContext";
-
-type JobFormPageClientProps = {
-  mode: "create" | "edit";
-  job?: Job | null;
-};
 
 type Option = {
     value: string; 
@@ -27,6 +23,7 @@ type Option = {
 
 type JobFormValues = {
   name: string;
+  type: TargetType;
   source: string | null;
   destinations: Option[];
   scheduleType: string;
@@ -35,22 +32,26 @@ type JobFormValues = {
   isEncrypted: boolean;  
 }
 
-export default function JobFormPageClient({ mode, job = null }: JobFormPageClientProps) {
-  const title = mode === "create" ? "Create Job" : "Edit Job";
-  
-  const { sourceOptions } = useSourceOption();
-  const { destinationOptions } = useDestinationOption();
+export default function JobFormPageClient() {
+
+  const router = useRouter();
 
   const { update } = useUpdateJob();
   const { create } = useCreateJob();  
-  const { toastError, toastSuccess } = useToast();
+  const { toastError, toastSuccess, toastWarning } = useToast();
+  const params = useParams<{ jobId: string }>();
+  const isUpdate = Boolean(params.jobId);
+  
+  const { data: jobs } = useJobList();
 
   const buildDefaults = useCallback((jobData: Job | null): JobFormValues => {
-    const jobDestinations = (destinationOptions && jobData?.destinations) ? 
-                          destinationOptions.filter(({ value }) => jobData.destinations?.some((destJob: DestinationJob) => destJob.id === value))
-                        : [];
+    const jobDestinations = jobData?.destinations?.map((destJob: DestinationJob) => ({
+      value: destJob.id,
+      label: destJob.name,
+    })) ?? [];
     return {
       name: jobData?.name ?? "",
+      type: (jobData?.type ?? "database") as TargetType,
       scheduleType: jobData?.scheduleType ?? "cron",
       scheduleValue: jobData?.scheduleValue ?? "",
       retentionDays: jobData?.retentionDays ?? -1,
@@ -58,34 +59,118 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
       destinations: jobDestinations,
       isEncrypted: jobData?.isEncrypted ?? true
     }
-  }, [sourceOptions, destinationOptions])
+  }, [])
+
+  const { register, control, handleSubmit, reset, setValue, setError, clearErrors, formState: { errors } } =
+      useForm<JobFormValues>(); 
 
   useEffect(() => {
-    if (job) reset(buildDefaults(job))
-  }, [job])
+    if (params.jobId && jobs.length > 0) {
+      const foundJob = jobs.find((job) => job.id.toString() === params.jobId);
+      if (foundJob) reset(buildDefaults(foundJob))
+    }
+  }, [params.jobId, jobs, reset, buildDefaults])
+  
+  const targetType = useWatch({ control, name: "type" });
+  const selectedSource = useWatch({ control, name: "source" });
+  const selectedDestinations = useWatch({ control, name: "destinations" });
 
-  const { register, control, handleSubmit, reset, formState: { errors } } =
-      useForm<JobFormValues>({
-        defaultValues: buildDefaults(job),
-      }); 
+  const { sourceOptions } = useSourceOption(targetType);
+  const { destinationOptions } = useDestinationOption(targetType);
+  const hasSourceOptions = sourceOptions.length > 0;
+  const hasDestinationOptions = destinationOptions.length > 0;
 
-  const formatJob = (values: JobFormValues): CreateJobPayload | UpdateJobPayload => {
-    return {
+  useEffect(() => {
+    if (selectedSource) {
+      const allowedSources = new Set(sourceOptions.map(({ value }) => value));
+      if (!allowedSources.has(selectedSource)) {
+        setValue("source", null);
+      }
+    }
+
+    if (selectedDestinations?.length) {
+      const allowedDestinations = new Set(destinationOptions.map(({ value }) => value));
+      const filteredDestinations = selectedDestinations.filter((dest) => allowedDestinations.has(dest.value));
+      if (filteredDestinations.length !== selectedDestinations.length) {
+        setValue("destinations", filteredDestinations);
+      }
+    }
+  }, [selectedSource, selectedDestinations, sourceOptions, destinationOptions, setValue]);
+
+  const formatJob = useCallback((values: JobFormValues): CreateJobPayload | UpdateJobPayload => {
+    const payload = {
       ...values,
       createdBy: "1",
-      source: values.source ?? sourceOptions[0].value,
+      source: values.source ?? sourceOptions[0]?.value ?? "",
       destinations: values.destinations?.map(({ value }) => value),
     }
-  }
+    return payload;
+  }, [params.jobId])
 
   const saveJob = async (values: JobFormValues) => {
+    const currentJobId = params.jobId ? Number(params.jobId) : null;
+    const normalizedName = values.name.trim().toLowerCase();
+    const normalizedSource = values.source ?? sourceOptions[0]?.value ?? "";
+    const normalizedDestinations = (values.destinations ?? [])
+      .map(({ value }) => value)
+      .sort()
+      .join(",");
+
+    const duplicateName = jobs.find(
+      (existing) =>
+        existing.id !== currentJobId &&
+        existing.name?.trim().toLowerCase() === normalizedName
+    );
+
+    const duplicateTarget = jobs.find((existing) => {
+      if (existing.id === currentJobId) return false;
+      const existingSource = existing.source?.id ?? "";
+      const existingDestinations = (existing.destinations ?? [])
+        .map((dest) => dest.id)
+        .sort()
+        .join(",");
+      return existingSource === normalizedSource && existingDestinations === normalizedDestinations;
+    });
+
+    if (duplicateName) {
+      setError("name", {
+        type: "validate",
+        message: "Job name already exists.",
+      });
+      toastWarning("Job name already exists.");
+      return;
+    }
+
+    if (duplicateTarget) {
+      setError("source", {
+        type: "validate",
+        message: "Source and destinations already used by another job.",
+      });
+      setError("destinations", {
+        type: "validate",
+        message: "Source and destinations already used by another job.",
+      });
+      toastWarning("Source and destinations already used by another job.");
+      return;
+    }
+
+    clearErrors(["name", "source", "destinations"]);
+    if (!hasSourceOptions) {
+      toastWarning("No available sources for the selected target type.");
+      return;
+    }
+    if (!hasDestinationOptions) {
+      toastWarning("No available destinations for the selected target type.");
+      return;
+    }
     const payload = formatJob(values);
-    if (job?.id) {
+    if (params.jobId) {
       try {
-        const res = await update(job.id, payload as UpdateJobPayload);
+        const res = await update(Number(params.jobId), payload as UpdateJobPayload);
         if (!res)
           throw new Error("No response.");
         toastSuccess("Job saved with success.");
+        router.push("/jobs");
       } catch (error: any) {
         console.log("Error update job: ", error.message);
         toastError();
@@ -96,6 +181,7 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
         if (!res)
           throw new Error("No response received.");
         toastSuccess("Job saved with success."); 
+        router.push("/jobs");
       } catch (error: any) {
         console.log("save job: ", error.message);
         toastError();
@@ -105,10 +191,10 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
 
   return (
     <div>
-      <PageBreadcrumb pageTitle={title} />
+      <PageBreadcrumb pageTitle={params.jobId ? "Edit Job" : "Create Job"} />
       <div className="space-y-6">
         <ComponentCard
-          title={title}
+          title={params.jobId ? "Edit Job" : "Create Job"}
           desc="Define backup targets, schedule details, retention settings, and encryption."
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -127,11 +213,37 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Target type
+              </label>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={[
+                      { value: "app", label: "application" },
+                      { value: "database", label: "database" },
+                      { value: "object-replication", label: "object-replication" },
+                    ]}
+                    value={field.value}
+                    placeholder="Select target type"
+                    onChange={field.onChange}
+                    name={field.name}
+                    disabled={isUpdate}
+                  />
+                )}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 Source
               </label>
               <Controller
                 name="source"
                 control={control}
+                rules={{
+                  required: "Source is required",
+                }}
                 render={({ field }) => (
                   <Select
                     options={sourceOptions}
@@ -142,6 +254,16 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
                   />
                 )}
               />
+              {!hasSourceOptions && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  No sources available for this target type.
+                </p>
+              )}
+              {errors.source?.message && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {errors.source.message}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -150,6 +272,10 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
               <Controller
                 name="destinations"
                 control={control}
+                rules={{
+                  validate: (value) =>
+                    (value && value.length > 0) || "At least one destination is required",
+                }}
                 render={({ field }) => (
                   <Select
                     options={destinationOptions}
@@ -161,6 +287,16 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
                   />
                 )}
               />
+              {!hasDestinationOptions && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  No destinations available for this target type.
+                </p>
+              )}
+              {errors.destinations?.message && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {errors.destinations.message as string}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -204,9 +340,16 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
               />
             </div>
             <div className="flex items-end">
-              <Switch
-                label="Use encryption"
-                {...register("isEncrypted")}
+              <Controller
+                name="isEncrypted"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    label="Use encryption"
+                    checked={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
             </div>
           </div>
@@ -217,7 +360,12 @@ export default function JobFormPageClient({ mode, job = null }: JobFormPageClien
                 Cancel
               </Button>
             </Link>
-            <Button size="sm" type="button" onClick={handleSubmit(saveJob)}>
+            <Button
+              size="sm"
+              type="button"
+              onClick={handleSubmit(saveJob)}
+              disabled={!hasSourceOptions || !hasDestinationOptions}
+            >
               Save Job
             </Button>
           </div>

@@ -20,7 +20,7 @@ router.route('/')
     .post(checkDuplicateJobCreate, jobController.insert)
     .get(jobController.getAllJobs);
 
-router.route(':id')
+router.route('/:id')
     .put(checkDuplicateJobUpdate, jobController.update)
     .delete(jobController.deleteJob)
     .get(jobController.getJobDetail)
