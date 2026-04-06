@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Checkbox from "@/components/form/input/Checkbox";
 import { FieldLabel, SectionCard } from "./SettingsShared";
 import Button from "@/components/ui/button/Button";
@@ -14,6 +14,7 @@ export default function ParametersTab() {
     jobFailed: true,
     storageError: false,
   });
+  const isDirtyRef = useRef(false);
   
   const { toastError, toastSuccess } = useToast();
   const { upsert } = useSettingUpsert();
@@ -27,6 +28,7 @@ export default function ParametersTab() {
       jobFailed: getSettingValue("jobFailed") ?? false,
       storageError: getSettingValue("storageError") ?? false,
     };
+    if (isDirtyRef.current) return;
     setNotifyTriggers((prev) =>
       prev.completed === next.completed &&
       prev.backupFailed === next.backupFailed &&
@@ -38,20 +40,22 @@ export default function ParametersTab() {
   }, [settings, getSettingValue]);
 
   const handleSave = async () => {
-      try {
-        const data = Object.entries(notifyTriggers).map(([key, value]) => ({ key, value }))
-        const res = await upsert(data);
-        if (!res)
-          throw new Error("no result data.")
-        toastSuccess("Saving notification data with success");
-      } catch(error: any) {
-        console.log("setting notification save: ", error.message);
-        toastError();
-      } 
+    try {
+      const data = Object.entries(notifyTriggers).map(([key, value]) => ({ key, value }))
+      const res = await upsert(data);
+      if (!res)
+        throw new Error("no result data.")
+      isDirtyRef.current = false;
+      toastSuccess("Saving notification data with success");
+    } catch(error: any) {
+      console.log("setting notification save: ", error.message);
+      toastError();
+    } 
   }
 
   const handleCancel = () => {
     if (!settings) return;
+    isDirtyRef.current = false;
     setNotifyTriggers({
       completed: getSettingValue("completed") ?? false,
       backupFailed: getSettingValue("backupFailed") ?? false,
@@ -59,6 +63,17 @@ export default function ParametersTab() {
       storageError: getSettingValue("storageError") ?? false,
     });
   }
+
+  const handleTriggerChange = (
+    key: keyof typeof notifyTriggers,
+    checked: boolean
+  ) => {
+    isDirtyRef.current = true;
+    setNotifyTriggers((prev) => ({
+      ...prev,
+      [key]: checked,
+    }));
+  };
 
   return (
     <div className="space-y-4">
@@ -72,42 +87,22 @@ export default function ParametersTab() {
           <Checkbox
             label="Backup completed"
             checked={notifyTriggers.completed}
-            onChange={(checked) =>
-              setNotifyTriggers((prev) => ({
-                ...prev,
-                completed: checked,
-              }))
-            }
+            onChange={(checked) => handleTriggerChange("completed", checked)}
           />
           <Checkbox
             label="Backup failed"
             checked={notifyTriggers.backupFailed}
-            onChange={(checked) =>
-              setNotifyTriggers((prev) => ({
-                ...prev,
-                backupFailed: checked,
-              }))
-            }
+            onChange={(checked) => handleTriggerChange("backupFailed", checked)}
           />
           <Checkbox
             label="Job failed"
             checked={notifyTriggers.jobFailed}
-            onChange={(checked) =>
-              setNotifyTriggers((prev) => ({
-                ...prev,
-                jobFailed: checked,
-              }))
-            }
+            onChange={(checked) => handleTriggerChange("jobFailed", checked)}
           />
           <Checkbox
             label="Storage connection error"
             checked={notifyTriggers.storageError}
-            onChange={(checked) =>
-              setNotifyTriggers((prev) => ({
-                ...prev,
-                storageError: checked,
-              }))
-            }
+            onChange={(checked) => handleTriggerChange("storageError", checked)}
           />
         </div>
       </div>

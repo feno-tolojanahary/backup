@@ -16,7 +16,7 @@ export default function DeleteNotificationProviderModal({
   deleteNotification,
 }: BackupDeleteModalProps) {
 
-    const { deleteById } = useDeleteNotificationProvider();
+    const { deleteById, isMutating } = useDeleteNotificationProvider();
     const { toastSuccess, toastError } = useToast();
 
   const handleDelete = async () => {
@@ -25,11 +25,11 @@ export default function DeleteNotificationProviderModal({
           return;
         await deleteById(deleteNotification.id);
         toastSuccess("Deleting the provider with success.");
+        onClose();
     } catch (error: any) {
       console.log("Error delete provider: ", error.message);
       toastError();
     }
-    onClose();
   }
 
   return (
@@ -42,7 +42,7 @@ export default function DeleteNotificationProviderModal({
           <Button size="sm" variant="outline" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" type="button" onClick={handleDelete}>
+          <Button size="sm" type="button" isLoading={isMutating} onClick={handleDelete}>
             Delete
           </Button>
         </div>

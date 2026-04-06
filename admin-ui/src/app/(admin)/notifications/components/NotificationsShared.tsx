@@ -133,6 +133,14 @@ export const DataTable = <T extends { id: number | string }>({
   const [sortKey, setSortKey] = useState<string | null>(initialSortKey ?? null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
+  const renderCellValue = (value: unknown): React.ReactNode => {
+    if (React.isValidElement(value)) return value;
+    if (Array.isArray(value)) return value;
+    if (value === null || value === undefined) return "";
+    if (typeof value === "object") return JSON.stringify(value);
+    return value as React.ReactNode;
+  };
+
   const sortedRows = useMemo(() => {
     if (!Array.isArray(rows)) return [];
     if (!sortKey) return rows;
@@ -219,7 +227,9 @@ export const DataTable = <T extends { id: number | string }>({
                           key={`${row.id}-${column.key}`}
                           className={`px-5 py-4 text-theme-sm ${column.cellClassName ?? "text-gray-500 dark:text-gray-400"}`}
                         >
-                          {column.render ? column.render(row) : (row as never)[column.key]}
+                          {renderCellValue(
+                            column.render ? column.render(row) : (row as never)[column.key]
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>

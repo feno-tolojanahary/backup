@@ -14,7 +14,7 @@ class NotificationProviderService {
             } = data;
             const stmt = db.prepare(`INSERT INTO notification_providers 
                     (name, type, config, is_enable, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?)    
+                    VALUES (?, ?, ?, ?, ?)    
                 `)
             isEnable = isEnable ? 1 : 0;
             const res = stmt.run(name, type, JSON.stringify(config), isEnable, createdBy)
@@ -25,20 +25,24 @@ class NotificationProviderService {
         }
     }
 
-    async update(filters, update) {
+    async update(id, update) {
         try {
-            if (!filters || Object.keys(filters).length === 0)
-                return;
-            update.isEnable = update.isEnable ? 1 : 0;
-            const setUpdate = Object.keys(update).map(key => `${key} = ?`);
-            const values = Object.values();
-            const params = [];
-            let query = `UPDATE notification_providers SET ${setUpdate.join(', ')} WHERE 1=1`;
-            if (filters.id) {
-                query += " AND id = ?";
-                params.push(filters.id)
+            const mapFields = {
+                isEnable: "is_enable"
             }
-            const res = db.prepare(query).run(...values, ...params);
+            if (!id)
+                throw new Error("id not provided");
+            if (typeof update.isEnable !== "undefined")
+                update.isEnable = update.isEnable ? 1 : 0;
+            if (update.config) {
+                const configNotification = db.prepare("SELECT config FROM notification_providers WHERE id = ?").get(id);
+                const existConfig = configNotification.config ? JSON.parse(configNotification.config) : {}
+                update.config = JSON.stringify({ ...existConfig, ...update.config });
+            }
+            const setUpdate = Object.keys(update).map(key => mapFields[key] ? `${mapFields[key]} = ?` : `${key} = ?`);
+            const values = Object.values(update);
+            let query = `UPDATE notification_providers SET ${setUpdate.join(', ')} WHERE id = ?`;
+            const res = db.prepare(query).run(...values, id);
             return res.changes > 0;
         } catch (error) {
             console.log("Error when updating notification provider: ", error.message);
@@ -46,7 +50,7 @@ class NotificationProviderService {
         }
     }
 
-    async find(filters) {
+    async find(filters = {}) {
         try {
             let query = `SELECT * FROM notification_providers WHERE 1=1`;
             let values = [];
@@ -58,31 +62,23 @@ class NotificationProviderService {
             return notifications.map(notif => ({
                 ...notif,
                 isEnable: notif.isEnable === 1 ? true : false,
-                config: notif.config ? JSON.parse(config) : {}
+                config: notif.config ? JSON.parse(notif.config) : {}
             }));
         } catch (error) {
+            console.log("error get notif provider: ", error.message)
             return;
         }
     }
 
     async findById(id) {
-        try {
-            let query = `SELECT name, type, config, is_enable AS isEnable, created_by AS createdBy FROM notification_providers WHERE id=?`;
-            const data = db.prepare(query).get(id);
-            return { ...data, isEnable: isEnable === 1, config: notif.config ? JSON.parse(config) : {} };
-        } catch (error) {
-            return;
-        }
+        let query = `SELECT name, type, config, is_enable AS isEnable, created_by AS createdBy FROM notification_providers WHERE id=?`;
+        const data = db.prepare(query).get(id);
+        return { ...data, isEnable: isEnable === 1, config: notif.config ? JSON.parse(config) : {} }
     }
 
     async deleteById(id) {
-        try {
-            const result = db.prepare(`DELETE * FROM notification_providers WHERE id = ?`).run(id);
-            return result;
-        } catch (error) {
-            console.log("Error delete notificationProvider: ", error.message);
-            return;
-        }
+        const result = db.prepare(`DELETE FROM notification_providers WHERE id = ?`).run(id);
+        return result;
     }
 }
 

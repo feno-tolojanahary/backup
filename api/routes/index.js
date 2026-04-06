@@ -23,7 +23,7 @@ router.use("/destinations", destination);
 router.use("/notification-providers", notificationProvider);
 router.use("/notification-events", notificationEvent);
 router.use("/notification-rules", notificationRule);
-router.use("/setting", setting);
+router.use("/settings", setting);
 router.use("/jobs", job);
 router.use("/backups", backup);
 router.use("/stats", stats)

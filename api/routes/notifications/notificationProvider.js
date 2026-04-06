@@ -5,7 +5,7 @@ router.route('/')
     .post(notificationProviderController.insert)
     .get(notificationProviderController.getAll);
 
-router.route(':id')
+router.route('/:id')
     .put(notificationProviderController.update)
     .delete(notificationProviderController.deleteById)
     .get(notificationProviderController.getById);

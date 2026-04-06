@@ -5,10 +5,8 @@ router.route('/')
     .post(settingController.insert)
     .get(settingController.findAll);
 
-router.route(':id')
-    .put(settingController.update)
+router.put('/:id', settingController.update)
 
-router.route('/multi-upsert')
-    .post(settingController.multiUpsert)
+router.post('/multi-upsert', settingController.multiUpsert)
 
 module.exports = router;

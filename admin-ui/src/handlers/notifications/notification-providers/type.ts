@@ -1,4 +1,4 @@
-export type ProviderType = "smtp" | "ses";
+export type ProviderType = "email";
 export type ProviderStatus = "connected" | "disconnected"
 
 export type SmtpConfigType = {
@@ -6,6 +6,7 @@ export type SmtpConfigType = {
     port: string;
     username: string;
     auth: string;
+    method?: string;
     senderEmail: string;
     destinations: string[];
 }
@@ -15,6 +16,7 @@ export type SESConfigType = {
     accessKeyId: string;
     secretAccessKey: string;
     senderEmail: string;
+    method?: string;
     destinations: string[];
 }
 

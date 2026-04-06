@@ -8,7 +8,9 @@ class SettingController {
         try {
             if (!req.body)
                 throw new Error("Req body is required.")
-            const result = await settingService.insert(req.body);
+            const result = await settingService.insert(req.body, req.userId);
+            if (!result)
+                throw new Error("Error insertion of settings.")
             response.created(res, result)
             next();
         } catch (error) {
@@ -41,13 +43,13 @@ class SettingController {
                 let result;
                 const foundSetting = await settingService.findByKey(setting.key);
                 if (!foundSetting) {
-                    result = await settingService.insert(setting)
+                    result = await settingService.insert(setting, req.userId)
                 } else {
-                    result = await settingService.update(setting.key, req.value)
+                    result = await settingService.updateByKey(setting.key, { value: setting.value })
                 }
                 results.push(result);
             }
-            response.success(res, result);
+            response.success(res, results);
             next();
         } catch (error) {
             console.log(error);

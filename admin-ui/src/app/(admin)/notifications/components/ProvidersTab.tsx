@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/button/Button";
+import Switch from "@/components/form/switch/Switch";
 import UpsertNotificationProviderModal from "@/app/(admin)/notifications/modals/UpsertNotificationProviderModal";
 import { useModal } from "@/hooks/useModal";
 import {
@@ -11,7 +12,10 @@ import {
   StatusBadge,
   statusTone,
 } from "@/app/(admin)/notifications/components/NotificationsShared";
-import { useListNotificationProviders, useUdpateNotificationProvider } from "@/handlers/notifications/notification-providers/notificationProviderHooks";
+import {
+  useListNotificationProviders,
+  useSetNotificationProviderEnabled,
+} from "@/handlers/notifications/notification-providers/notificationProviderHooks";
 import { NotificationProvider } from "@/handlers/notifications/notification-providers/type";
 import { useToast } from "@/context/ToastContext";
 import DeleteNotificationProviderModal from "../modals/DeleteNotificationProviderModal";
@@ -25,29 +29,88 @@ export default function ProvidersTab() {
   const [providerDrawerOpen, setProviderDrawerOpen] = useState(false);
   const { data: providers } = useListNotificationProviders();
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [togglingProviderId, setTogglingProviderId] = useState<number | null>(null);
 
-  const { toastError } = useToast();
+  const { toastError, toastSuccess } = useToast();
   
-  const { update: updateProvider } = useUdpateNotificationProvider();
+  const { setEnabled: setProviderEnabled } = useSetNotificationProviderEnabled();
 
   const openProviderDetails = (provider: NotificationProvider) => {
     setSelectedProvider(provider);
     setProviderDrawerOpen(true);
   };
 
-  const handleToggleEnable = async (provider: NotificationProvider) => {
-    try { 
-      const update = {
-        isEnable: provider.isEnable
-      }
-      const res = await updateProvider(provider.id, update);
-      if (!res)
+  const handleToggleEnable = async (
+    provider: NotificationProvider,
+    nextEnabled: boolean
+  ) => {
+    setTogglingProviderId(provider.id);
+    try {
+      const res = await setProviderEnabled(provider.id, nextEnabled);
+      if (!res) {
         throw new Error("Error when updating provider.");
+      }
     } catch (error: any) {
       console.log("Error update: ", error.message);
       toastError();
+    } finally {
+      setTogglingProviderId(null);
     }
-  }
+  };
+
+  const renderConfigSummary = (provider: NotificationProvider) => {
+    const config = provider.config as any;
+    if (!config) return <span className="text-xs text-gray-500">Not configured</span>;
+
+    if (config.method === "smtp") {
+      const host = config.host ? `${config.host}${config.port ? `:${config.port}` : ""}` : "SMTP";
+      const username = config.username ? `User: ${config.username}` : "User: -";
+      const sender = config.senderEmail ? `Sender: ${config.senderEmail}` : "Sender: -";
+      const destinations = Array.isArray(config.destinations) ? config.destinations.length : 0;
+      return (
+        <div className="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-white/10">
+            {host}
+          </span>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-white/10">
+            {username}
+          </span>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-white/10">
+            {sender}
+          </span>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-white/10">
+            Destinations: {destinations}
+          </span>
+        </div>
+      );
+    }
+
+    if (config.method === "ses") {
+      const region = config.region ? config.region : "Region: -";
+      const sender = config.senderEmail ? `Sender: ${config.senderEmail}` : "Sender: -";
+      const destinations = Array.isArray(config.destinations) ? config.destinations.length : 0;
+      return (
+        <div className="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-white/10">
+            {region}
+          </span>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-white/10">
+            {sender}
+          </span>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-white/10">
+            Destinations: {destinations}
+          </span>
+        </div>
+      );
+    }
+
+    return <span className="text-xs text-gray-500">Unknown config</span>;
+  };
+
+  const handleAddProvider = () => {
+    setSelectedProvider(null);
+    upsertProviderModal.openModal();
+  };
 
   return (
     <div className="space-y-4">
@@ -60,7 +123,7 @@ export default function ProvidersTab() {
             Manage delivery channels for alerts and reports.
           </p>
         </div>
-        <Button size="sm" type="button" onClick={upsertProviderModal.openModal}>
+        <Button size="sm" type="button" onClick={handleAddProvider}>
           Add Provider
         </Button>
       </div>
@@ -74,7 +137,30 @@ export default function ProvidersTab() {
             cellClassName: "text-gray-700 dark:text-gray-300",
           },
           { key: "type", label: "Type", sortable: true },
-          { key: "config", label: "Configuration", sortable: true },
+          {
+            key: "config",
+            label: "Configuration Summary",
+            sortable: false,
+            render: (row) => renderConfigSummary(row),
+          },
+          {
+            key: "isEnable",
+            label: "Enabled",
+            sortable: true,
+            render: (row) => (
+              <Switch
+                label="Enabled"
+                checked={row.isEnable}
+                disabled={togglingProviderId === row.id}
+                onChange={(value) =>
+                  handleToggleEnable(
+                    row,
+                    typeof value === "boolean" ? value : value.target.checked
+                  )
+                }
+              />
+            ),
+          },
           {
             key: "status",
             label: "Status",
@@ -105,10 +191,6 @@ export default function ProvidersTab() {
                       setSelectedProvider(row);
                       upsertProviderModal.openModal();                      
                     },
-                  },
-                  {
-                    label: row.status === "enabled" ? "Disable" : "Enable",
-                    onClick: () => handleToggleEnable(row),
                   },
                   {
                     label: "Delete provider",
@@ -169,7 +251,7 @@ export default function ProvidersTab() {
                     Status
                   </p>
                   <StatusBadge tone={statusTone(selectedProvider.status)}>
-                    {selectedProvider.status.toUpperCase()}
+                    {selectedProvider.status?.toUpperCase()}
                   </StatusBadge>
                 </div>
                 <div>
@@ -189,18 +271,25 @@ export default function ProvidersTab() {
               </h4>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {Object.entries(selectedProvider.config).map(
-                  ([key, value]) => (
-                    <div key={key}>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {key
-                          .replace(/([A-Z])/g, " $1")
-                          .replace(/^./, (s) => s.toUpperCase())}
-                      </p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
-                        {value}
-                      </p>
-                    </div>
-                  )
+                  ([key, value]) => {
+                    const isSecret =
+                      key === "secretAccessKey" ||
+                      key === "auth" ||
+                      key === "password";
+                    const displayValue = isSecret ? "••••••" : value;
+                    return (
+                      <div key={key}>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (s) => s.toUpperCase())}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
+                          {displayValue}
+                        </p>
+                      </div>
+                    );
+                  }
                 )}
               </div>
               <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
@@ -221,7 +310,10 @@ export default function ProvidersTab() {
       />
       <DeleteNotificationProviderModal 
         isOpen={openDeleteModal}
-        onClose={() => {}}
+        onClose={() => {
+          setOpenDeleteModal(false);
+          setSelectedProvider(null);
+        }}
         deleteNotification={selectedProvider}    
       />
     </div>

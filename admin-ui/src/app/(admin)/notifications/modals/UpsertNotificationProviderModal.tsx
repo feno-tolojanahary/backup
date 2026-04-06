@@ -1,6 +1,6 @@
-"use client";
+  "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
@@ -51,23 +51,33 @@ const sesRegionOptions = [
   { value: "eu-west-1", label: "eu-west-1" },
 ];
 
-const buildDefaults = (notificationProvider: NotificationProvider | null): FormValues => ({
-  name: notificationProvider?.name ?? "",
-  type: notificationProvider?.type ?? "smtp",
-  enabled: notificationProvider?.isEnable ?? true,
-  method: notificationProvider?.type ?? "smtp",
-  smtpHost: (notificationProvider?.config as SmtpConfigType)?.host ?? "",
-  smtpPort: (notificationProvider?.config as SmtpConfigType)?.port ?? "",
-  smtpUsername: (notificationProvider?.config as SmtpConfigType)?.username ?? "",
-  smtpPassword: (notificationProvider?.config as SmtpConfigType)?.auth ?? "",
-  smtpSenderEmail: (notificationProvider?.config as SmtpConfigType)?.senderEmail ?? "",
-  smtpDestinations: (notificationProvider?.config as SmtpConfigType)?.destinations?.join(";") ?? "",
-  sesRegion: (notificationProvider?.config as SESConfigType)?.region ?? "",
-  sesAccessKey: (notificationProvider?.config as SESConfigType)?.accessKeyId ?? "",
-  sesSecretKey: (notificationProvider?.config as SESConfigType)?.secretAccessKey ?? "",
-  sesSenderEmail: (notificationProvider?.config as SESConfigType)?.senderEmail ?? "",
-  sesDestinations: (notificationProvider?.config as SESConfigType)?.destinations?.join(";") ?? ""
-});
+const resolveConfigMethod = (config?: SmtpConfigType | SESConfigType | null): ConfigMethod => {
+  if (!config) return "smtp";
+  if (config.method === "smtp" || config.method === "ses") return config.method;
+  return "region" in config ? "ses" : "smtp";
+};
+
+const buildDefaults = (notificationProvider: NotificationProvider | null): FormValues => {
+  const defaultValue = {
+    name: notificationProvider?.name ?? "",
+    type: notificationProvider?.type ?? "email",
+    enabled: notificationProvider?.isEnable ?? true,
+    method: resolveConfigMethod(notificationProvider?.config),
+    smtpHost: (notificationProvider?.config as SmtpConfigType)?.host ?? "",
+    smtpPort: (notificationProvider?.config as SmtpConfigType)?.port ?? "",
+    smtpUsername: (notificationProvider?.config as SmtpConfigType)?.username ?? "",
+    smtpPassword: (notificationProvider?.config as SmtpConfigType)?.auth ?? "",
+    smtpSenderEmail: (notificationProvider?.config as SmtpConfigType)?.senderEmail ?? "",
+    smtpDestinations: (notificationProvider?.config as SmtpConfigType)?.destinations?.join(";") ?? "",
+    sesRegion: (notificationProvider?.config as SESConfigType)?.region ?? "",
+    sesAccessKey: (notificationProvider?.config as SESConfigType)?.accessKeyId ?? "",
+    sesSecretKey: (notificationProvider?.config as SESConfigType)?.secretAccessKey ?? "",
+    sesSenderEmail: (notificationProvider?.config as SESConfigType)?.senderEmail ?? "",
+    sesDestinations: (notificationProvider?.config as SESConfigType)?.destinations?.join(";") ?? ""
+  } 
+  console.log("default value: ", defaultValue)
+  return defaultValue;
+}
 
 
 const getPayloadData = (values: FormValues): CreateNotificationProvider | UpdateNotificationProvider => {
@@ -76,7 +86,7 @@ const getPayloadData = (values: FormValues): CreateNotificationProvider | Update
       type: values.type,
       isEnable: values.enabled
     }
-    if (values.type === "smtp") {
+    if (values.method === "smtp") {
       return {
         ...defaultVal,
         config: {
@@ -84,6 +94,7 @@ const getPayloadData = (values: FormValues): CreateNotificationProvider | Update
           port: values.smtpPort,
           username: values.smtpUsername,
           auth: values.smtpPassword,
+          method: values.method,
           senderEmail: values.smtpSenderEmail,
           destinations: values.smtpDestinations.split(";")
         }
@@ -94,6 +105,7 @@ const getPayloadData = (values: FormValues): CreateNotificationProvider | Update
         config: {
           region: values.sesRegion,
           accessKeyId: values.sesAccessKey,
+          method: values.method,
           secretAccessKey: values.sesSecretKey,
           senderEmail: values.sesSenderEmail,
           destinations: values.sesDestinations.split(";")
@@ -113,21 +125,30 @@ const UpsertNotficationProviderModal: React.FC<
     watch,
     formState: { errors }
   } = useForm<FormValues>({
-    defaultValues: buildDefaults(notificationProvider),
-    shouldUnregister: true,
+    defaultValues: buildDefaults(null),
+    shouldUnregister: false,
   });
 
   const method = watch("method");
   const enabled = watch("enabled");
+  const providerId = notificationProvider?.id ?? null;
+  const isEdit = Boolean(providerId);
+  const lastResetKey = useRef<number | "new" | null>(null);
 
   const { toastSuccess, toastError } = useToast();
   const { create: createProvider, isMutating: isLoadingCreate } = useCreateNotificationProvider();
   const { update: updateProvider, isMutating: isLoadingUpdate } = useUdpateNotificationProvider();
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      lastResetKey.current = null;
+      return;
+    }
+    const resetKey = providerId ?? "new";
+    if (lastResetKey.current === resetKey) return;
+    lastResetKey.current = resetKey;
     reset(buildDefaults(notificationProvider));
-  }, [isOpen, reset, notificationProvider]);
+  }, [isOpen, reset, notificationProvider, providerId]);
 
   const requiredFields = useMemo(() => {
     if (method === "smtp") {
@@ -180,7 +201,7 @@ const UpsertNotficationProviderModal: React.FC<
       <form onSubmit={handleSubmit(onSubmitForm)} className="p-6 sm:p-8">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Create Notification Provider
+            {isEdit ? "Update Notification Provider" : "Create Notification Provider"}
           </h3>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             Configure a notification channel used to send alerts from the backup
@@ -212,7 +233,7 @@ const UpsertNotficationProviderModal: React.FC<
                 </label>
                 <Controller
                   name="type"
-                  control={control}
+                    control={control}
                   render={({ field }) => (
                     <Select
                       options={providerTypeOptions}
@@ -264,6 +285,7 @@ const UpsertNotficationProviderModal: React.FC<
                     onChange={field.onChange}
                     onBlur={field.onBlur}
                     name={field.name}
+                    disabled={isEdit}
                   />
                 )}
               />
@@ -464,7 +486,7 @@ const UpsertNotficationProviderModal: React.FC<
             Cancel
           </Button>
           <Button size="sm" type="submit" isLoading={isLoadingCreate || isLoadingUpdate}>
-            Create Provider
+            {isEdit ? "Update Provider" : "Create Provider"}
           </Button>
         </div>
       </form>
