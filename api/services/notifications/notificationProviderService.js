@@ -61,7 +61,7 @@ class NotificationProviderService {
             const notifications = db.prepare(query).all(...values);
             return notifications.map(notif => ({
                 ...notif,
-                isEnable: notif.isEnable === 1 ? true : false,
+                isEnable: notif.is_enable === 1 ? true : false,
                 config: notif.config ? JSON.parse(notif.config) : {}
             }));
         } catch (error) {
