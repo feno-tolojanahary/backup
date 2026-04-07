@@ -1,5 +1,12 @@
+const { verifyFolderWritable } = require("../../lib/helper/utils");
 const settingService = require("../services/settingService")
 const response = require("./../utils/response")
+
+const writableFolderKeys = [
+    "workingDirectory",
+    "dataDirectory",
+    "logDirectory"
+]
 
 class SettingController {
     constructor() {}
@@ -41,6 +48,13 @@ class SettingController {
             let results = [];
             for (const setting of req.body) {
                 let result;
+                if (writableFolderKeys.includes(setting.key)) {
+                    const statusFolder = await verifyFolderWritable(JSON.parse(setting.value));
+                    if (!statusFolder.writable) {
+                        response.badRequest(res, { setting, writable: false })
+                        return;
+                    }
+                }
                 const foundSetting = await settingService.findByKey(setting.key);
                 if (!foundSetting) {
                     result = await settingService.insert(setting, req.userId)

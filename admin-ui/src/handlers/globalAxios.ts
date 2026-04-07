@@ -44,7 +44,7 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config as RetryAxiosRequestConfig;
         if (error.response?.status !== 401)
-            return;
+            return Promise.reject(error);
         if (!originalRequest?._retry) {
             if (isRefreshing) {
                 return new Promise<string | null>((resolve, reject) => {

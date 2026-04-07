@@ -2,9 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import GeneralTab from "./components/GeneralTab";
-import BackupEngineTab from "./components/BackupEngineTab";
-import SecurityTab from "./components/SecurityTab";
-import SystemHealthTab from "./components/SystemHealthTab";
+// import BackupEngineTab from "./components/BackupEngineTab";
+// import SecurityTab from "./components/SecurityTab";
+// import SystemHealthTab from "./components/SystemHealthTab";
 
 type TabKey =
   | "general"
@@ -14,9 +14,9 @@ type TabKey =
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: "general", label: "General" },
-  { key: "backup-engine", label: "Backup Engine" },
-  { key: "security", label: "Security" },
-  { key: "system-health", label: "System Health" },
+  // { key: "backup-engine", label: "Backup Engine" },
+  // { key: "security", label: "Security" },
+  // { key: "system-health", label: "System Health" },
 ];
 
 export default function SettingsPageClient() {

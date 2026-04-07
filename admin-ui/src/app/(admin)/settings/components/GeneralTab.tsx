@@ -17,8 +17,17 @@ export default function GeneralTab() {
   const { getSettingValue, settings } = useSettings();
   const { upsert } = useSettingUpsert();
 
-  const { toastSuccess, toastError } = useToast();
-
+  const { toastSuccess, toastError, toastWarning } = useToast();
+  
+  const {
+    register,
+    reset,
+    handleSubmit,
+    setError,
+    clearErrors,
+    formState: { errors }
+  } = useForm<FormSetting>();
+  
   useEffect(() => {
     if (settings.length > 0) {
       const defaultSetting = {
@@ -28,20 +37,54 @@ export default function GeneralTab() {
       }
       reset(defaultSetting);
     }
-  }, [settings])
+  }, [getSettingValue, reset, settings])
 
-  const { register, reset, handleSubmit } = useForm<FormSetting>();
+  const fieldLabels: Record<keyof FormSetting, string> = {
+    workingDirectory: "Working Directory",
+    dataDirectory: "Data Directory",
+    logDirectory: "Log Directory"
+  };
+
+  const applyDirectoryError = (key: string) => {
+    if (!(key in fieldLabels)) {
+      return false;
+    }
+    const fieldKey = key as keyof FormSetting;
+    const message = "Folder does not exist or is not writable.";
+    setError(fieldKey, { type: "validate", message });
+    toastWarning(`${fieldLabels[fieldKey]} is not writable or does not exist.`);
+    return true;
+  };
 
   const saveSetting = async (values: FormSetting) => {
     const data = Object.entries(values).map(([key, value]) => ({ key, value }));
     try {
-       const res = await upsert(data);
-       if (!res)
+      clearErrors();
+      const res = await upsert(data);
+      if (!res?.success)
         throw new Error("No result found.");
       toastSuccess("Settings is saved with success.");
     } catch (error: any) {
-      console.error("Save setting: ", error.message);
-      toastError()
+      let response: any;
+      try {
+        response = error?.response;
+      } catch {
+        response = undefined;
+      }
+      if (response?.status === 400) {
+        const settingKey = response?.data?.message?.setting?.key;
+        if (settingKey && applyDirectoryError(settingKey)) {
+          return;
+        }
+      }
+      let errorMessage = "Unknown error";
+      try {
+        errorMessage = error?.message ?? String(error);
+      } catch {
+        errorMessage = "Unknown error";
+      }
+      console.error("Save setting: ", errorMessage);
+      toastError();
     }
   }
 
@@ -58,6 +101,8 @@ export default function GeneralTab() {
         <Input 
           defaultValue="/app/output" 
           {...register("workingDirectory")}
+          error={Boolean(errors.workingDirectory)}
+          hint={errors.workingDirectory?.message}
         />
       </div>
       <div className="grid gap-5 lg:grid-cols-[1fr_2fr] lg:items-center">
@@ -67,7 +112,9 @@ export default function GeneralTab() {
         />
         <Input 
           defaultValue="/app/data" 
-          {...register("dataDirectory")}  
+          {...register("dataDirectory")}
+          error={Boolean(errors.dataDirectory)}
+          hint={errors.dataDirectory?.message}
         />
       </div>
       <div className="grid gap-5 lg:grid-cols-[1fr_2fr] lg:items-center">
@@ -78,6 +125,8 @@ export default function GeneralTab() {
         <Input 
           defaultValue="/app/log" 
           {...register("logDirectory")}
+          error={Boolean(errors.logDirectory)}
+          hint={errors.logDirectory?.message}
         />
       </div>
       <div className="flex flex-wrap items-center gap-3">
