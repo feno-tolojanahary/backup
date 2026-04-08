@@ -70,7 +70,8 @@ class DestinationController {
             const id = req.params.id;
             if (!id) 
                 throw new Error("The id field in params is required");
-            const res = await destinationService.deleteById(id)
+            const result = await destinationService.deleteById(id)
+            response.success(res, result);
         } catch (error) {
             console.log(error);
             response.error(res, error.message);

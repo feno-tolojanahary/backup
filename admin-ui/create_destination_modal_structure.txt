@@ -1,0 +1,107 @@
+CREATE DESTINATION MODAL — STRUCTURE
+
+Purpose:
+Create a new backup destination (storage configuration) for the admin interface. The modal collects common metadata and then shows dynamic fields based on the selected storage type.
+
+Modal Layout
+
+1. Modal Header
+- Title: "Create Destination"
+- Description: "Configure a storage destination for backup data."
+- Close icon button
+
+2. Form Section — Destination Information (Common Fields)
+- Destination Name
+  Input
+  Placeholder: "Primary S3 Storage"
+  Required
+
+- Storage Type
+  Select
+  Options: local, s3, sftp
+  Required
+
+- Status
+  Toggle
+  Options: Enabled / Disabled
+  Default: Enabled
+
+3. Form Section — Configuration (Dynamic Fields)
+Show one configuration group based on selected Storage Type.
+
+A) Local Configuration (if type = local)
+- Local Path
+  Input
+  Placeholder: "/var/backups" or "D:\\backups"
+  Required
+- Optional Notes
+  Input (optional)
+  Placeholder: "Mounted nightly"
+
+B) S3 Configuration (if type = s3)
+- Endpoint
+  Input
+  Placeholder: "https://s3.amazonaws.com"
+  Required
+- Bucket
+  Input
+  Placeholder: "backup-bucket"
+  Required
+- Region
+  Select or Input
+  Placeholder: "us-east-1"
+  Required
+- Access Key
+  Input
+  Required
+- Secret Key
+  Password Input
+  Required
+- Use SSL
+  Toggle
+  Default: Enabled
+- Path Prefix (Optional)
+  Input
+  Placeholder: "prod/"
+
+C) SFTP Configuration (if type = sftp)
+- Host
+  Input
+  Placeholder: "sftp.company.com"
+  Required
+- Port
+  Number Input
+  Placeholder: 22
+  Required
+- Username
+  Input
+  Required
+- Authentication Method
+  Select
+  Options: password, key
+  Default: password
+- Password
+  Password Input
+  Required if auth = password
+- Private Key
+  Textarea or File Input
+  Required if auth = key
+- Root Folder
+  Input
+  Placeholder: "/backups"
+  Required
+
+4. Validation & Helper Text
+- Required fields show validation errors on submit.
+- Secret values (Access Key, Secret Key, Password, Private Key) are masked.
+- Show helper text under fields where useful (e.g., S3 endpoint example, SFTP key format).
+
+5. Modal Footer
+- Cancel button (secondary) — closes modal
+- Create Destination button (primary) — submits form
+- Disabled state when required fields are invalid
+
+6. UX Behavior
+- Changing Storage Type resets dynamic configuration fields to defaults.
+- Only one configuration group is visible at a time.
+- On successful submit, show a success toast and close the modal (backend integration can be wired later).

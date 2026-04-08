@@ -1,5 +1,5 @@
 import ReactSelect, { type SelectInstance } from "react-select";
-import React, { useEffect, useMemo, useState, forwardRef, useId } from "react";
+import React, { useEffect, useMemo, useState, forwardRef } from "react";
 
 export interface Option {
   value: string;
@@ -41,8 +41,21 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
   ) => {
     const isControlled = value !== undefined;
     const [selectedValue, setSelectedValue] = useState<string | string[]>(defaultValue);
-    const reactId = useId();
-    const resolvedInstanceId = instanceId ?? name ?? reactId;
+    const resolvedInstanceId = useMemo(() => {
+      const base =
+        (instanceId ?? name ?? placeholder ?? "select")
+          .toString()
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-");
+      const optionsKey = options.map((option) => option.value).join("|");
+      const hashSource = `${base}|${optionsKey}|${isMulti}`;
+      let hash = 5381;
+      for (let i = 0; i < hashSource.length; i += 1) {
+        hash = (hash * 33) ^ hashSource.charCodeAt(i);
+      }
+      return `${base}-${Math.abs(hash)}`;
+    }, [instanceId, name, placeholder, options, isMulti]);
 
     useEffect(() => {
       if (!isControlled) {

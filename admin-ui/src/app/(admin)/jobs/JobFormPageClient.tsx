@@ -32,6 +32,48 @@ type JobFormValues = {
   isEncrypted: boolean;  
 }
 
+const INTERVAL_PATTERN = /^(\d+)\s*(s|m|h|d)$/i;
+const CRON_PARTS_PATTERN = /^[\d*/,LW#?-]+$/i;
+
+const validateScheduleValue = (scheduleType: string, input: string) => {
+  const value = input.trim();
+
+  if (scheduleType === "manual") {
+    return true;
+  }
+
+  if (!value) {
+    return "Schedule value is required";
+  }
+
+  if (scheduleType === "interval") {
+    const match = value.match(INTERVAL_PATTERN);
+    if (!match) {
+      return "Interval must use formats like 30s, 15m, 1h, or 2d";
+    }
+
+    if (Number(match[1]) <= 0) {
+      return "Interval value must be greater than zero";
+    }
+
+    return true;
+  }
+
+  if (scheduleType === "cron") {
+    const parts = value.split(/\s+/);
+    if (parts.length !== 5 && parts.length !== 6) {
+      return "Cron expression must contain 5 or 6 fields";
+    }
+
+    const hasInvalidPart = parts.some((part) => !CRON_PARTS_PATTERN.test(part));
+    if (hasInvalidPart) {
+      return "Cron expression contains invalid characters";
+    }
+  }
+
+  return true;
+};
+
 export default function JobFormPageClient() {
 
   const router = useRouter();
@@ -62,7 +104,9 @@ export default function JobFormPageClient() {
   }, [])
 
   const { register, control, handleSubmit, reset, setValue, setError, clearErrors, formState: { errors } } =
-      useForm<JobFormValues>(); 
+      useForm<JobFormValues>({
+        defaultValues: buildDefaults(null),
+      }); 
 
   useEffect(() => {
     if (params.jobId && jobs.length > 0) {
@@ -72,6 +116,7 @@ export default function JobFormPageClient() {
   }, [params.jobId, jobs, reset, buildDefaults])
   
   const targetType = useWatch({ control, name: "type" });
+  const scheduleType = useWatch({ control, name: "scheduleType" });
   const selectedSource = useWatch({ control, name: "source" });
   const selectedDestinations = useWatch({ control, name: "destinations" });
 
@@ -105,7 +150,7 @@ export default function JobFormPageClient() {
       destinations: values.destinations?.map(({ value }) => value),
     }
     return payload;
-  }, [params.jobId])
+  }, [sourceOptions])
 
   const saveJob = async (values: JobFormValues) => {
     const currentJobId = params.jobId ? Number(params.jobId) : null;
@@ -193,183 +238,224 @@ export default function JobFormPageClient() {
     <div>
       <PageBreadcrumb pageTitle={params.jobId ? "Edit Job" : "Create Job"} />
       <div className="space-y-6">
-        <ComponentCard
-          title={params.jobId ? "Edit Job" : "Create Job"}
-          desc="Define backup targets, schedule details, retention settings, and encryption."
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Job name
-              </label>
-              <Input
-                placeholder="Enter job name"
-                {...register("name", {
-                  required: "Job name is required"
-                })}
-                error={Boolean(errors.name)}
-                hint={errors.name?.message}
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Target type
-              </label>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={[
-                      { value: "app", label: "application" },
-                      { value: "database", label: "database" },
-                      { value: "object-replication", label: "object-replication" },
-                    ]}
-                    value={field.value}
-                    placeholder="Select target type"
-                    onChange={field.onChange}
-                    name={field.name}
-                    disabled={isUpdate}
-                  />
+        <section className="space-y-2">
+          <h2 className="px-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Job Configuration
+          </h2>
+          <ComponentCard title="">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Job name
+                </label>
+                <Input
+                  placeholder="Enter job name"
+                  {...register("name", {
+                    required: "Job name is required"
+                  })}
+                  error={Boolean(errors.name)}
+                  hint={errors.name?.message}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Target type
+                </label>
+                <Controller
+                  name="type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={[
+                        { value: "app", label: "application" },
+                        { value: "database", label: "database" },
+                        { value: "object-replication", label: "object-replication" },
+                      ]}
+                      value={field.value}
+                      placeholder="Select target type"
+                      onChange={field.onChange}
+                      name={field.name}
+                      disabled={isUpdate}
+                    />
+                  )}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Source
+                </label>
+                <Controller
+                  name="source"
+                  control={control}
+                  rules={{
+                    required: "Source is required",
+                  }}
+                  render={({ field }) => (
+                    <Select
+                      options={sourceOptions}
+                      value={field.value || ""}
+                      placeholder="Select source"
+                      onChange={field.onChange}
+                      name={field.name}
+                    />
+                  )}
+                />
+                {!hasSourceOptions && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    No sources available for this target type.
+                  </p>
                 )}
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Source
-              </label>
-              <Controller
-                name="source"
-                control={control}
-                rules={{
-                  required: "Source is required",
-                }}
-                render={({ field }) => (
-                  <Select
-                    options={sourceOptions}
-                    value={field.value || ""}
-                    placeholder="Select source"
-                    onChange={field.onChange}
-                    name={field.name}
-                  />
+                {errors.source?.message && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {errors.source.message}
+                  </p>
                 )}
-              />
-              {!hasSourceOptions && (
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  No sources available for this target type.
-                </p>
-              )}
-              {errors.source?.message && (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                  {errors.source.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Destinations
-              </label>
-              <Controller
-                name="destinations"
-                control={control}
-                rules={{
-                  validate: (value) =>
-                    (value && value.length > 0) || "At least one destination is required",
-                }}
-                render={({ field }) => (
-                  <Select
-                    options={destinationOptions}
-                    value={field.value?.map(({value}) => value)}
-                    placeholder="Select destinations"
-                    onChangeOption={field.onChange}
-                    name={field.name}
-                    isMulti
-                  />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Destinations
+                </label>
+                <Controller
+                  name="destinations"
+                  control={control}
+                  rules={{
+                    validate: (value) =>
+                      (value && value.length > 0) || "At least one destination is required",
+                  }}
+                  render={({ field }) => (
+                    <Select
+                      options={destinationOptions}
+                      value={field.value?.map(({value}) => value)}
+                      placeholder="Select destinations"
+                      onChangeOption={field.onChange}
+                      name={field.name}
+                      isMulti
+                    />
+                  )}
+                />
+                {!hasDestinationOptions && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    No destinations available for this target type.
+                  </p>
                 )}
-              />
-              {!hasDestinationOptions && (
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  No destinations available for this target type.
-                </p>
-              )}
-              {errors.destinations?.message && (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                  {errors.destinations.message as string}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Schedule type
-              </label>
-              <Controller
-                name="scheduleType"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={[
-                      { value: "interval", label: "interval" },
-                      { value: "cron", label: "cron" },
-                      { value: "manual", label: "manual" },
-                    ]}
-                    value={field.value}
-                    placeholder="Select schedule type"
-                    onChange={field.onChange}
-                    name={field.name}
-                  />
+                {errors.destinations?.message && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {errors.destinations.message as string}
+                  </p>
                 )}
-              />
+              </div>
             </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Schedule value
-              </label>
-              <Input
-                placeholder="3600 or 0 2 * * *"
-                {...register("scheduleValue")}
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Retention days
-              </label>
-              <Input
-                type="number"
-                placeholder="30"
-                {...register("retentionDays")}
-              />
-            </div>
-            <div className="flex items-end">
-              <Controller
-                name="isEncrypted"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    label="Use encryption"
-                    checked={field.value}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-            </div>
-          </div>
+          </ComponentCard>
+        </section>
 
-          <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <Link href="/jobs">
-              <Button size="sm" variant="outline" type="button">
-                Cancel
-              </Button>
-            </Link>
-            <Button
-              size="sm"
-              type="button"
-              onClick={handleSubmit(saveJob)}
-              disabled={!hasSourceOptions || !hasDestinationOptions}
-            >
-              Save Job
+        <section className="space-y-2">
+          <h2 className="px-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Schedule
+          </h2>
+          <ComponentCard title="">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Schedule type
+                </label>
+                <Controller
+                  name="scheduleType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={[
+                        { value: "interval", label: "interval" },
+                        { value: "cron", label: "cron" },
+                        { value: "manual", label: "manual" },
+                      ]}
+                      value={field.value}
+                      placeholder="Select schedule type"
+                      onChange={field.onChange}
+                      name={field.name}
+                    />
+                  )}
+                />
+              </div>
+              {scheduleType !== "manual" && (
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Schedule value
+                  </label>
+                  <Input
+                    placeholder={scheduleType === "interval" ? "15m" : "0 2 * * *"}
+                    {...register("scheduleValue", {
+                      validate: (value) => validateScheduleValue(scheduleType, value ?? ""),
+                    })}
+                    error={Boolean(errors.scheduleValue)}
+                    hint={errors.scheduleValue?.message}
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {scheduleType === "interval"
+                      ? "Examples: 30s, 15m, 1h, 2d"
+                      : "Example: 0 2 * * *"}
+                  </p>
+                </div>
+              )}
+              {scheduleType === "manual" && (
+                <div className="rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                  Manual schedules run only when triggered, so no schedule value is required.
+                </div>
+              )}
+            </div>
+          </ComponentCard>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="px-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Retention & Security
+          </h2>
+          <ComponentCard title="">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Retention days
+                </label>
+                <Input
+                  type="number"
+                  placeholder="30"
+                  {...register("retentionDays")}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Use `-1` to keep backups indefinitely.
+                </p>
+              </div>
+              <div className="pt-7">
+                <Controller
+                  name="isEncrypted"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      label="Use encryption"
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+          </ComponentCard>
+        </section>
+
+        <div className="flex flex-wrap justify-end gap-3">
+          <Link href="/jobs">
+            <Button size="sm" variant="outline" type="button">
+              Cancel
             </Button>
-          </div>
-        </ComponentCard>
+          </Link>
+          <Button
+            size="sm"
+            type="button"
+            onClick={handleSubmit(saveJob)}
+            disabled={!hasSourceOptions || !hasDestinationOptions}
+          >
+            Save Job
+          </Button>
+        </div>
       </div>
     </div>
   );

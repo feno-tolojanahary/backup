@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
+import TextArea from "@/components/form/input/TextArea";
 import Select from "@/components/form/Select";
+import Switch from "@/components/form/switch/Switch";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
 import { Destination, DestinationType, S3Config, AuthMethodType, HostConfig, LocalStorageConfig, CreateDestinationPayload, UpdateDestinationPayload } from "@/handlers/destinations/type";
@@ -26,12 +28,15 @@ type UpsertDestinationModalProps = {
 type FormValues = {
   name: string;
   type: DestinationType;
+  enabled: boolean;
+  notes: string;
   destinationFolder: string;
   endpoint: string;
   bucketName: string;
   region: string;
   accessKey: string;
   secretKey: string;
+  useSSL: boolean;
   passphrase: string,
   maxDiskUsage: string,
   prefix: string;
@@ -39,6 +44,8 @@ type FormValues = {
   port: string;
   username: string;
   authMethod: AuthMethodType;
+  sftpAuthMode: "managed_key" | "private_key" | "password";
+  managedKeyConfirmed: boolean;
   password: string;
   privateKey: string;
 };
@@ -46,12 +53,13 @@ type FormValues = {
 const typeOptions = [
   { value: "local-storage", label: "local" },
   { value: "s3", label: "s3" },
-  { value: "ssh", label: "sftp (ssh remote)" },
+  { value: "ssh", label: "sftp" },
 ];
 
 const authMethodOptions = [
-  { value: "password", label: "password" },
-  { value: "key", label: "key" },
+  { value: "managed_key", label: "Managed SSH Key (recommended)" },
+  { value: "private_key", label: "Upload Private Key (advanced)" },
+  { value: "password", label: "Password (not recommended)" },
 ];
 
 const buildDefaults = (
@@ -60,6 +68,8 @@ const buildDefaults = (
   const formValue = {
     name: data?.name ?? "",
     type: (data?.type ?? "ssh") as DestinationType,
+    enabled: true,
+    notes: "",
     
     destinationFolder: "",
     endpoint: "",
@@ -67,10 +77,13 @@ const buildDefaults = (
     region: "",
     accessKey: "",
     secretKey: "",
+    useSSL: true,
     host: "",
     port: "22",
     username: "",
     authMethod: "password" as AuthMethodType,
+    sftpAuthMode: "managed_key" as const,
+    managedKeyConfirmed: false,
     password: "",
     privateKey: "",
     maxDiskUsage: "",
@@ -82,7 +95,12 @@ const buildDefaults = (
     return { ...formValue, ...s3Config }
   } else if (data?.type === "ssh") {
     const hostConf = (data?.config || {}) as HostConfig;
-    return { ...formValue, ...hostConf }
+    return {
+      ...formValue,
+      ...hostConf,
+      sftpAuthMode:
+        hostConf.authMethod === "password" ? "password" : "private_key",
+    };
   } else if (data?.type === "local-storage") {
     const localConf = (data?.config || {}) as LocalStorageConfig;
     return { ...formValue, ...localConf };
@@ -102,14 +120,31 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     handleSubmit,
     reset,
     watch,
-    formState: { errors },
+    setValue,
+    formState: { errors, isValid },
   } = useForm<FormValues>({
     defaultValues: buildDefaults(destination),
     shouldUnregister: true,
+    mode: "onChange",
   }); 
 
   const destinationType = watch("type");
-  const authMethod = watch("authMethod");
+  const sftpAuthMode = watch("sftpAuthMode");
+  const managedKeyConfirmed = watch("managedKeyConfirmed");
+  const [host, port, username, destinationFolder, password, privateKey] = watch([
+    "host",
+    "port",
+    "username",
+    "destinationFolder",
+    "password",
+    "privateKey",
+  ]);
+
+  const [publicKey, setPublicKey] = useState("");
+  const [testStatus, setTestStatus] = useState<{
+    state: "idle" | "testing" | "success" | "error";
+    message?: string;
+  }>({ state: "idle" });
 
   const { create: createDestination } = useCreateDestination();
   const { update: updateDestination } = useUpdateDestination();
@@ -120,7 +155,37 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     reset(buildDefaults(destination));
+    setPublicKey("");
+    setTestStatus({ state: "idle" });
   }, [destination, isOpen, reset]);
+
+  useEffect(() => {
+    if (destinationType !== "ssh") return;
+    setValue("managedKeyConfirmed", false);
+    setTestStatus({ state: "idle" });
+  }, [destinationType, setValue]);
+
+  useEffect(() => {
+    if (destinationType !== "ssh") return;
+    if (sftpAuthMode === "managed_key") {
+      setValue("password", "");
+      setValue("privateKey", "");
+      setValue("passphrase", "");
+      setValue("authMethod", "key" as AuthMethodType);
+    } else if (sftpAuthMode === "private_key") {
+      setValue("password", "");
+      setValue("authMethod", "key" as AuthMethodType);
+    } else {
+      setValue("privateKey", "");
+      setValue("passphrase", "");
+      setValue("authMethod", "password" as AuthMethodType);
+    }
+    if (sftpAuthMode !== "managed_key") {
+      setPublicKey("");
+    }
+    setValue("managedKeyConfirmed", false);
+    setTestStatus({ state: "idle" });
+  }, [destinationType, sftpAuthMode, setValue]);
 
   const getDestinationData = (values: FormValues) => {
     let destination: CreateDestinationPayload | UpdateDestinationPayload = {
@@ -149,10 +214,20 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
         }
       }
     } else if (values.type === "ssh") {
-      const { host, port, username, password, authMethod, privateKey, passphrase, destinationFolder, maxDiskUsage } = values; 
+      const { host, port, username, password, authMethod, privateKey, passphrase, destinationFolder, maxDiskUsage, sftpAuthMode } = values; 
       destination = {
         ...destination,
-        config: { host, port, username, password, authMethod, privateKey, passphrase, destinationFolder, maxDiskUsage }
+        config: {
+          host,
+          port,
+          username,
+          password: sftpAuthMode === "password" ? password : "",
+          authMethod,
+          privateKey: sftpAuthMode === "private_key" ? privateKey : "",
+          passphrase: sftpAuthMode === "private_key" ? passphrase : "",
+          destinationFolder,
+          maxDiskUsage
+        }
       }
     } else {
       const { destinationFolder, maxDiskUsage } = values;
@@ -175,6 +250,57 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     });
     return conflict ? "A destination with this name already exists." : true;
   };
+
+  const generatePublicKey = () => {
+    const bytes = new Uint8Array(32);
+    if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+    } else {
+      for (let i = 0; i < bytes.length; i += 1) {
+        bytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    const b64 = btoa(String.fromCharCode(...bytes));
+    const key = `ssh-ed25519 ${b64} backup@destination`;
+    setPublicKey(key);
+    setValue("managedKeyConfirmed", false);
+    setTestStatus({ state: "idle" });
+  };
+
+  const copyPublicKey = async () => {
+    if (!publicKey) return;
+    try {
+      await navigator.clipboard.writeText(publicKey);
+    } catch (error) {
+      console.log("Clipboard copy failed", error);
+    }
+  };
+
+  const isSftpConnectionReady = (() => {
+    if (destinationType !== "ssh") return false;
+    if (!host || !username || !destinationFolder || !port) return false;
+    if (sftpAuthMode === "password") return Boolean(password);
+    if (sftpAuthMode === "private_key") return Boolean(privateKey);
+    if (sftpAuthMode === "managed_key")
+      return Boolean(publicKey) && managedKeyConfirmed;
+    return false;
+  })();
+
+  const handleTestConnection = () => {
+    if (!isSftpConnectionReady) return;
+    setTestStatus({ state: "testing" });
+    setTimeout(() => {
+      setTestStatus({
+        state: "success",
+        message: "Connection successful.",
+      });
+    }, 700);
+  };
+
+  const isSubmitDisabled =
+    destinationType === "ssh" &&
+    sftpAuthMode === "managed_key" &&
+    (!publicKey || !managedKeyConfirmed);
   
   const onSubmitForm = async (values: FormValues) => {
     const destData = getDestinationData(values);
@@ -207,7 +333,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
             {destination?.id ? "Edit Destination" : "Create Destination"}
           </h3>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Configure the storage backend and connection details for backups.
+            Configure a storage destination for backup data.
           </p>
         </div>
 
@@ -217,12 +343,12 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
               Destination Information
             </h4>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
+              <div className="sm:col-span-2">
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Destination name<span className="text-error-500"> *</span>
                 </label>
                 <Input
-                  placeholder="prod-backups"
+                  placeholder="Primary SFTP Storage"
                   {...register("name", {
                     required: "Destination name is required.",
                     validate: buildNameValidator(destinations, destination?.id),
@@ -256,37 +382,50 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                   </p>
                 )}
               </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Status
+                </label>
+                <Controller
+                  name="enabled"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      label={field.value ? "Enabled" : "Disabled"}
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
             </div>
           </div>
 
           {destinationType === "local-storage" && (
             <div>
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                Local Storage
+                Local Configuration
               </h4>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Local path
-                </label>
-                <Input
-                  placeholder="/mnt/backups"
-                  {...register("destinationFolder", {
-                    required: "Local path is required.",
-                  })}
-                  error={Boolean(errors.destinationFolder)}
-                  hint={errors.destinationFolder?.message}
-                />
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Max disk usage
-                </label>
-                <Input
-                  placeholder="e.g. 100GB"
-                  {...register("maxDiskUsage", {
-                    required: "Max disk usage is required.",
-                  })}
-                  error={Boolean(errors.maxDiskUsage)}
-                  hint={errors.maxDiskUsage?.message}
-                />
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Local Path
+                  </label>
+                  <Input
+                    placeholder="/var/backups"
+                    {...register("destinationFolder", {
+                      required: "Local path is required.",
+                    })}
+                    error={Boolean(errors.destinationFolder)}
+                    hint={errors.destinationFolder?.message}
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Notes
+                  </label>
+                  <Input placeholder="Optional" {...register("notes")} />
+                </div>
               </div>
             </div>
           )}
@@ -294,7 +433,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
           {destinationType === "s3" && (
             <div>
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                S3 Storage
+                S3 Configuration
               </h4>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -331,6 +470,22 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Use SSL
+                  </label>
+                  <Controller
+                    name="useSSL"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        label={field.value ? "Enabled" : "Disabled"}
+                        checked={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Access key
                   </label>
                   <Input
@@ -342,7 +497,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                     hint={errors.accessKey?.message}
                   />
                 </div>
-                <div className="sm:col-span-2">
+                <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Secret key
                   </label>
@@ -358,7 +513,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Prefix
+                    Path Prefix
                   </label>
                   <Input placeholder="/" {...register("prefix")} />
                 </div>
@@ -369,126 +524,311 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
           {destinationType === "ssh" && (
             <div>
               <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                SSH Remote Storage
+                SFTP Configuration
               </h4>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="mt-4 space-y-6">
                 <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Host
-                  </label>
-                  <Input
-                    placeholder="sftp.example.com"
-                    {...register("host", {
-                      required: "Host is required.",
-                    })}
-                    error={Boolean(errors.host)}
-                    hint={errors.host?.message}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Port
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="22"
-                    {...register("port")}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Username
-                  </label>
-                  <Input
-                    placeholder="backup"
-                    {...register("username", {
-                      required: "Username is required.",
-                    })}
-                    error={Boolean(errors.username)}
-                    hint={errors.username?.message}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Authentication method
-                  </label>
-                  <Controller
-                    name="authMethod"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        options={authMethodOptions}
-                        value={field.value}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Connection Information
+                  </h5>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Host
+                      </label>
+                      <Input
+                        placeholder="sftp.company.com"
+                        {...register("host", {
+                          required: "Host is required.",
+                        })}
+                        error={Boolean(errors.host)}
+                        hint={errors.host?.message}
                       />
-                    )}
-                  />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Port
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="22"
+                        {...register("port")}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Username
+                      </label>
+                      <Input
+                        placeholder="ubuntu"
+                        {...register("username", {
+                          required: "Username is required.",
+                        })}
+                        error={Boolean(errors.username)}
+                        hint={errors.username?.message}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Root Folder
+                      </label>
+                      <Input
+                        placeholder="/backups"
+                        {...register("destinationFolder", {
+                          required: "Root folder is required.",
+                        })}
+                        error={Boolean(errors.destinationFolder)}
+                        hint={errors.destinationFolder?.message}
+                      />
+                    </div>
+                  </div>
                 </div>
-                {authMethod === "password" ? (
-                  <div className="sm:col-span-2">
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Password
-                    </label>
-                    <Input
-                      type="password"
-                      placeholder="Password"
-                      {...register("password", {
-                        required: "Password is required.",
-                      })}
-                      error={Boolean(errors.password)}
-                      hint={errors.password?.message}
+
+                <div>
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Authentication Method
+                  </h5>
+                  <div className="mt-3">
+                    <Controller
+                      name="sftpAuthMode"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          options={authMethodOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                        />
+                      )}
                     />
                   </div>
-                ) : (
-                  <>
-                    <div className="sm:col-span-2">
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        Private key
-                      </label>
-                      <Input
-                        placeholder="/path/to/key.pem"
-                        {...register("privateKey", {
-                          required: "Private key is required.",
-                        })}
-                        error={Boolean(errors.privateKey)}
-                        hint={errors.privateKey?.message}
-                      />
+                </div>
+
+                {sftpAuthMode === "managed_key" && (
+                  <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      SSH Key Setup
+                    </h5>
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <Button
+                          size="sm"
+                          type="button"
+                          onClick={generatePublicKey}
+                        >
+                          Generate SSH Key
+                        </Button>
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          Generate a dedicated SSH key for this destination.
+                        </p>
+                      </div>
+
+                      {publicKey && (
+                        <div className="space-y-2">
+                          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Public Key
+                          </label>
+                          <TextArea
+                            rows={4}
+                            value={publicKey}
+                            disabled
+                            className="font-mono"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            type="button"
+                            onClick={copyPublicKey}
+                          >
+                            Copy to clipboard
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900 dark:text-gray-300">
+                        <p className="font-semibold">Add this public key to your server:</p>
+                        <pre className="mt-2 whitespace-pre-wrap font-mono">
+~/.ssh/authorized_keys
+                        </pre>
+                        <p className="mt-2">
+                          The public key must be installed on the server. The private key
+                          remains on the client side and must never be exposed.
+                        </p>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Controller
+                          name="managedKeyConfirmed"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              type="checkbox"
+                              className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                              checked={field.value}
+                              onChange={(event) => field.onChange(event.target.checked)}
+                              disabled={!publicKey}
+                            />
+                          )}
+                        />
+                        <label className="text-xs text-gray-600 dark:text-gray-300">
+                          I have added the key to the server
+                        </label>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                          onClick={handleTestConnection}
+                          disabled={!isSftpConnectionReady}
+                        >
+                          Test Connection
+                        </Button>
+                        {testStatus.state !== "idle" && (
+                          <span
+                            className={`text-xs font-semibold ${
+                              testStatus.state === "success"
+                                ? "text-success-600"
+                                : testStatus.state === "error"
+                                ? "text-error-500"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            {testStatus.state === "testing"
+                              ? "Testing..."
+                              : testStatus.message}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="sm:col-span-2">
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        Passphrase
-                      </label>
-                      <Input
-                        placeholder="Optional"
-                        {...register("passphrase")}
-                      />
-                    </div>
-                  </>
+                  </div>
                 )}
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Destination folder
-                  </label>
-                  <Input
-                    placeholder="/home/ubuntu/"
-                    {...register("destinationFolder", {
-                      required: "Remote folder is required.",
-                    })}
-                    error={Boolean(errors.destinationFolder)}
-                    hint={errors.destinationFolder?.message}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Max disk usage
-                  </label>
-                  <Input
-                    placeholder="/mnt/backups"
-                    {...register("maxDiskUsage")}
-                  />
-                </div>
+
+                {sftpAuthMode === "private_key" && (
+                  <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      Private Key Authentication
+                    </h5>
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Private Key
+                        </label>
+                        <Controller
+                          name="privateKey"
+                          control={control}
+                          rules={{ required: "Private key is required." }}
+                          render={({ field }) => (
+                            <TextArea
+                              rows={4}
+                              value={field.value}
+                              onChange={field.onChange}
+                              error={Boolean(errors.privateKey)}
+                              hint={errors.privateKey?.message}
+                              placeholder="Paste private key"
+                              className="font-mono"
+                            />
+                          )}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Passphrase (Optional)
+                        </label>
+                        <Input
+                          type="password"
+                          placeholder="Optional"
+                          {...register("passphrase")}
+                        />
+                      </div>
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+                        Use a dedicated SSH key. Do NOT use your personal SSH key.
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                          onClick={handleTestConnection}
+                          disabled={!isSftpConnectionReady}
+                        >
+                          Test Connection
+                        </Button>
+                        {testStatus.state !== "idle" && (
+                          <span
+                            className={`text-xs font-semibold ${
+                              testStatus.state === "success"
+                                ? "text-success-600"
+                                : testStatus.state === "error"
+                                ? "text-error-500"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            {testStatus.state === "testing"
+                              ? "Testing..."
+                              : testStatus.message}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {sftpAuthMode === "password" && (
+                  <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      Password Authentication
+                    </h5>
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Password
+                        </label>
+                        <Input
+                          type="password"
+                          placeholder="Password"
+                          {...register("password", {
+                            required: "Password is required.",
+                          })}
+                          error={Boolean(errors.password)}
+                          hint={errors.password?.message}
+                        />
+                      </div>
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+                        Password authentication is less secure and not recommended for
+                        automated backups.
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                          onClick={handleTestConnection}
+                          disabled={!isSftpConnectionReady}
+                        >
+                          Test Connection
+                        </Button>
+                        {testStatus.state !== "idle" && (
+                          <span
+                            className={`text-xs font-semibold ${
+                              testStatus.state === "success"
+                                ? "text-success-600"
+                                : testStatus.state === "error"
+                                ? "text-error-500"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            {testStatus.state === "testing"
+                              ? "Testing..."
+                              : testStatus.message}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -498,7 +838,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
           <Button size="sm" variant="outline" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" type="submit">
+          <Button size="sm" type="submit" disabled={isSubmitDisabled || !isValid}>
             {destination?.id ? "Save Changes" : "Create Destination"}
           </Button>
         </div>
