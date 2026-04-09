@@ -1,8 +1,22 @@
 const db = require("../../../lib/db/db");
-const { deleteEmptyFields } = require("../../../lib/helper/utils")
+const { deleteEmptyFields } = require("../../../lib/helper/utils");
+const { encryptText } = require("../../utils/cryptoKey");
 
 class DestinationService {
     constructor() {}
+
+    prepareConfig(config = {}, type) {
+        if (!config || typeof config !== "object") return { config };
+        if (type && type !== "ssh") return { config };
+        const nextConfig = { ...config };
+
+        if (nextConfig.privateKey && !nextConfig.privateKeyEnc) {
+            nextConfig.privateKeyEnc = encryptText(nextConfig.privateKey);
+            delete nextConfig.privateKey;
+        }
+
+        return { config: nextConfig };
+    }
 
     async insert(data) {
         try {
@@ -14,11 +28,14 @@ class DestinationService {
                 createdBy
             } = data;
 
+            const prepared = this.prepareConfig(config, type);
             const res = db.prepare(`INSERT INTO destinations (name, type, config, created_by)
                                     VALUES (?, ?, ?, ?)`)
-                        .run(name, type, JSON.stringify(config), created_by ?? createdBy);
+                        .run(name, type, JSON.stringify(prepared.config), created_by ?? createdBy);
 
-            return res.lastInsertRowid;
+            return {
+                id: res.lastInsertRowid
+            };
         } catch (error) {
             return;
         }
@@ -30,7 +47,13 @@ class DestinationService {
                 return;
             let params = [];
             const updateData = deleteEmptyFields(update);
-            if (updateData.config) updateData.config = JSON.stringify(updateData.config);
+            if (updateData.config) {
+                const prepared = this.prepareConfig(
+                    updateData.config,
+                    updateData.type
+                );
+                updateData.config = JSON.stringify(prepared.config);
+            }
             const setUpdate = Object.keys(updateData).map(key => `${key}=?`);
             if (setUpdate.length === 0) {
                 return 0;

@@ -38,10 +38,10 @@ export default function DestinationCard({
     setIsTesting(true);
     try {
       const result = await testConnection(destination);
-      const status = result.status ?? "failed";
+      const status = result.status ?? "disconnected";
       onTestResult(result, status);
     } catch (error) {
-      onTestResult({ ...destination, status: "failed" }, "failed");
+      onTestResult({ ...destination, status: "disconnected" }, "disconnected");
     } finally {
       setIsTesting(false);
     }
@@ -127,6 +127,12 @@ export default function DestinationCard({
           Destination type:{" "}
           <span className="text-gray-800 dark:text-white/80">
             {destination.type}
+          </span>
+        </p>
+        <p>
+          Connection status:{" "}
+          <span className="text-gray-800 dark:text-white/80">
+            {destination.status ?? "unknown"}
           </span>
         </p>
         <div>

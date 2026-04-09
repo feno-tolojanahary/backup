@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
@@ -9,7 +9,7 @@ import Switch from "@/components/form/switch/Switch";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
 import { Destination, DestinationType, S3Config, AuthMethodType, HostConfig, LocalStorageConfig, CreateDestinationPayload, UpdateDestinationPayload } from "@/handlers/destinations/type";
-import { useCreateDestination, useListDestinations, useUpdateDestination } from "@/handlers/destinations/destinationHooks";
+import { testConnection, useCreateDestination, useListDestinations, useUpdateDestination } from "@/handlers/destinations/destinationHooks";
 import { useToast } from "@/context/ToastContext";
 
 export type DestinationFormPayload = {
@@ -44,8 +44,7 @@ type FormValues = {
   port: string;
   username: string;
   authMethod: AuthMethodType;
-  sftpAuthMode: "managed_key" | "private_key" | "password";
-  managedKeyConfirmed: boolean;
+  sftpAuthMode: "private_key" | "password";
   password: string;
   privateKey: string;
 };
@@ -57,7 +56,6 @@ const typeOptions = [
 ];
 
 const authMethodOptions = [
-  { value: "managed_key", label: "Managed SSH Key (recommended)" },
   { value: "private_key", label: "Upload Private Key (advanced)" },
   { value: "password", label: "Password (not recommended)" },
 ];
@@ -82,8 +80,7 @@ const buildDefaults = (
     port: "22",
     username: "",
     authMethod: "password" as AuthMethodType,
-    sftpAuthMode: "managed_key" as const,
-    managedKeyConfirmed: false,
+    sftpAuthMode: "private_key" as const,
     password: "",
     privateKey: "",
     maxDiskUsage: "",
@@ -99,7 +96,9 @@ const buildDefaults = (
       ...formValue,
       ...hostConf,
       sftpAuthMode:
-        hostConf.authMethod === "password" ? "password" : "private_key",
+        hostConf.authMethod === "password"
+          ? "password"
+          : "private_key",
     };
   } else if (data?.type === "local-storage") {
     const localConf = (data?.config || {}) as LocalStorageConfig;
@@ -130,7 +129,6 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
 
   const destinationType = watch("type");
   const sftpAuthMode = watch("sftpAuthMode");
-  const managedKeyConfirmed = watch("managedKeyConfirmed");
   const [host, port, username, destinationFolder, password, privateKey] = watch([
     "host",
     "port",
@@ -140,7 +138,6 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     "privateKey",
   ]);
 
-  const [publicKey, setPublicKey] = useState("");
   const [testStatus, setTestStatus] = useState<{
     state: "idle" | "testing" | "success" | "error";
     message?: string;
@@ -154,25 +151,19 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    reset(buildDefaults(destination));
-    setPublicKey("");
+    const defaults = buildDefaults(destination);
+    reset(defaults);
     setTestStatus({ state: "idle" });
   }, [destination, isOpen, reset]);
 
   useEffect(() => {
     if (destinationType !== "ssh") return;
-    setValue("managedKeyConfirmed", false);
     setTestStatus({ state: "idle" });
   }, [destinationType, setValue]);
 
   useEffect(() => {
     if (destinationType !== "ssh") return;
-    if (sftpAuthMode === "managed_key") {
-      setValue("password", "");
-      setValue("privateKey", "");
-      setValue("passphrase", "");
-      setValue("authMethod", "key" as AuthMethodType);
-    } else if (sftpAuthMode === "private_key") {
+    if (sftpAuthMode === "private_key") {
       setValue("password", "");
       setValue("authMethod", "key" as AuthMethodType);
     } else {
@@ -180,17 +171,14 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
       setValue("passphrase", "");
       setValue("authMethod", "password" as AuthMethodType);
     }
-    if (sftpAuthMode !== "managed_key") {
-      setPublicKey("");
-    }
-    setValue("managedKeyConfirmed", false);
     setTestStatus({ state: "idle" });
   }, [destinationType, sftpAuthMode, setValue]);
 
-  const getDestinationData = (values: FormValues) => {
+  const getDestinationData = useCallback((values: FormValues) => {
     let destination: CreateDestinationPayload | UpdateDestinationPayload = {
       name: values.name.trim(),
       type: values.type as DestinationType,
+      status: testStatus?.state === "success" ? "connected" : "disconnected"
     }
     if (values.type === "local-storage") {
       destination = {
@@ -222,11 +210,12 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
           port,
           username,
           password: sftpAuthMode === "password" ? password : "",
-          authMethod,
+          authMethod: sftpAuthMode === "password" ? ("password" as AuthMethodType) : authMethod,
           privateKey: sftpAuthMode === "private_key" ? privateKey : "",
           passphrase: sftpAuthMode === "private_key" ? passphrase : "",
           destinationFolder,
-          maxDiskUsage
+          maxDiskUsage,
+          keyMode: sftpAuthMode,
         }
       }
     } else {
@@ -237,7 +226,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
       }
     }
     return destination;
-  }
+  }, [testStatus])
 
   const buildNameValidator = (destinations?: Destination[], currentId?: number) => (value: string) => {
     const trimmed = value.trim();
@@ -251,57 +240,59 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     return conflict ? "A destination with this name already exists." : true;
   };
 
-  const generatePublicKey = () => {
-    const bytes = new Uint8Array(32);
-    if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
-      window.crypto.getRandomValues(bytes);
-    } else {
-      for (let i = 0; i < bytes.length; i += 1) {
-        bytes[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    const b64 = btoa(String.fromCharCode(...bytes));
-    const key = `ssh-ed25519 ${b64} backup@destination`;
-    setPublicKey(key);
-    setValue("managedKeyConfirmed", false);
-    setTestStatus({ state: "idle" });
-  };
-
-  const copyPublicKey = async () => {
-    if (!publicKey) return;
-    try {
-      await navigator.clipboard.writeText(publicKey);
-    } catch (error) {
-      console.log("Clipboard copy failed", error);
-    }
-  };
-
   const isSftpConnectionReady = (() => {
     if (destinationType !== "ssh") return false;
     if (!host || !username || !destinationFolder || !port) return false;
     if (sftpAuthMode === "password") return Boolean(password);
     if (sftpAuthMode === "private_key") return Boolean(privateKey);
-    if (sftpAuthMode === "managed_key")
-      return Boolean(publicKey) && managedKeyConfirmed;
     return false;
   })();
 
-  const handleTestConnection = () => {
+  const handleTestConnection = async () => {
     if (!isSftpConnectionReady) return;
     setTestStatus({ state: "testing" });
-    setTimeout(() => {
-      setTestStatus({
-        state: "success",
-        message: "Connection successful.",
+    try {
+      const values = watch();
+      const config: HostConfig = {
+        host: values.host,
+        port: values.port,
+        username: values.username,
+        destinationFolder: values.destinationFolder,
+        maxDiskUsage: values.maxDiskUsage,
+        authMethod: values.authMethod,
+      };
+
+      if (sftpAuthMode === "private_key") {
+        config.privateKey = values.privateKey;
+        config.passphrase = values.passphrase;
+      } else if (sftpAuthMode === "password") {
+        config.password = values.password;
+      }
+
+      const result = await testConnection({
+        id: destination?.id ?? 0,
+        name: values.name,
+        type: "ssh",
+        config,
+        errorMsg: "",
       });
-    }, 700);
+
+      if (result?.status === "connected") {
+        setTestStatus({ state: "success", message: "Connection successful." });
+      } else {
+        setTestStatus({
+          state: "error",
+          message: result?.errorMsg || "Connection failed.",
+        });
+      }
+    } catch (error: any) {
+      setTestStatus({
+        state: "error",
+        message: error?.message || "Connection failed.",
+      });
+    }
   };
 
-  const isSubmitDisabled =
-    destinationType === "ssh" &&
-    sftpAuthMode === "managed_key" &&
-    (!publicKey || !managedKeyConfirmed);
-  
   const onSubmitForm = async (values: FormValues) => {
     const destData = getDestinationData(values);
     if (destination?.id) {
@@ -605,107 +596,6 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                   </div>
                 </div>
 
-                {sftpAuthMode === "managed_key" && (
-                  <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      SSH Key Setup
-                    </h5>
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <Button
-                          size="sm"
-                          type="button"
-                          onClick={generatePublicKey}
-                        >
-                          Generate SSH Key
-                        </Button>
-                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          Generate a dedicated SSH key for this destination.
-                        </p>
-                      </div>
-
-                      {publicKey && (
-                        <div className="space-y-2">
-                          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Public Key
-                          </label>
-                          <TextArea
-                            rows={4}
-                            value={publicKey}
-                            disabled
-                            className="font-mono"
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            type="button"
-                            onClick={copyPublicKey}
-                          >
-                            Copy to clipboard
-                          </Button>
-                        </div>
-                      )}
-
-                      <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900 dark:text-gray-300">
-                        <p className="font-semibold">Add this public key to your server:</p>
-                        <pre className="mt-2 whitespace-pre-wrap font-mono">
-~/.ssh/authorized_keys
-                        </pre>
-                        <p className="mt-2">
-                          The public key must be installed on the server. The private key
-                          remains on the client side and must never be exposed.
-                        </p>
-                      </div>
-
-                      <div className="flex items-start gap-2">
-                        <Controller
-                          name="managedKeyConfirmed"
-                          control={control}
-                          render={({ field }) => (
-                            <input
-                              type="checkbox"
-                              className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-                              checked={field.value}
-                              onChange={(event) => field.onChange(event.target.checked)}
-                              disabled={!publicKey}
-                            />
-                          )}
-                        />
-                        <label className="text-xs text-gray-600 dark:text-gray-300">
-                          I have added the key to the server
-                        </label>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                          onClick={handleTestConnection}
-                          disabled={!isSftpConnectionReady}
-                        >
-                          Test Connection
-                        </Button>
-                        {testStatus.state !== "idle" && (
-                          <span
-                            className={`text-xs font-semibold ${
-                              testStatus.state === "success"
-                                ? "text-success-600"
-                                : testStatus.state === "error"
-                                ? "text-error-500"
-                                : "text-gray-500 dark:text-gray-400"
-                            }`}
-                          >
-                            {testStatus.state === "testing"
-                              ? "Testing..."
-                              : testStatus.message}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {sftpAuthMode === "private_key" && (
                   <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
                     <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">
@@ -838,7 +728,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
           <Button size="sm" variant="outline" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" type="submit" disabled={isSubmitDisabled || !isValid}>
+          <Button size="sm" type="submit" disabled={!isValid}>
             {destination?.id ? "Save Changes" : "Create Destination"}
           </Button>
         </div>

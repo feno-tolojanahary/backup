@@ -19,6 +19,14 @@ export type HostConfig = {
     authMethod?: AuthMethodType;
     password?: string;
     privateKey?: string;
+    privateKeyEnc?: {
+        alg: string;
+        iv: string;
+        tag: string;
+        data: string;
+    };
+    keyMode?: "private_key" | "password";
+    privateKeyPath?: string;
     passphrase?: string;
     destinationFolder?: string;
     maxDiskUsage?: string;
@@ -45,6 +53,7 @@ export type Destination = {
 export type CreateDestinationPayload = {
     name: string;
     type: DestinationType;
+    status?: StatusType;
     config: DestinationConfig;
     createdBy?: string;
 }
@@ -52,6 +61,7 @@ export type CreateDestinationPayload = {
 export type UpdateDestinationPayload = {
     name?: string;
     type?: DestinationType;
+    status?: StatusType;
     config?: DestinationConfig;
     createdBy?: string;
 }

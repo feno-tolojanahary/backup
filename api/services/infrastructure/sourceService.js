@@ -80,6 +80,7 @@ class SourceService {
     async deleteById(id) {
         try {
             const res = db.prepare(`DELETE FROM sources WHERE id = ?`).run(id);
+            console.log("source deletion result: ", res);
             return res.changes;
         } catch (error) {
             console.log("error delete by id source: ", error.message);

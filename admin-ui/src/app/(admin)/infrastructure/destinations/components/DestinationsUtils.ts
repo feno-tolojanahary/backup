@@ -2,7 +2,7 @@ import { StatusType } from "@/handlers/destinations/type";
 
 export const statusBadgeColor = (status: StatusType) => {
   if (status === "connected") return "success";
-  if (status === "failed") return "error";
+  if (status === "disconnected") return "error";
   return "dark";
 };
 

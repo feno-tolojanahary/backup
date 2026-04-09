@@ -27,5 +27,5 @@ export async function testConnection(dest: Destination): Promise<Destination> {
     if (res.data) {
         mutate(sourceUrl);       
     }
-    return res.data;
+    return res.data?.data ?? dest;
 }

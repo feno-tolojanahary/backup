@@ -17,8 +17,6 @@ export default function DestinationsPageClient() {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusType | "">("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [destinationItems, setDestinationItems] =
-    useState<Destination[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Destination | null>(
     null
   );
@@ -31,13 +29,8 @@ export default function DestinationsPageClient() {
   const pathname = usePathname();
   const handledCreateParam = useRef(false);
 
-  const { data: destinations, isLoading } = useListDestinations();
-
-  useEffect(() => {
-    if (destinations) {
-      setDestinationItems(destinations);
-    }
-  }, [destinations]);
+  const { data: destinations } = useListDestinations();
+  const destinationItems = destinations ?? [];
 
   const filteredDestinations = useMemo(() => {
     return destinationItems.filter((destination) => {

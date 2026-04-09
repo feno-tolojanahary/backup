@@ -16,15 +16,19 @@ export default function SourceDeleteModal({
   deleteTarget,
 }: SourceDeleteModalProps) {
   const { deleteSource, isLoading } = useDeleteSource();
-  const { toastError, toastSuccess } = useToast();
+  const { toastError, toastSuccess, toastWarning } = useToast();
 
   const handleDelete = async () => {
     try {
       if (!deleteTarget?.id) {
         throw new Error("Target not found.");
       }
-      await deleteSource(deleteTarget.id);
-      toastSuccess("Source deleted.");
+      const result = await deleteSource(deleteTarget.id);
+      if (result) {
+        toastSuccess("Source deleted.");
+      } else {
+        toastWarning("Unable to delete source, it is used by a job.");
+      }
       onClose();
     } catch (error) {
       toastError();
