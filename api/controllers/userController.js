@@ -2,6 +2,8 @@ const argon2 = require("argon2");
 const userService = require("../services/userService");
 const userLibService = require("../../lib/db/userService");
 const response = require("../utils/response");
+const { newPassVault } = require("../../lib/encryption/util");
+const { updateVaultPasswordKey } = require("../../lib/encryption/cryptoTools");
 
 class UserController {
     constructor() {}
@@ -12,7 +14,7 @@ class UserController {
                 throw new Error("req.body is required.")
             }
             let user = req.body;
-            
+            const password = user.password;
             const hashPassword = await argon2.hash(user.password, {
                 type: argon2.argon2d,
                 memoryCost: 2 ** 16,
@@ -20,6 +22,7 @@ class UserController {
                 parallelism: 1
             });
             user.password = hashPassword;
+            await newPassVault(password);
             const result = await userService.insert(user);
             response.success(res, result);
         } catch (error) {
@@ -49,6 +52,21 @@ class UserController {
             const id = req.params.id;
             if (!id || !req.body)
                 throw new Error("id is required in params and body is required");
+            const update = req.body;
+            if (update.newPassword && update.oldPassword) {
+                const user = await userService.getById(id);
+                if (!(await argon2.verify(user.password, update.oldPassword))) {
+                    return response.badRequest(res, { message: "Old password not valid." })
+                }
+                const hashPassword = await argon2.hash(user.newPassword, {
+                    type: argon2.argon2d,
+                    memoryCost: 2 ** 16,
+                    timeCost: 3,
+                    parallelism: 1
+                });
+                update.password = hashPassword;
+                await updateVaultPasswordKey(update.oldPassword, update.newPassword);
+            }
             const updateRes = await userService.updateById(id, req.body);
 
             if (updateRes.changes === 0) {
@@ -65,6 +83,7 @@ class UserController {
                 }
                 await userService.upsertUserFile(dataFile);
             }
+            
             response.success(res, { ok: true, changes: updateRes.changes })
         } catch (error) {
             console.log(error);

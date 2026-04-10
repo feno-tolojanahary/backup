@@ -3,6 +3,8 @@ const response = require("../utils/response");
 const { stmts, buildAccessToken, EXPIRATION_TIME_MS } = require("../services/authService");
 const argon2 = require("argon2");
 const userService = require("../services/userService");
+const { unlockVault } = require("../../lib/encryption/util");
+const { generateVaultFile } = require("../../lib/encryption/cryptoTools");
 
 class AuthController {
     constructor() {}
@@ -13,7 +15,7 @@ class AuthController {
                 throw new Error("req.body is required.");
             const { email, password } = req.body;
             const user = stmts.findByEmail.get(email);
-            if (!user || !await argon2.verify(user.password, password)) {
+            if (!user || !(await argon2.verify(user.password, password))) {
                 response.badRequest(res, "Invalid email or password.")
                 return;
             }
@@ -27,6 +29,10 @@ class AuthController {
 
             const userInfo = await userService.getUserProfile({ id: user.id });
 
+            if (!(await unlockVault(password))) {
+                throw new Error("Unable to unlock vault.")
+            }
+            
             response.success(res, {
                 refreshToken,
                 accessToken,

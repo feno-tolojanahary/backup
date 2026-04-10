@@ -1,7 +1,6 @@
 const destinationService = require("../services/infrastructure/destinationService");
 const response = require("../utils/response");
 const { testConf } = require("./../../lib/storages/storageHelper");
-const { decryptText } = require("../utils/cryptoKey");
 
 class DestinationController {
     constructor() {}
@@ -87,9 +86,6 @@ class DestinationController {
                 throw new Error("The params body is required.");
             }
             const config = { ...dest?.config, type: dest.type };
-            if (config?.privateKeyEnc) {
-                config.privateKey = decryptText(config.privateKeyEnc);
-            }
             const srcRes = await testConf(config);
             const status = srcRes.connected ? "connected" : "disconnected";
             dest.status = status;

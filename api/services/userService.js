@@ -8,6 +8,11 @@ class UserService {
         userCount: db.prepare("SELECT COUNT(*) AS total FROM users")
     }
 
+    async getById(id) {
+        const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
+        return user;
+    }
+
     async getUserProfile(filters) {
         const params = [];
         let query = `

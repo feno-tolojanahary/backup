@@ -19,7 +19,7 @@
 */ 
 
 exports.config = {
-    workingDirectory: `${__dirname}/output`,
+    workingDirectory: `${__dirname}/../output`,
     dataDirectory: `${__dirname}/data`,
     publicDirectory: `${__dirname}/public`,
     dbName: "local",

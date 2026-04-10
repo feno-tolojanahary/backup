@@ -213,4 +213,4 @@ const targetCmd = program.command("target")
         .description("Test connexion of existing configurations")
         .action(targetAction.testConfig)
     
-program.parse();&
+program.parse();
