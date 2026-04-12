@@ -60,9 +60,11 @@ class JobController {
             if (!req.params.id) 
                 throw new Error("The id in params is required.");
             const job = await jobService.findJob({ id: req.params.id });
-            const targetUpdate = await targetService.update(job.target_id, req.body);
-            if (targetUpdate.errorMsg) 
-                throw new Error("Error update target: " + targetUpdate.errorMsg)
+            if (req.body.source || req.body.destinations) {
+                const targetUpdate = await targetService.update(job.target_id, req.body);
+                if (targetUpdate.errorMsg) 
+                    throw new Error("Error update target: " + targetUpdate.errorMsg)
+            }
             const result = await jobService.update({id: req.params.id}, req.body);
             if (!result.success)
                 throw new Error(result.message);

@@ -126,8 +126,8 @@ export default function BackupDetailsModal({
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                      {backup.files.map((file) => (
-                        <TableRow key={file.id}>
+                      {backup.files.map((file, index) => (
+                        <TableRow key={file.id ?? file.storagePath ?? index}>
                           <TableCell className="px-4 py-3 text-gray-600 text-theme-sm dark:text-gray-300">
                             {file.storagePath}
                           </TableCell>

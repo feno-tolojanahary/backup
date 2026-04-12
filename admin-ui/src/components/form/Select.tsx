@@ -41,6 +41,7 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
   ) => {
     const isControlled = value !== undefined;
     const [selectedValue, setSelectedValue] = useState<string | string[]>(defaultValue);
+    const menuPortalTarget = typeof document !== "undefined" ? document.body : null;
     const resolvedInstanceId = useMemo(() => {
       const base =
         (instanceId ?? name ?? placeholder ?? "select")
@@ -108,6 +109,11 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
       name={name}
       value={selectedOption}
       className={`w-full ${className}`}
+      menuPortalTarget={menuPortalTarget ?? undefined}
+      menuPosition={menuPortalTarget ? "fixed" : "absolute"}
+      styles={{
+        menuPortal: (base) => ({ ...base, zIndex: 60 }),
+      }}
       classNames={{
         control: (state) =>
           [
