@@ -52,7 +52,7 @@ export default function JobTable({
               isHeader
               className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400"
             >
-              Schedule
+              Last Run Status
             </TableCell>
             <TableCell
               isHeader

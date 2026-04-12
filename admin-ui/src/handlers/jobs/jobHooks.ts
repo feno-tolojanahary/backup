@@ -40,6 +40,7 @@ export function useRunJob() {
             )
             const res = await runJobService(`${baseUrl}/${id?.toString()}`);
             mutate(baseUrl);
+            mutate(jobRunUrl);
             toastSuccess("Running job with success.")
         } catch (error: any) {
             console.log("Error running job: ", error.message);

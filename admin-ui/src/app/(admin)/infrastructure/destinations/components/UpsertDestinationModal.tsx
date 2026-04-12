@@ -83,6 +83,7 @@ const buildDefaults = (
     sftpAuthMode: "private_key" as const,
     password: "",
     privateKey: "",
+    privateKeyEnc: "",
     maxDiskUsage: "",
     passphrase: "",
     prefix: ""

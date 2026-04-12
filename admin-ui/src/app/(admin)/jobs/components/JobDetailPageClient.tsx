@@ -89,24 +89,18 @@ export default function JobDetailPageClient() {
 
         <ComponentCard title="Execution Controls">
           <div className="flex flex-wrap gap-3">
-            <Button size="sm" type="button" onClick={() => runJob(job.id)}>
+            <Button size="sm" isLoading={job.status === "running"} type="button" onClick={() => runJob(job.id)}>
               Run Job Now
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              type="button"
-              onClick={() =>
-                console.log(job.isEnable ? "Disable job" : "Enable job", job.id)
-              }
-            >
-              {job.isEnable ? "Disable Job" : "Enable Job"}
-            </Button>
-            <Link href={`/jobs/${job.id}/edit`}>
-              <Button size="sm" variant="outline" type="button">
-                Edit Job
-              </Button>
-            </Link>
+            { job.status !== "running" && 
+              <>
+                <Link href={`/jobs/${job.id}/edit`}>
+                  <Button size="sm" variant="outline" type="button">
+                    Edit Job
+                  </Button>
+                </Link>
+              </>
+            }
           </div>
         </ComponentCard>
         <ComponentCard title="Run History">

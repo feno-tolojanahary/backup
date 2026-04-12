@@ -7,23 +7,24 @@ import {
     TableCell,
     TableRow,
 } from "@/components/ui/table";
-import { Job } from "@/handlers/jobs/type";
+import { Job, JobRunStatus } from "@/handlers/jobs/type";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import { useRunJob, useUpdateJob } from "@/handlers/jobs/jobHooks";
 import Switch from "@/components/form/switch/Switch";
+import Badge from "@/components/ui/badge/Badge";
 
 type TableRowProps = {
     job: Job;
     handleDelete: (job: Job) => void;
 }
 
-// const statusBadgeColor = (status: JobStatus) => {
-//   if (status === "success") return "success";
-//   if (status === "failed") return "error";
-//   if (status === "running") return "info";
-//   return "dark";
-// };
+const statusBadgeColor = (status: JobRunStatus) => {
+  if (status === "success") return "success";
+  if (status === "failed") return "error";
+  if (status === "running") return "info";
+  return "dark";
+};
 
 export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
     const [openMenu, setOpenMenu] = useState(false);
@@ -57,6 +58,8 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
     useEffect(() => {
         setIsEnable(job?.isEnable);
     }, [job?.isEnable])
+
+    const isRunning = job?.status === "running";
     
     return (
         <TableRow key={job.id}>
@@ -75,10 +78,23 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
                 {job.destinations ? job.destinations.map(({name}) => name).join(', ') : "-"}
             </TableCell>
             <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
-                {job.scheduleType} - {job.scheduleValue}
+                {isRunning ? (
+                    <span className="inline-flex items-center gap-2 text-brand-600 dark:text-brand-400">
+                        <span className="btn-spinner" aria-hidden="true" />
+                        Running now
+                    </span>
+                ) : (
+                    job.lastJobRun?.status ? <Badge size="sm" color={statusBadgeColor(job.lastJobRun?.status)}>
+                        {job.lastJobRun?.status}
+                    </Badge> : "-"
+                )}
             </TableCell>
             <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
-                {job.lastJobRun?.finishedAt ? new Date(job.lastJobRun.finishedAt).toLocaleString() : "-"}
+                {job.lastJobRun?.finishedAt ? (
+                    new Date(job.lastJobRun.finishedAt).toLocaleString()
+                ) : (
+                    "-"
+                )}
             </TableCell>
             <TableCell className="px-5 py-4">
                 <Switch
@@ -111,30 +127,34 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
                         >
                             View job
                         </DropdownItem>
-                        <DropdownItem
-                            onItemClick={runJobNow}
-                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                        >
-                            Run job now
-                        </DropdownItem>
-                        <DropdownItem
-                            onItemClick={() => {
-                                handleEditJob();
-                                setOpenMenu(false)
-                            }}
-                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                        >
-                            Edit job
-                        </DropdownItem>
-                        <DropdownItem
-                            onItemClick={() => {
-                                setOpenMenu(false);
-                                handleDelete(job)
-                            }}
-                            className="flex w-full font-normal text-left text-error-600 rounded-lg hover:bg-error-50 hover:text-error-700 dark:text-error-400 dark:hover:bg-white/5"
-                        >
-                            Delete job
-                        </DropdownItem>
+                        { job.status !== "running" &&
+                            <>
+                                <DropdownItem
+                                    onItemClick={runJobNow}
+                                    className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                                >
+                                    Run job now
+                                </DropdownItem>
+                                <DropdownItem
+                                    onItemClick={() => {
+                                        handleEditJob();
+                                        setOpenMenu(false)
+                                    }}
+                                    className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                                >
+                                    Edit job
+                                </DropdownItem>
+                                <DropdownItem
+                                    onItemClick={() => {
+                                        setOpenMenu(false);
+                                        handleDelete(job)
+                                    }}
+                                    className="flex w-full font-normal text-left text-error-600 rounded-lg hover:bg-error-50 hover:text-error-700 dark:text-error-400 dark:hover:bg-white/5"
+                                >
+                                    Delete job
+                                </DropdownItem>
+                            </>
+                        }
                     </Dropdown>
                 </div>
             </TableCell>
