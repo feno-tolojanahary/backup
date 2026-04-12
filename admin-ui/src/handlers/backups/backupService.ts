@@ -4,9 +4,21 @@ import api from "./../globalAxios";
 
 const baseUrl = "/backups";
 
-const { getList, deleteById } = createRessourceService<Backup>(baseUrl);
+const { deleteById } = createRessourceService<Backup>(baseUrl);
 
-export const getBackupList = getList;
+export async function getBackupList(): Promise<Backup[]> {
+    const res = await api.get(baseUrl);
+    const payload = res.data;
+    const data =
+        payload?.data?.data?.data ??
+        payload?.data?.data ??
+        payload?.data ??
+        payload;
+
+    if (Array.isArray(data)) return data as Backup[];
+    if (data && typeof data === "object") return [data as Backup];
+    return [];
+}
 export const deleteBackup = deleteById;
 
 type RestoreRes = {

@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
@@ -68,7 +68,7 @@ export default function BackupsPageClient() {
       }
       return true;
     });
-  }, [search, jobFilter, statusFilter, dateFrom, dateTo]);
+  }, [backups, search, jobFilter, statusFilter, dateFrom, dateTo]);
 
   const sortedBackups = useMemo(() => {
     return [...filteredBackups].sort(

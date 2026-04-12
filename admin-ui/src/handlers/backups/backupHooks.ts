@@ -1,16 +1,16 @@
 import useSWR, { mutate } from "swr";
-import { deleteBackup, restoreBackup } from "./backupService";
+import { deleteBackup, restoreBackup, getBackupList } from "./backupService";
 import { Backup } from "./type";
-import { fetcher } from "@/handlers/fetcher";
 import useSWRMutation from "swr/mutation";
 
 
 const baseUrl = "/backups";
 
 export function useBackupList() {
-    const { data, error, isLoading } = useSWR<Backup[]>(baseUrl, fetcher);
+    const { data, error, isLoading } = useSWR<Backup[]>(baseUrl, getBackupList);
+    const list = Array.isArray(data) ? data : [];
     return {
-        data: data || [],
+        data: list,
         error,
         isLoading
     }

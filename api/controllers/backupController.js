@@ -10,7 +10,7 @@ class BackupController {
 
     async getList(req, res, next) {
         try {
-            const userId = req.params.userId;
+            const userId = req.userId;
             if (!userId) 
                 throw new Error("userId is required on params");
             const result = await backupService.getBackups({userId});
