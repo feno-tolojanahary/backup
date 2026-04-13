@@ -29,6 +29,10 @@ export default function DestinationDetailModal({
   onClose,
   destination,
 }: DestinationDetailModalProps) {
+  const privateKeyUpdatedAt = destination?.updatedAt
+    ? new Date(destination.updatedAt).toISOString().slice(0, 10)
+    : "-";
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[640px] m-4">
       <div className="p-6 sm:p-8">
@@ -91,7 +95,9 @@ export default function DestinationDetailModal({
                     <p>Username: {(destination.config as HostConfig)?.username}</p>
                     <p>Auth method: {(destination.config as HostConfig)?.authMethod}</p>
                     <p>Password: ••••••••</p>
-                    <p>Private key: {(destination.config as HostConfig)?.privateKey}</p>
+                    <p>Private key: {destination.hasPrivateKey ? "Configured" : "Not configured"}</p>
+                    <p>Fingerprint: {destination.fingerprint ?? "-"}</p>
+                    <p>Private key updated: {privateKeyUpdatedAt}</p>
                     <p>Passphrase: ••••••••</p>
                     <p>Destination folder: {(destination.config as HostConfig)?.destinationFolder}</p>
                     <p>Max disk usage: {(destination.config as HostConfig)?.maxDiskUsage}</p>

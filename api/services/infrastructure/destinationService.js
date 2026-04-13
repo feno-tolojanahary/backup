@@ -1,6 +1,7 @@
 const db = require("../../../lib/db/db");
 const { deleteEmptyFields } = require("../../../lib/helper/utils");
 const { encryptText } = require("../../utils/cryptoKey");
+const { getPrivateKeyFingerprint, validatePrivateKey } = require("../../utils/privateKey");
 
 class DestinationService {
     constructor() {}
@@ -10,10 +11,31 @@ class DestinationService {
         if (type && type !== "ssh") return { config };
         const nextConfig = { ...config };
 
-        if (nextConfig.privateKey && !nextConfig.privateKeyEnc) {
-            nextConfig.privateKeyEnc = encryptText(nextConfig.privateKey);
+        if (nextConfig.removePrivateKey) {
+            delete nextConfig.privateKey;
+            delete nextConfig.privateKeyEnc;
+            delete nextConfig.privateKeyFingerprint;
+            delete nextConfig.privateKeyUpdatedAt;
+            delete nextConfig.passphrase;
+            delete nextConfig.removePrivateKey;
+            return { config: nextConfig };
+        }
+
+        if (nextConfig.privateKey) {
+            const normalizedPrivateKey = validatePrivateKey(
+                nextConfig.privateKey,
+                nextConfig.passphrase
+            );
+            nextConfig.privateKeyEnc = encryptText(normalizedPrivateKey);
+            nextConfig.privateKeyFingerprint = getPrivateKeyFingerprint(
+                normalizedPrivateKey,
+                nextConfig.passphrase
+            );
+            nextConfig.privateKeyUpdatedAt = new Date().toISOString();
             delete nextConfig.privateKey;
         }
+
+        delete nextConfig.removePrivateKey;
 
         return { config: nextConfig };
     }

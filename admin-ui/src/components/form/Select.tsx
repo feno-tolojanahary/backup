@@ -112,7 +112,8 @@ const Select = forwardRef<SelectInstance<Option, boolean>, SelectProps>(
       menuPortalTarget={menuPortalTarget ?? undefined}
       menuPosition={menuPortalTarget ? "fixed" : "absolute"}
       styles={{
-        menuPortal: (base) => ({ ...base, zIndex: 60 }),
+        // Keep dropdown menus above modal overlays and fixed layers.
+        menuPortal: (base) => ({ ...base, zIndex: 100000 }),
       }}
       classNames={{
         control: (state) =>

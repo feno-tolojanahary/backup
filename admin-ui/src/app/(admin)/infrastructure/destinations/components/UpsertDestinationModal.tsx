@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
@@ -8,16 +8,23 @@ import Select from "@/components/form/Select";
 import Switch from "@/components/form/switch/Switch";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
-import { Destination, DestinationType, S3Config, AuthMethodType, HostConfig, LocalStorageConfig, CreateDestinationPayload, UpdateDestinationPayload } from "@/handlers/destinations/type";
-import { testConnection, useCreateDestination, useListDestinations, useUpdateDestination } from "@/handlers/destinations/destinationHooks";
+import {
+  AuthMethodType,
+  CreateDestinationPayload,
+  Destination,
+  DestinationType,
+  HostConfig,
+  LocalStorageConfig,
+  S3Config,
+  UpdateDestinationPayload,
+} from "@/handlers/destinations/type";
+import {
+  testConnection,
+  useCreateDestination,
+  useListDestinations,
+  useUpdateDestination,
+} from "@/handlers/destinations/destinationHooks";
 import { useToast } from "@/context/ToastContext";
-
-export type DestinationFormPayload = {
-  name: string;
-  configName: string;
-  type: DestinationType;
-  config: Record<string, string | number>;
-};
 
 type UpsertDestinationModalProps = {
   isOpen: boolean;
@@ -37,8 +44,8 @@ type FormValues = {
   accessKey: string;
   secretKey: string;
   useSSL: boolean;
-  passphrase: string,
-  maxDiskUsage: string,
+  passphrase: string;
+  maxDiskUsage: string;
   prefix: string;
   host: string;
   port: string;
@@ -56,19 +63,46 @@ const typeOptions = [
 ];
 
 const authMethodOptions = [
-  { value: "private_key", label: "Upload Private Key (advanced)" },
+  { value: "private_key", label: "Private key" },
   { value: "password", label: "Password (not recommended)" },
 ];
 
-const buildDefaults = (
-  data?: Destination | null
-): FormValues => {
+const PRIVATE_KEY_PATTERNS = [
+  /-----BEGIN OPENSSH PRIVATE KEY-----[\s\S]+-----END OPENSSH PRIVATE KEY-----/,
+  /-----BEGIN RSA PRIVATE KEY-----[\s\S]+-----END RSA PRIVATE KEY-----/,
+  /-----BEGIN EC PRIVATE KEY-----[\s\S]+-----END EC PRIVATE KEY-----/,
+  /-----BEGIN DSA PRIVATE KEY-----[\s\S]+-----END DSA PRIVATE KEY-----/,
+  /-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----/,
+];
+
+const normalizePrivateKey = (value: string) =>
+  `${value.replace(/\r\n/g, "\n").trim()}\n`;
+
+const validatePrivateKeyFormat = (value: string) => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return "Private key is required.";
+  }
+
+  const normalizedValue = normalizePrivateKey(trimmedValue);
+  return PRIVATE_KEY_PATTERNS.some((pattern) => pattern.test(normalizedValue))
+    ? true
+    : "Private key must be a valid OpenSSH or PEM private key.";
+};
+
+const formatPrivateKeyDate = (value?: string) => {
+  if (!value) return "Unknown";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  return date.toISOString().slice(0, 10);
+};
+
+const buildDefaults = (data?: Destination | null): FormValues => {
   const formValue = {
     name: data?.name ?? "",
     type: (data?.type ?? "ssh") as DestinationType,
     enabled: true,
     notes: "",
-    
     destinationFolder: "",
     endpoint: "",
     bucketName: "",
@@ -83,31 +117,34 @@ const buildDefaults = (
     sftpAuthMode: "private_key" as const,
     password: "",
     privateKey: "",
-    privateKeyEnc: "",
     maxDiskUsage: "",
     passphrase: "",
-    prefix: ""
-  }
+    prefix: "",
+  };
+
   if (data?.type === "s3") {
     const s3Config = (data?.config || {}) as S3Config;
-    return { ...formValue, ...s3Config }
-  } else if (data?.type === "ssh") {
+    return { ...formValue, ...s3Config };
+  }
+
+  if (data?.type === "ssh") {
     const hostConf = (data?.config || {}) as HostConfig;
     return {
       ...formValue,
       ...hostConf,
+      privateKey: "",
       sftpAuthMode:
-        hostConf.authMethod === "password"
-          ? "password"
-          : "private_key",
+        hostConf.authMethod === "password" ? "password" : "private_key",
     };
-  } else if (data?.type === "local-storage") {
+  }
+
+  if (data?.type === "local-storage") {
     const localConf = (data?.config || {}) as LocalStorageConfig;
     return { ...formValue, ...localConf };
-  } else {
-    return formValue;
   }
-}
+
+  return formValue;
+};
 
 const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
   isOpen,
@@ -121,139 +158,269 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     reset,
     watch,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     defaultValues: buildDefaults(destination),
     shouldUnregister: true,
     mode: "onChange",
-  }); 
+  });
 
   const destinationType = watch("type");
   const sftpAuthMode = watch("sftpAuthMode");
-  const [host, port, username, destinationFolder, password, privateKey] = watch([
-    "host",
-    "port",
-    "username",
-    "destinationFolder",
-    "password",
-    "privateKey",
-  ]);
+  const [host, port, username, destinationFolder, password, privateKey, passphrase] =
+    watch([
+      "host",
+      "port",
+      "username",
+      "destinationFolder",
+      "password",
+      "privateKey",
+      "passphrase",
+    ]);
 
+  const [privateKeyMode, setPrivateKeyMode] = useState<"view" | "replace">(
+    "view"
+  );
+  const [removePrivateKey, setRemovePrivateKey] = useState(false);
+  const [uploadedPrivateKeyName, setUploadedPrivateKeyName] = useState<
+    string | null
+  >(null);
+  const [hasVerifiedReplacementKey, setHasVerifiedReplacementKey] =
+    useState(false);
   const [testStatus, setTestStatus] = useState<{
     state: "idle" | "testing" | "success" | "error";
     message?: string;
   }>({ state: "idle" });
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { create: createDestination } = useCreateDestination();
   const { update: updateDestination } = useUpdateDestination();
   const { data: destinations } = useListDestinations();
+  const { addToast, toastError, toastSuccess } = useToast();
 
-  const { toastError, toastSuccess } = useToast()
+  const hasConfiguredPrivateKey = Boolean(
+    destination?.hasPrivateKey ||
+      (destination?.config as HostConfig | undefined)?.privateKeyEnc
+  );
+  const isReplacingPrivateKey = privateKeyMode === "replace";
+  const isUsingStoredPrivateKey =
+    destinationType === "ssh" &&
+    sftpAuthMode === "private_key" &&
+    Boolean(destination?.id) &&
+    hasConfiguredPrivateKey &&
+    !isReplacingPrivateKey &&
+    !removePrivateKey;
+  const currentPrivateKey = privateKey ?? "";
+  const isPrivateKeyRequired =
+    destinationType === "ssh" &&
+    sftpAuthMode === "private_key" &&
+    !removePrivateKey &&
+    (!destination?.id || !hasConfiguredPrivateKey || isReplacingPrivateKey);
+
+  const clearPrivateKeyInputs = useCallback(() => {
+    setValue("privateKey", "");
+    clearErrors("privateKey");
+    setUploadedPrivateKeyName(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [clearErrors, setValue]);
 
   useEffect(() => {
     if (!isOpen) return;
-    const defaults = buildDefaults(destination);
-    reset(defaults);
+    reset(buildDefaults(destination));
+    setPrivateKeyMode("view");
+    setRemovePrivateKey(false);
+    setUploadedPrivateKeyName(null);
+    setHasVerifiedReplacementKey(false);
     setTestStatus({ state: "idle" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }, [destination, isOpen, reset]);
 
   useEffect(() => {
     if (destinationType !== "ssh") return;
     setTestStatus({ state: "idle" });
-  }, [destinationType, setValue]);
+  }, [destinationType, host, port, username, destinationFolder, password]);
 
   useEffect(() => {
     if (destinationType !== "ssh") return;
     if (sftpAuthMode === "private_key") {
       setValue("password", "");
       setValue("authMethod", "key" as AuthMethodType);
-    } else {
-      setValue("privateKey", "");
-      setValue("passphrase", "");
-      setValue("authMethod", "password" as AuthMethodType);
+      return;
     }
+
+    clearPrivateKeyInputs();
+    setValue("passphrase", "");
+    setValue("authMethod", "password" as AuthMethodType);
+    setPrivateKeyMode("view");
+    setRemovePrivateKey(false);
+    setHasVerifiedReplacementKey(false);
     setTestStatus({ state: "idle" });
-  }, [destinationType, sftpAuthMode, setValue]);
+  }, [clearPrivateKeyInputs, destinationType, sftpAuthMode, setValue]);
 
-  const getDestinationData = useCallback((values: FormValues) => {
-    let destination: CreateDestinationPayload | UpdateDestinationPayload = {
-      name: values.name.trim(),
-      type: values.type as DestinationType,
-      status: testStatus?.state === "success" ? "connected" : "disconnected"
-    }
-    if (values.type === "local-storage") {
-      destination = {
-        ...destination,
-        config: {
-          destinationFolder: values.destinationFolder,
-          maxDiskUsage: values.maxDiskUsage,
-        }
-      }
-    } else if (values.type === "s3") {
-      const { accessKey, secretKey, endpoint, bucketName, region, prefix } = values;
-      destination = {
-        ...destination,
-        config: {
-          accessKey,
-          secretKey,
-          endpoint,
-          bucketName,
-          region,
-          prefix
-        }
-      }
-    } else if (values.type === "ssh") {
-      const { host, port, username, password, authMethod, privateKey, passphrase, destinationFolder, maxDiskUsage, sftpAuthMode } = values; 
-      destination = {
-        ...destination,
-        config: {
-          host,
-          port,
-          username,
-          password: sftpAuthMode === "password" ? password : "",
-          authMethod: sftpAuthMode === "password" ? ("password" as AuthMethodType) : authMethod,
-          privateKey: sftpAuthMode === "private_key" ? privateKey : "",
-          passphrase: sftpAuthMode === "private_key" ? passphrase : "",
-          destinationFolder,
-          maxDiskUsage,
-          keyMode: sftpAuthMode,
-        }
-      }
-    } else {
-      const { destinationFolder, maxDiskUsage } = values;
-      destination = {
-        ...destination,
-        config: { destinationFolder, maxDiskUsage }
-      }
-    }
-    return destination;
-  }, [testStatus])
+  useEffect(() => {
+    if (destinationType !== "ssh" || sftpAuthMode !== "private_key") return;
+    setTestStatus({ state: "idle" });
+    setHasVerifiedReplacementKey(false);
+  }, [destinationType, sftpAuthMode, privateKey, passphrase, removePrivateKey]);
 
-  const buildNameValidator = (destinations?: Destination[], currentId?: number) => (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return "Destination name is required.";
-    if (!destinations) return true;
-    const normalized = trimmed.toLowerCase();
-    const conflict = destinations.find((dest) => {
-      if (currentId && dest.id === currentId) return false;
-      return dest.name.trim().toLowerCase() === normalized;
-    });
-    return conflict ? "A destination with this name already exists." : true;
-  };
+  const buildNameValidator =
+    (allDestinations?: Destination[], currentId?: number) => (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return "Destination name is required.";
+      if (!allDestinations) return true;
+      const normalized = trimmed.toLowerCase();
+      const conflict = allDestinations.find((dest) => {
+        if (currentId && dest.id === currentId) return false;
+        return dest.name.trim().toLowerCase() === normalized;
+      });
+      return conflict ? "A destination with this name already exists." : true;
+    };
+
+  const handlePrivateKeyFileUpload = useCallback(
+    async (file?: File | null) => {
+      if (!file) return;
+
+      const lowerName = file.name.toLowerCase();
+      if (!lowerName.endsWith(".pem")) {
+        setError("privateKey", {
+          type: "validate",
+          message: "Upload a .pem private key file.",
+        });
+        return;
+      }
+
+      try {
+        const fileContents = await file.text();
+        const validationResult = validatePrivateKeyFormat(fileContents);
+        if (validationResult !== true) {
+          setError("privateKey", {
+            type: "validate",
+            message: validationResult,
+          });
+          return;
+        }
+
+        setPrivateKeyMode("replace");
+        setRemovePrivateKey(false);
+        setUploadedPrivateKeyName(file.name);
+        setValue("privateKey", normalizePrivateKey(fileContents), {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+        clearErrors("privateKey");
+      } catch {
+        setError("privateKey", {
+          type: "validate",
+          message: "Unable to read the selected private key file.",
+        });
+      }
+    },
+    [clearErrors, setError, setValue]
+  );
+
+  const getDestinationData = useCallback(
+    (values: FormValues): CreateDestinationPayload | UpdateDestinationPayload => {
+      const nextPrivateKey = values.privateKey ?? "";
+      let nextDestination: CreateDestinationPayload | UpdateDestinationPayload = {
+        name: values.name.trim(),
+        type: values.type as DestinationType,
+        status: testStatus.state === "success" ? "connected" : "disconnected",
+      };
+
+      if (values.type === "local-storage") {
+        nextDestination = {
+          ...nextDestination,
+          config: {
+            destinationFolder: values.destinationFolder,
+            maxDiskUsage: values.maxDiskUsage,
+          },
+        };
+      } else if (values.type === "s3") {
+        nextDestination = {
+          ...nextDestination,
+          config: {
+            accessKey: values.accessKey,
+            secretKey: values.secretKey,
+            endpoint: values.endpoint,
+            bucketName: values.bucketName,
+            region: values.region,
+            prefix: values.prefix,
+          },
+        };
+      } else if (values.type === "ssh") {
+        nextDestination = {
+          ...nextDestination,
+          config: {
+            host: values.host,
+            port: values.port,
+            username: values.username,
+            password:
+              values.sftpAuthMode === "password" ? values.password : "",
+            authMethod:
+              values.sftpAuthMode === "password"
+                ? ("password" as AuthMethodType)
+                : ("key" as AuthMethodType),
+            passphrase:
+              values.sftpAuthMode === "private_key" ? values.passphrase : "",
+            destinationFolder: values.destinationFolder,
+            maxDiskUsage: values.maxDiskUsage,
+            keyMode: values.sftpAuthMode,
+          },
+        };
+
+        if (values.sftpAuthMode === "private_key") {
+          if (nextPrivateKey.trim()) {
+            nextDestination.privateKey = normalizePrivateKey(nextPrivateKey);
+          }
+
+          if (removePrivateKey && !nextPrivateKey.trim()) {
+            nextDestination.removePrivateKey = true;
+          }
+        }
+      } else {
+        nextDestination = {
+          ...nextDestination,
+          config: {
+            destinationFolder: values.destinationFolder,
+            maxDiskUsage: values.maxDiskUsage,
+          },
+        };
+      }
+
+      return nextDestination;
+    },
+    [removePrivateKey, testStatus.state]
+  );
 
   const isSftpConnectionReady = (() => {
     if (destinationType !== "ssh") return false;
     if (!host || !username || !destinationFolder || !port) return false;
     if (sftpAuthMode === "password") return Boolean(password);
-    if (sftpAuthMode === "private_key") return Boolean(privateKey);
+
+    if (sftpAuthMode === "private_key") {
+      if (removePrivateKey && !currentPrivateKey.trim()) return false;
+      if (currentPrivateKey.trim()) {
+        return validatePrivateKeyFormat(currentPrivateKey) === true;
+      }
+      return isUsingStoredPrivateKey;
+    }
+
     return false;
   })();
 
   const handleTestConnection = async () => {
     if (!isSftpConnectionReady) return;
+
     setTestStatus({ state: "testing" });
     try {
       const values = watch();
+      const nextPrivateKey = values.privateKey ?? "";
       const config: HostConfig = {
         host: values.host,
         port: values.port,
@@ -264,7 +431,12 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
       };
 
       if (sftpAuthMode === "private_key") {
-        config.privateKey = values.privateKey;
+        if (removePrivateKey && !nextPrivateKey.trim()) {
+          throw new Error("Add a replacement key before testing the connection.");
+        }
+        if (nextPrivateKey.trim()) {
+          config.privateKey = normalizePrivateKey(nextPrivateKey);
+        }
         config.passphrase = values.passphrase;
       } else if (sftpAuthMode === "password") {
         config.password = values.password;
@@ -280,12 +452,16 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
 
       if (result?.status === "connected") {
         setTestStatus({ state: "success", message: "Connection successful." });
-      } else {
-        setTestStatus({
-          state: "error",
-          message: result?.errorMsg || "Connection failed.",
-        });
+        if (isReplacingPrivateKey && nextPrivateKey.trim()) {
+          setHasVerifiedReplacementKey(true);
+        }
+        return;
       }
+
+      setTestStatus({
+        state: "error",
+        message: result?.errorMsg || "Connection failed.",
+      });
     } catch (error: any) {
       setTestStatus({
         state: "error",
@@ -294,31 +470,55 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     }
   };
 
+  const handleClose = useCallback(() => {
+    clearPrivateKeyInputs();
+    setValue("passphrase", "");
+    setPrivateKeyMode("view");
+    setRemovePrivateKey(false);
+    setHasVerifiedReplacementKey(false);
+    setTestStatus({ state: "idle" });
+    onClose();
+  }, [clearPrivateKeyInputs, onClose, setValue]);
+
   const onSubmitForm = async (values: FormValues) => {
-    const destData = getDestinationData(values);
+    const nextPrivateKey = values.privateKey ?? "";
+    if (isReplacingPrivateKey && nextPrivateKey.trim() && !hasVerifiedReplacementKey) {
+      addToast({
+        variant: "warning",
+        title: "Test Required",
+        message: "Test the replacement key successfully before saving.",
+      });
+      return;
+    }
+
+    const destinationPayload = getDestinationData(values);
     if (destination?.id) {
       try {
-        await updateDestination(destination.id, destData as UpdateDestinationPayload);
+        await updateDestination(
+          destination.id,
+          destinationPayload as UpdateDestinationPayload
+        );
         toastSuccess("Update destination with success.");
-        onClose();
-      } catch(error: any) {
+        handleClose();
+      } catch (error: any) {
         console.log("Error dest update: ", error.message);
         toastError();
-      }     
-    } else {
-      try {
-        await createDestination(destData as CreateDestinationPayload);
-        toastSuccess("Destination created with success.");
-        onClose();
-      } catch(error: any) {
-        console.log("Error create dest: ", error.message);
-        toastError();
       }
+      return;
+    }
+
+    try {
+      await createDestination(destinationPayload as CreateDestinationPayload);
+      toastSuccess("Destination created with success.");
+      handleClose();
+    } catch (error: any) {
+      console.log("Error create dest: ", error.message);
+      toastError();
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[720px] m-4">
+    <Modal isOpen={isOpen} onClose={handleClose} className="max-w-[720px] m-4">
       <form onSubmit={handleSubmit(onSubmitForm)} className="p-6 sm:p-8">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -603,27 +803,148 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                       Private Key Authentication
                     </h5>
                     <div className="mt-4 space-y-4">
-                      <div>
-                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                          Private Key
-                        </label>
-                        <Controller
-                          name="privateKey"
-                          control={control}
-                          rules={{ required: "Private key is required." }}
-                          render={({ field }) => (
-                            <TextArea
-                              rows={4}
-                              value={field.value}
-                              onChange={field.onChange}
-                              error={Boolean(errors.privateKey)}
-                              hint={errors.privateKey?.message}
-                              placeholder="Paste private key"
-                              className="font-mono"
+                      {destination?.id && (
+                        <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Private Key
+                              </p>
+                              <div className="mt-2">
+                                <span
+                                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                    hasConfiguredPrivateKey && !removePrivateKey
+                                      ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-300"
+                                      : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                  }`}
+                                >
+                                  {hasConfiguredPrivateKey && !removePrivateKey
+                                    ? "Configured"
+                                    : "Not configured"}
+                                </span>
+                              </div>
+                              {hasConfiguredPrivateKey && !removePrivateKey && (
+                                <div className="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                  {destination?.fingerprint && (
+                                    <p>Fingerprint: {destination.fingerprint}</p>
+                                  )}
+                                  <p>
+                                    Last updated:{" "}
+                                    {formatPrivateKeyDate(destination?.updatedAt)}
+                                  </p>
+                                </div>
+                              )}
+                              {removePrivateKey && !currentPrivateKey.trim() && (
+                                <p className="mt-3 text-sm text-error-600 dark:text-error-400">
+                                  The stored private key will be removed when you save.
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setPrivateKeyMode("replace");
+                                  setRemovePrivateKey(false);
+                                  setHasVerifiedReplacementKey(false);
+                                  setTestStatus({ state: "idle" });
+                                }}
+                              >
+                                Replace private key
+                              </Button>
+                              {hasConfiguredPrivateKey && (
+                                <Button
+                                  size="sm"
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const shouldRemove = window.confirm(
+                                      "Remove the stored private key? The destination will stay disconnected until you save a replacement key."
+                                    );
+                                    if (!shouldRemove) return;
+                                    clearPrivateKeyInputs();
+                                    setPrivateKeyMode("view");
+                                    setRemovePrivateKey(true);
+                                    setHasVerifiedReplacementKey(false);
+                                    setTestStatus({ state: "idle" });
+                                  }}
+                                >
+                                  Remove private key
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {(isReplacingPrivateKey ||
+                        (!destination?.id && sftpAuthMode === "private_key")) && (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                              Upload a .PEM Private Key File
+                            </label>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept=".pem"
+                              className="block w-full rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300"
+                              onChange={(event) => {
+                                void handlePrivateKeyFileUpload(
+                                  event.target.files?.[0] ?? null
+                                );
+                              }}
                             />
-                          )}
-                        />
-                      </div>
+                            {uploadedPrivateKeyName && (
+                              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                Loaded file: {uploadedPrivateKeyName}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                              Or
+                            </span>
+                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                          </div>
+                          <div>
+                            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                              Paste Private Key
+                            </label>
+                            <Controller
+                              name="privateKey"
+                              control={control}
+                              rules={{
+                                validate: (value) => {
+                                  if (!isPrivateKeyRequired && !value.trim()) {
+                                    return true;
+                                  }
+                                  return validatePrivateKeyFormat(value);
+                                },
+                              }}
+                              render={({ field }) => (
+                                <TextArea
+                                  rows={6}
+                                  value={field.value}
+                                  onChange={(nextValue) => {
+                                    setUploadedPrivateKeyName(null);
+                                    setRemovePrivateKey(false);
+                                    field.onChange(nextValue);
+                                  }}
+                                  error={Boolean(errors.privateKey)}
+                                  hint={errors.privateKey?.message}
+                                  placeholder="Paste the contents of your .pem private key"
+                                  className="font-mono"
+                                />
+                              )}
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                           Passphrase (Optional)
@@ -634,6 +955,12 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                           {...register("passphrase")}
                         />
                       </div>
+                      {isReplacingPrivateKey && (
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-200">
+                          Replacing a key is explicit. The existing key is never shown
+                          and will be overwritten only after you save.
+                        </div>
+                      )}
                       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
                         Use a dedicated SSH key. Do NOT use your personal SSH key.
                       </div>
@@ -726,7 +1053,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-          <Button size="sm" variant="outline" type="button" onClick={onClose}>
+          <Button size="sm" variant="outline" type="button" onClick={handleClose}>
             Cancel
           </Button>
           <Button size="sm" type="submit" disabled={!isValid}>

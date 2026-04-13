@@ -30,6 +30,7 @@ export type HostConfig = {
     passphrase?: string;
     destinationFolder?: string;
     maxDiskUsage?: string;
+    removePrivateKey?: boolean;
 }
 
 export type LocalStorageConfig = {
@@ -48,6 +49,9 @@ export type Destination = {
     status?: StatusType;
     errorMsg: string;
     createdBy?: string;
+    hasPrivateKey?: boolean;
+    fingerprint?: string;
+    updatedAt?: string;
 }
 
 export type CreateDestinationPayload = {
@@ -64,4 +68,6 @@ export type UpdateDestinationPayload = {
     status?: StatusType;
     config?: DestinationConfig;
     createdBy?: string;
+    privateKey?: string;
+    removePrivateKey?: boolean;
 }
