@@ -1,4 +1,5 @@
 const fs = require("node:fs");
+const path = require("node:path");
 const backupService = require("../../lib/db/backupService");
 const jobService = require("../../lib/db/job/jobService");
 const { getConfigurationsByTargetName } = require("../../lib/helper/mapConfig");
@@ -47,7 +48,7 @@ class BackupController {
             next(error);
         }
     }
-hyuj
+
     async restoreBackup(req, res, next) {
         try {
             if (!req.params.id)
@@ -94,16 +95,17 @@ hyuj
             if (!destination) {
                 throw new Error("The destination is no longer available");
             }
-            destConfig = { ...destination, ...destination.config };
+            const destConfig = { ...destination, ...destination.config };
             delete destConfig.config;
             const downloadPath = await downloadBackup({ backup: backupInfo, conf: destConfig });
             if (!downloadBackup)
                 throw new Error("Error downloading path");
             const decryptedFilePath = await decryptDataPath(downloadPath);
             
-
-            res.setHeader("Content-Disposition", `attachment; filename="${decryptedFilePath}"`);
-            res.setHeader("Content-Type", "application/octet-stream");
+            const fileName = path.basename(decryptedFilePath);
+            console.log("filename: ", fileName)
+            res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+            res.setHeader("Content-Type", "application/zip");
             const stream = fs.createReadStream(decryptedFilePath);
             stream.pipe(res);
 
