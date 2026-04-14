@@ -10,9 +10,10 @@ import BackupsPagination from "./components/BackupsPagination";
 import BackupDetailsModal from "./components/BackupDetailsModal";
 import BackupDeleteModal from "./components/BackupDeleteModal";
 import { statusBadgeColor } from "./components/BackupsTypes";
-import { useBackupList } from "@/handlers/backups/backupHooks";
+import { useBackupList, useRestoreBackup } from "@/handlers/backups/backupHooks";
 import { Backup } from "@/handlers/backups/type";
 import { useJobList } from "@/handlers/jobs/jobHooks";
+import { useToast } from "@/context/ToastContext";
 
 
 export default function BackupsPageClient() {
@@ -21,6 +22,8 @@ export default function BackupsPageClient() {
 
   const { data: backups } = useBackupList();
   const { data: jobs } = useJobList();
+  const { restore, isLoading: isRestoring } = useRestoreBackup();
+  const { toastSuccess, toastError } = useToast();
 
   const [search, setSearch] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -99,6 +102,23 @@ export default function BackupsPageClient() {
     deleteModal.openModal();
   };
 
+  const restoreBackup = async (backup: Backup) => {
+    if (isRestoring) return;
+    try {
+      const result = await restore({
+        id: String(backup.id),
+        restoreName: backup.name,
+      });
+      if (result?.success === false) {
+        throw new Error("Restore failed.");
+      }
+      toastSuccess("Backup restored successfully.");
+    } catch (error: any) {
+      console.log("Error restoring backup: ", error?.message);
+      toastError();
+    }
+  }
+
   return (
     <div>
       <PageBreadcrumb pageTitle="Backups" />
@@ -127,9 +147,7 @@ export default function BackupsPageClient() {
             setOpenMenuId={setOpenMenuId}
             onOpenDetails={openDetails}
             onOpenDelete={openDeleteConfirm}
-            onRestore={(backup) =>
-              console.log("Restore backup", backup.backupUid)
-            }
+            onRestore={restoreBackup}
             onDownload={(backup) =>
               console.log("Download backup", backup.backupUid)
             }
@@ -165,4 +183,3 @@ export default function BackupsPageClient() {
     </div>
   );
 }
-        

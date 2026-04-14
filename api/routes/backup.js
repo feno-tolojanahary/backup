@@ -6,7 +6,8 @@ router.route("/")
     .get(backupController.getList);
 
 router.route("/:id")
-    .delete(backupController.deleteBackup)
-    .post(backupController.restoreBackup);
+    .delete(backupController.deleteBackup)    
+    
+router.post("/restore/:id", backupController.restoreBackup);
 
 module.exports = router;

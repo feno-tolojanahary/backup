@@ -1,9 +1,12 @@
 const backupService = require("../../lib/db/backupService");
 const jobService = require("../../lib/db/job/jobService");
 const { getConfigurationsByTargetName } = require("../../lib/helper/mapConfig");
-const { deleteBackup } = require("../../lib/storages/storageHelper");
+const { deleteBackup, downloadBackup } = require("../../lib/storages/storageHelper");
 const { restorePlainBackup, restoreEncryptedBackup } = require("../../lib/sources/mongodb/mongodbHandler");
 const response = require("../utils/response");
+const targetService = require("../../lib/db/job/targetService");
+const destinationService = require("../services/infrastructure/destinationService");
+const sourceService = require("../services/infrastructure/sourceService");
 
 class BackupController {
     constructor() {}
@@ -30,6 +33,7 @@ class BackupController {
                 throw new Error("No id provided on params");
             const backupInfo = await backupService.findByNameOrId(req.params.id);
             await deleteBackup(backupInfo);
+            
             response.noContent(res);
         } catch (error) {
             console.log(error);
@@ -43,14 +47,29 @@ class BackupController {
             if (!req.params.id)
                 throw new Error("Backup id on params required.");
             const backupInfo = await backupService.findByNameOrId(req.params.id);
-            const restoreName = req.query.restoreName || backupInfo.name.split(".")[0];
+            const restoreName = req.body.restoreName || backupInfo.name.split(".")[0];
             const job = await jobService.findJob({ id: backupInfo.job_id });
-            const { sourceConf } = getConfigurationsByTargetName(job.target);
-            const downloadPath = await downloadBackup({ backup: backupInfo });
-            if (!backupInfo.encrypted) {
-                await restorePlainBackup({restoreName, downloadPath, sourceConf});
+            let sourceConfig, destConfig;
+            if (backupInfo.destinationId) {
+                const destination = await destinationService.findById(backupInfo.destinationId)
+                destConfig = { ...destination, ...destination.config };
+                delete destConfig.config;
+            }
+            if (job.target_id) {
+                const targetConf = await targetService.getTargetDetailConf(job.target_id);
+                sourceConfig = { ...targetConf.source, ...JSON.parse(targetConf.source.config) };
+                delete sourceConfig.config;
             } else {
-                await restoreEncryptedBackup({restoreName, downloadPath, sourceConf});
+                const { sourceConf } = getConfigurationsByTargetName(job.target);
+                sourceConfig = sourceConf;
+            }
+            const downloadPath = await downloadBackup({ backup: backupInfo, conf: destConfig });
+            console.log("download path: ", downloadPath);
+            const originalName = sourceConfig.database;
+            if (!backupInfo.isEncrypted) {
+                await restorePlainBackup({restoreName, downloadPath, sourceConfig, originalName});
+            } else {
+                await restoreEncryptedBackup({restoreName, downloadPath, sourceConfig, originalName});
             }
             response.success(res, { success: true })            
         } catch (error) {
