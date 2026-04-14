@@ -26,7 +26,12 @@ export async function getDetail(url: string): Promise<JobDetail> {
     return jobDetail;
 }
 
-export async function runJobService(url: string): Promise<RunJobSuccess> {
+export async function runJobService(url: string, signal?: AbortSignal): Promise<RunJobSuccess> {
+    const res = await api.post(url, undefined, { signal });
+    return res.data?.data;
+}
+
+export async function abortJobService(url: string): Promise<RunJobSuccess> {
     const res = await api.post(url);
     return res.data?.data;
 }

@@ -6,7 +6,8 @@ const jobService = require("../../lib/db/job/jobService");
 const { runJob } = require("../../lib/handlers/jobs");
 
 class JobController {
-    constructor() {}
+    constructor() {
+    }
 
     async insert(req, res, next) {
         try {
@@ -137,11 +138,34 @@ class JobController {
     }
 
     async runJobNow(req, res, next) {
+        const jobId = req.params.id;
+        try {
+            if (!jobId)
+                throw new Error("The id in params is required.");
+
+            const onAbort = async () => {
+                await jobService.setStatusJob(jobId, "canceled");
+            };
+            req.on("aborted", onAbort);
+            req.on("close", () => {
+                if (!res.writableEnded) onAbort();
+            });
+
+            await runJob(jobId);
+            response.success(res, { success: true });
+        } catch (error) {
+            console.log(error);
+            response.error(res, { success: false });
+            next(error);
+        }
+    }
+
+    async abortJob(req, res, next) {
         try {
             const jobId = req.params.id;
-            if (!jobId) 
+            if (!jobId)
                 throw new Error("The id in params is required.");
-            await runJob(jobId);
+            await jobService.setStatusJob(jobId, "canceled");
             response.success(res, { success: true });
         } catch (error) {
             console.log(error);

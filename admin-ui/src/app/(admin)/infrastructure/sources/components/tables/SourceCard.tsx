@@ -6,6 +6,7 @@ import { Source, SourceType, StatusType } from "@/handlers/sources/type";
 
 type SourceCardProps = {
   source: Source,
+  isTesting?: boolean;
   onView?: (source: Source) => void;
   onEdit?: (source: Source) => void;
   onTest?: (source: Source) => void;
@@ -36,6 +37,7 @@ const typeIcon = (type: SourceType) => {
 
 const SourceCard: React.FC<SourceCardProps> = ({
   source,
+  isTesting = false,
   onView,
   onEdit,
   onTest,
@@ -100,6 +102,7 @@ const SourceCard: React.FC<SourceCardProps> = ({
           size="sm"
           variant="outline"
           type="button"
+          isLoading={isTesting}
           onClick={() =>
             onTest?.(source)
           }

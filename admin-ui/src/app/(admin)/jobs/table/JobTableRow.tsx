@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 // import Badge from "@/components/ui/badge/Badge";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
@@ -10,7 +10,7 @@ import {
 import { Job, JobRunStatus } from "@/handlers/jobs/type";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
-import { useRunJob, useUpdateJob } from "@/handlers/jobs/jobHooks";
+import { useAbortJob, useRunJob, useUpdateJob } from "@/handlers/jobs/jobHooks";
 import Switch from "@/components/form/switch/Switch";
 import Badge from "@/components/ui/badge/Badge";
 
@@ -33,6 +33,8 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
     const { update } = useUpdateJob();
     const [isEnable, setIsEnable] = useState(true);
     const { runJob } = useRunJob();
+    const { abortJob } = useAbortJob();
+    const runAbortRef = useRef<AbortController | null>(null);
 
     const toggleEnableJob = async (checked: boolean) => {
         try {
@@ -48,7 +50,26 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
 
     const runJobNow = async () => {
         setOpenMenu(false);
-        await runJob(job.id);
+        runAbortRef.current?.abort();
+        const controller = new AbortController();
+        runAbortRef.current = controller;
+        try {
+            await runJob(job.id, controller.signal);
+        } finally {
+            if (runAbortRef.current === controller) {
+                runAbortRef.current = null;
+            }
+        }
+    }
+
+    const cancelJob = async () => {
+        setOpenMenu(false);
+        if (runAbortRef.current) {
+            runAbortRef.current?.abort();
+            runAbortRef.current = null;
+        } else {
+            await abortJob(job.id);
+        }
     }
 
     const handleEditJob = () => {
@@ -152,6 +173,17 @@ export default function JobTableRaw({ job, handleDelete }: TableRowProps) {
                                     className="flex w-full font-normal text-left text-error-600 rounded-lg hover:bg-error-50 hover:text-error-700 dark:text-error-400 dark:hover:bg-white/5"
                                 >
                                     Delete job
+                                </DropdownItem>
+                            </>
+                        }
+                        {
+                            job.status === "running" && 
+                            <>
+                                <DropdownItem
+                                    onItemClick={cancelJob}
+                                    className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                                >
+                                    Cancel job
                                 </DropdownItem>
                             </>
                         }

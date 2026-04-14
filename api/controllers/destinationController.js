@@ -3,7 +3,6 @@ const response = require("../utils/response");
 const { testConf } = require("./../../lib/storages/storageHelper");
 
 class DestinationController {
-    constructor() {}
 
     sanitizeDestination(destination) {
         if (!destination) return destination;
@@ -12,8 +11,8 @@ class DestinationController {
             : {};
 
         const hasPrivateKey = Boolean(config.privateKeyEnc);
-        const fingerprint = config.privateKeyFingerprint;
-        const updatedAt = config.privateKeyUpdatedAt;
+        const fingerprint = config.privateKeyFingerprint || null;
+        const updatedAt = config.privateKeyUpdatedAt || null;
 
         delete config.privateKey;
         delete config.privateKeyEnc;
@@ -30,38 +29,12 @@ class DestinationController {
         };
     }
 
-    buildUpdatePayload(body = {}) {
-        const nextBody = { ...body };
-
-        if (nextBody.type !== "ssh") {
-            delete nextBody.privateKey;
-            delete nextBody.removePrivateKey;
-            return nextBody;
-        }
-
-        nextBody.config = {
-            ...(nextBody.config || {}),
-        };
-
-        if (typeof nextBody.privateKey === "string" && nextBody.privateKey.trim()) {
-            nextBody.config.privateKey = nextBody.privateKey;
-        }
-
-        if (nextBody.removePrivateKey) {
-            nextBody.config.removePrivateKey = true;
-        }
-
-        delete nextBody.privateKey;
-        delete nextBody.removePrivateKey;
-
-        return nextBody;
-    }
-
     async insert(req, res, next) {
         try {
             if (!req.body)
                 throw new Error("Req body is required.")
-            const result = await destinationService.insert(this.buildUpdatePayload(req.body));
+            console.log("insert destinations: ", req.body)
+            const result = await destinationService.insert(req.body);
             if (!result)
                 throw new Error("Insertion error.");
             response.created(res, result)
@@ -77,11 +50,11 @@ class DestinationController {
         try {
             if (!req.body)
                 throw new Error("Req body is required.");
-            if (!req.params.id) 
+            if (!req.params.id)
                 throw new Error("The id in params is required.");
             const result = await destinationService.update(
                 { id: req.params.id },
-                this.buildUpdatePayload(req.body)
+                req.body
             );
             if (result === undefined || result === null)
                 throw new Error("Update error.");
@@ -93,7 +66,7 @@ class DestinationController {
         }
     }
 
-    async find(req, res, next) {
+    find = async (req, res, next) => {
         try {
             const result = await destinationService.find();
             if (!result)

@@ -1,6 +1,6 @@
 import useSWR, { mutate } from "swr";
 import { createCrudHooks } from "../utils/crudHooks";
-import { createJob, deleteJob, getDetail, getJobRuns, getListJob, runJobService, updateJob } from "./jobService";
+import { abortJobService, createJob, deleteJob, getDetail, getJobRuns, getListJob, runJobService, updateJob } from "./jobService";
 import { CreateJobPayload, Job, JobDetail, JobRun, UpdateJobPayload } from "./type";
 import { useToast } from "@/context/ToastContext";
 
@@ -33,12 +33,12 @@ export function useDetail(id: string) {
 export function useRunJob() {
     const { toastError, toastSuccess } = useToast();
 
-    const runJob = async (id: number) => {
+    const runJob = async (id: number, signal?: AbortSignal) => {
         try {
-            mutate(baseUrl, 
+            mutate(baseUrl,
                 (jobs?: any[]) => jobs?.map((job) => job.id === id ? ({...job, status: "running"}) : job)
             )
-            const res = await runJobService(`${baseUrl}/${id?.toString()}`);
+            const res = await runJobService(`${baseUrl}/${id?.toString()}`, signal);
             mutate(baseUrl);
             mutate(jobRunUrl);
             toastSuccess("Running job with success.")
@@ -50,6 +50,27 @@ export function useRunJob() {
 
     return {
         runJob
+    }
+}
+
+
+export function useAbortJob() {
+    const { toastError, toastSuccess } = useToast();
+
+    const abortJob = async (id: number) => {
+        try {
+            await abortJobService(`${baseUrl}/${id?.toString()}/abort`);
+            mutate(baseUrl);
+            mutate(jobRunUrl);
+            toastSuccess("Job canceled.");
+        } catch (error: any) {
+            console.log("Error aborting job: ", error.message);
+            toastError();
+        }
+    }
+
+    return {
+        abortJob
     }
 }
 

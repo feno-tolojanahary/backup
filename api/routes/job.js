@@ -26,6 +26,8 @@ router.route('/:id')
     .get(jobController.getJobDetail)
     .post(jobController.runJobNow);
 
+router.post("/:id/abort", jobController.abortJob);
+
 router.get("/job-runs/:jobId", jobController.getJobRunList);
 
 module.exports = router;

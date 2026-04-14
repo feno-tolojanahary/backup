@@ -330,9 +330,11 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
       let nextDestination: CreateDestinationPayload | UpdateDestinationPayload = {
         name: values.name.trim(),
         type: values.type as DestinationType,
-        status: testStatus.state === "success" ? "connected" : "disconnected",
       };
 
+      if (testStatus.state !== "idle")
+        nextDestination.status = testStatus.state === "success" ? "connected" : "disconnected";
+      
       if (values.type === "local-storage") {
         nextDestination = {
           ...nextDestination,
@@ -366,6 +368,10 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
               values.sftpAuthMode === "password"
                 ? ("password" as AuthMethodType)
                 : ("key" as AuthMethodType),
+            privateKey:
+              values.sftpAuthMode === "private_key" && nextPrivateKey.trim()
+                ? normalizePrivateKey(nextPrivateKey)
+                : undefined,
             passphrase:
               values.sftpAuthMode === "private_key" ? values.passphrase : "",
             destinationFolder: values.destinationFolder,
@@ -374,14 +380,12 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
           },
         };
 
-        if (values.sftpAuthMode === "private_key") {
-          if (nextPrivateKey.trim()) {
-            nextDestination.privateKey = normalizePrivateKey(nextPrivateKey);
-          }
-
-          if (removePrivateKey && !nextPrivateKey.trim()) {
-            nextDestination.removePrivateKey = true;
-          }
+        if (
+          values.sftpAuthMode === "private_key" &&
+          removePrivateKey &&
+          !nextPrivateKey.trim()
+        ) {
+          nextDestination.removePrivateKey = true;
         }
       } else {
         nextDestination = {
@@ -854,7 +858,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                               >
                                 Replace private key
                               </Button>
-                              {hasConfiguredPrivateKey && (
+                              {hasConfiguredPrivateKey && !removePrivateKey && (
                                 <Button
                                   size="sm"
                                   type="button"

@@ -15,8 +15,9 @@ import {
 import SourcesFilters from "./components/SourcesFilters";
 import SourceCard from "./components/tables/SourceCard";
 import SourceDetailModal from "./components/SourceDetailModal";
-import { useSources } from "@/handlers/sources/sourcesHooks";
+import { useSources, useTestConnection, useUpdateSource } from "@/handlers/sources/sourcesHooks";
 import LoadingDots from "@/components/common/LoadingDots";
+import { useToast } from "@/context/ToastContext";
 
 export default function SourcesPageClient() {
   const [search, setSearch] = useState("");
@@ -25,6 +26,7 @@ export default function SourcesPageClient() {
   const [viewTarget, setViewTarget] = useState<Source | null>(null);
   const [editSource, setEditSource] = useState<Source | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Source | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
   const createModal = useModal();
   const detailModal = useModal();
   const deleteModal = useModal();
@@ -33,7 +35,10 @@ export default function SourcesPageClient() {
   const pathname = usePathname();
   const handledCreateParam = useRef(false);
 
-  const { sources, isLoading } = useSources()
+  const { sources, isLoading } = useSources();
+  const { testConnection } = useTestConnection();
+  const { updateSource } = useUpdateSource();
+  const { toastSuccess, toastWarning, toastError } = useToast();
 
   const filteredSources = useMemo(() => {
     return sources.filter((source) => {
@@ -62,6 +67,33 @@ export default function SourcesPageClient() {
   const handleDelete = (source: Source) => {
     setDeleteTarget(source);
     deleteModal.openModal();
+  };
+
+  const handleTest = async (source: Source) => {
+    if (testingId) return;
+    setTestingId(source.id);
+    try {
+      const resConfig = await testConnection(source.config);
+      const connected = Boolean(resConfig?.connected);
+      const nextStatus: StatusType = connected ? "connected" : "disconnected";
+      if (source.status !== nextStatus) {
+        await updateSource(source.id, {
+          name: source.name,
+          type: source.type,
+          config: source.config,
+          status: nextStatus,
+        });
+      }
+      if (connected) {
+        toastSuccess("The source is connected.");
+      } else {
+        toastWarning("The source is not connected.");
+      }
+    } catch (error) {
+      toastError();
+    } finally {
+      setTestingId(null);
+    }
   };
 
   useEffect(() => {
@@ -109,9 +141,10 @@ export default function SourcesPageClient() {
                         <SourceCard
                         key={source.id}
                         source={source}
+                        isTesting={testingId === source.id}
                         onView={handleView}
                         onEdit={handleEdit}
-                        onTest={(source) => console.log("Test source", source.id)}
+                        onTest={handleTest}
                         onDelete={handleDelete}
                       />
                     ))}

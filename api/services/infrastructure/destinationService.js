@@ -40,25 +40,33 @@ class DestinationService {
         return { config: nextConfig };
     }
 
+    buildConfig(data = {}) {
+        const config = { ...(data.config || {}) };
+
+        if (data.type === "ssh" && data.removePrivateKey) {
+            config.removePrivateKey = true;
+        }
+
+        return config;
+    }
+
     async insert(data) {
         try {
-            const {
-                name,
-                type,
-                config,
-                created_by,
-                createdBy
-            } = data;
-
+            const { name, type, status } = data;
+            const config = this.buildConfig(data);
             const prepared = this.prepareConfig(config, type);
-            const res = db.prepare(`INSERT INTO destinations (name, type, config, created_by)
+
+          console.log("data: ", data);
+          console.log("prepared config: ", config)
+            const res = db.prepare(`INSERT INTO destinations (name, type, status, config)
                                     VALUES (?, ?, ?, ?)`)
-                        .run(name, type, JSON.stringify(prepared.config), created_by ?? createdBy);
+                        .run(name, type, status ?? null, JSON.stringify(prepared.config));
 
             return {
                 id: res.lastInsertRowid
             };
         } catch (error) {
+            console.log("Error insert destination: ", error.message);
             return;
         }
     }
@@ -68,18 +76,35 @@ class DestinationService {
             if (!filters || Object.keys(filters).length === 0)
                 return;
             let params = [];
-            const updateData = deleteEmptyFields(update);
+            const updateData = deleteEmptyFields({ ...update });
+            delete updateData.removePrivateKey;
+
             if (updateData.config) {
+                const config = this.buildConfig(update);
+
+                // Merge with stored config so fields like privateKeyEnc
+                // are preserved when not explicitly changed or removed.
+                if (filters.id) {
+                    const existing = await this.findById(filters.id);
+                    if (existing?.config) {
+                        updateData.config = { ...existing.config, ...config };
+                    } else {
+                        updateData.config = config;
+                    }
+                }
+
                 const prepared = this.prepareConfig(
                     updateData.config,
                     updateData.type
                 );
                 updateData.config = JSON.stringify(prepared.config);
             }
+
             const setUpdate = Object.keys(updateData).map(key => `${key}=?`);
             if (setUpdate.length === 0) {
                 return 0;
             }
+            console.log("update data: ", updateData)
             const values = Object.values(updateData);
             let query = `UPDATE destinations SET ${setUpdate.join(', ')}`
             if (filters.id) {

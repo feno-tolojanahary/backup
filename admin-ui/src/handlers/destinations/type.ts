@@ -68,6 +68,5 @@ export type UpdateDestinationPayload = {
     status?: StatusType;
     config?: DestinationConfig;
     createdBy?: string;
-    privateKey?: string;
     removePrivateKey?: boolean;
 }
