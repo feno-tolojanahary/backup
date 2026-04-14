@@ -10,7 +10,7 @@ import BackupsPagination from "./components/BackupsPagination";
 import BackupDetailsModal from "./components/BackupDetailsModal";
 import BackupDeleteModal from "./components/BackupDeleteModal";
 import { statusBadgeColor } from "./components/BackupsTypes";
-import { useBackupList, useRestoreBackup } from "@/handlers/backups/backupHooks";
+import { useBackupList, useDownloadBackup, useRestoreBackup } from "@/handlers/backups/backupHooks";
 import { Backup } from "@/handlers/backups/type";
 import { useJobList } from "@/handlers/jobs/jobHooks";
 import { useToast } from "@/context/ToastContext";
@@ -23,6 +23,7 @@ export default function BackupsPageClient() {
   const { data: backups } = useBackupList();
   const { data: jobs } = useJobList();
   const { restore, isLoading: isRestoring } = useRestoreBackup();
+  const { download } = useDownloadBackup();
   const { toastSuccess, toastError } = useToast();
 
   const [search, setSearch] = useState("");
@@ -119,6 +120,10 @@ export default function BackupsPageClient() {
     }
   }
 
+  const downloadBackup = async (backup: Backup) => {
+    await download(backup);
+  }
+
   return (
     <div>
       <PageBreadcrumb pageTitle="Backups" />
@@ -148,9 +153,7 @@ export default function BackupsPageClient() {
             onOpenDetails={openDetails}
             onOpenDelete={openDeleteConfirm}
             onRestore={restoreBackup}
-            onDownload={(backup) =>
-              console.log("Download backup", backup.backupUid)
-            }
+            onDownload={downloadBackup}
             statusBadgeColor={statusBadgeColor}
           />
 

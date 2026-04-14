@@ -10,4 +10,6 @@ router.route("/:id")
     
 router.post("/restore/:id", backupController.restoreBackup);
 
+router.get("/download/:id", backupController.downloadBackup);
+
 module.exports = router;

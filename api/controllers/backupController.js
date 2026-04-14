@@ -1,3 +1,4 @@
+const fs = require("node:fs");
 const backupService = require("../../lib/db/backupService");
 const jobService = require("../../lib/db/job/jobService");
 const { getConfigurationsByTargetName } = require("../../lib/helper/mapConfig");
@@ -6,7 +7,12 @@ const { restorePlainBackup, restoreEncryptedBackup } = require("../../lib/source
 const response = require("../utils/response");
 const targetService = require("../../lib/db/job/targetService");
 const destinationService = require("../services/infrastructure/destinationService");
+const settingService = require("../services/settingService");
+const AdmZip = require("adm-zip");
 const sourceService = require("../services/infrastructure/sourceService");
+const { config } = require("../../config");
+const { ensureDir } = require("../../lib/helper/utils");
+const { decryptDataPath } = require("../../lib/encryption/cryptoTools");
 
 class BackupController {
     constructor() {}
@@ -41,7 +47,7 @@ class BackupController {
             next(error);
         }
     }
-
+hyuj
     async restoreBackup(req, res, next) {
         try {
             if (!req.params.id)
@@ -72,6 +78,40 @@ class BackupController {
                 await restoreEncryptedBackup({restoreName, downloadPath, sourceConfig, originalName});
             }
             response.success(res, { success: true })            
+        } catch (error) {
+            console.log(error);
+            response.error(res, { success: false, errorMsg: error.message});
+            next(error);
+        }
+    }
+
+    async downloadBackup (req, res, next) {
+        try {
+            if (!req.params.id)
+                throw new Error("Backup id on params required.");
+            const backupInfo = await backupService.findByNameOrId(req.params.id);
+            const destination = await destinationService.findById(backupInfo.destinationId)
+            if (!destination) {
+                throw new Error("The destination is no longer available");
+            }
+            destConfig = { ...destination, ...destination.config };
+            delete destConfig.config;
+            const downloadPath = await downloadBackup({ backup: backupInfo, conf: destConfig });
+            if (!downloadBackup)
+                throw new Error("Error downloading path");
+            const decryptedFilePath = await decryptDataPath(downloadPath);
+            
+
+            res.setHeader("Content-Disposition", `attachment; filename="${decryptedFilePath}"`);
+            res.setHeader("Content-Type", "application/octet-stream");
+            const stream = fs.createReadStream(decryptedFilePath);
+            stream.pipe(res);
+
+            stream.on('error', (error) => {
+                if (!res.headerSent) {
+                    throw new Error("Error reading file");
+                }
+            })
         } catch (error) {
             console.log(error);
             response.error(res, { success: false, errorMsg: error.message});
