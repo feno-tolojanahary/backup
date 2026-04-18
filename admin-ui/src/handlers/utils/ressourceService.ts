@@ -34,13 +34,8 @@ export default function createRessourceService<Entity, CreateEntityPayload = Par
     }
     
     async function deleteById(url: string, { arg }: { arg: { id: number } }): Promise<any> {
-        try {
-            const res = await api.delete(`${url}/${arg.id}`);
-            return res.data;
-        } catch (error: any) {
-            const message = error?.response?.data?.message || error?.message || "Error notificationProvider creation.";
-            throw new Error(message);
-        }
+        const res = await api.delete(`${url}/${arg.id}`);
+        return res.data;
     }
 
     return {

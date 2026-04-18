@@ -8,11 +8,6 @@ const { restorePlainBackup, restoreEncryptedBackup } = require("../../lib/source
 const response = require("../utils/response");
 const targetService = require("../../lib/db/job/targetService");
 const destinationService = require("../services/infrastructure/destinationService");
-const settingService = require("../services/settingService");
-const AdmZip = require("adm-zip");
-const sourceService = require("../services/infrastructure/sourceService");
-const { config } = require("../../config");
-const { ensureDir } = require("../../lib/helper/utils");
 const { decryptDataPath } = require("../../lib/encryption/cryptoTools");
 
 class BackupController {
@@ -44,7 +39,7 @@ class BackupController {
             response.noContent(res);
         } catch (error) {
             console.log(error);
-            response.error(res, error.message);
+            response.error(res, error);
             next(error);
         }
     }

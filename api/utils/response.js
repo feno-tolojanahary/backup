@@ -1,3 +1,5 @@
+const AppError = require("../../lib/helper/error");
+
 const response = {
 
   success(res, data = null, message = "Success", status = 200) {
@@ -49,10 +51,25 @@ const response = {
   },
 
   error(res, message = "Internal server error", status = 500) {
-    return res.status(status).json({
-      success: false,
-      message
-    });
+    let payload = {};
+    if (message instanceof AppError) {
+      payload = {
+        success: false,
+        message: message.message,
+        showUser: true
+      }
+    } else if (message instanceof Error) {
+      payload = {
+        success: false,
+        message: message.message
+      }
+    } else {
+      payload = {
+        success: false,
+        message
+      }
+    }
+    return res.status(status).json(payload);
   }
 
 };

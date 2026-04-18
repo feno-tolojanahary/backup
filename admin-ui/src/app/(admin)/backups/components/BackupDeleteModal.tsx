@@ -16,7 +16,7 @@ export default function BackupDeleteModal({
   deleteTarget,
 }: BackupDeleteModalProps) {
 
-  const { deleteBackup } = useDeleteBackup();
+  const { deleteBackup, isMutating } = useDeleteBackup();
   const { toastSuccess, toastError } = useToast();
 
   const handleDelete = async () => {
@@ -27,7 +27,7 @@ export default function BackupDeleteModal({
         toastSuccess("Deleting the backup with success.");
     } catch (error: any) {
       console.log("Error delete backup: ", error.message);
-      toastError();
+      toastError(error);
     }
     onClose();
   }
@@ -45,7 +45,7 @@ export default function BackupDeleteModal({
           <Button size="sm" variant="outline" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" type="button" onClick={handleDelete}>
+          <Button size="sm" isLoading={isMutating} type="button" onClick={handleDelete}>
             Delete
           </Button>
         </div>

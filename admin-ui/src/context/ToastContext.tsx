@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import Alert from "@/components/ui/alert/Alert";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";
@@ -17,7 +18,7 @@ type ToastItem = ToastInput & { id: string };
 type ToastContextType = {
   addToast: (toast: ToastInput) => void;
   removeToast: (id: string) => void;
-  toastError: () => void;
+  toastError: (messageOrError?: string | unknown) => void;
   toastWarning: (message: string) => void;
   toastSuccess: (message: string) => void;
 };
@@ -66,11 +67,23 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [removeToast]);
 
-  const toastError = () => {
+  const toastError = (messageOrError?: string | unknown) => {
+    const defaultMessage = "Something went wrong. Please try again";
+    let message = defaultMessage;
+
+    if (typeof messageOrError === "string") {
+      message = messageOrError;
+    } else if (axios.isAxiosError(messageOrError)) {
+      const data = messageOrError.response?.data;
+      if (data && typeof data === "object" && "showUser" in data && data.showUser === true && typeof data.message === "string") {
+        message = data.message;
+      }
+    }
+
     addToast({
       variant: "error",
       title: "Error",
-      message: "Something went wrong. Please try again"
+      message
     })
   }
 
