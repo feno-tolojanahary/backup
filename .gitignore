@@ -4,6 +4,8 @@ data
 output
 keys
 flattedMongoDB
+minio-data
 .env
 .lastIndex
+.claude
 public

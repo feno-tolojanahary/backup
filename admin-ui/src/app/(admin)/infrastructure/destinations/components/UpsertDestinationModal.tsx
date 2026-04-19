@@ -8,6 +8,7 @@ import Select from "@/components/form/Select";
 import Switch from "@/components/form/switch/Switch";
 import { Modal } from "@/components/ui/modal";
 import { Controller, useForm } from "react-hook-form";
+import { EyeCloseIcon, EyeIcon } from "@/icons";
 import {
   AuthMethodType,
   CreateDestinationPayload,
@@ -169,7 +170,8 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
 
   const destinationType = watch("type");
   const sftpAuthMode = watch("sftpAuthMode");
-  const [host, port, username, destinationFolder, password, privateKey, passphrase] =
+  const [host, port, username, destinationFolder, password, privateKey, passphrase,
+    endpoint, bucketName, region, accessKey, secretKey] =
     watch([
       "host",
       "port",
@@ -178,6 +180,11 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
       "password",
       "privateKey",
       "passphrase",
+      "endpoint",
+      "bucketName",
+      "region",
+      "accessKey",
+      "secretKey",
     ]);
 
   const [privateKeyMode, setPrivateKeyMode] = useState<"view" | "replace">(
@@ -190,6 +197,11 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
   const [hasVerifiedReplacementKey, setHasVerifiedReplacementKey] =
     useState(false);
   const [testStatus, setTestStatus] = useState<{
+    state: "idle" | "testing" | "success" | "error";
+    message?: string;
+  }>({ state: "idle" });
+  const [showSecretKey, setShowSecretKey] = useState(false);
+  const [s3TestStatus, setS3TestStatus] = useState<{
     state: "idle" | "testing" | "success" | "error";
     message?: string;
   }>({ state: "idle" });
@@ -236,6 +248,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     setUploadedPrivateKeyName(null);
     setHasVerifiedReplacementKey(false);
     setTestStatus({ state: "idle" });
+    setS3TestStatus({ state: "idle" });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -245,6 +258,11 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     if (destinationType !== "ssh") return;
     setTestStatus({ state: "idle" });
   }, [destinationType, host, port, username, destinationFolder, password]);
+
+  useEffect(() => {
+    if (destinationType !== "s3") return;
+    setS3TestStatus({ state: "idle" });
+  }, [destinationType, endpoint, bucketName, region, accessKey, secretKey]);
 
   useEffect(() => {
     if (destinationType !== "ssh") return;
@@ -332,8 +350,9 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
         type: values.type as DestinationType,
       };
 
-      if (testStatus.state !== "idle")
-        nextDestination.status = testStatus.state === "success" ? "connected" : "disconnected";
+      const activeTestState = values.type === "s3" ? s3TestStatus.state : testStatus.state;
+      if (activeTestState !== "idle")
+        nextDestination.status = activeTestState === "success" ? "connected" : "disconnected";
       
       if (values.type === "local-storage") {
         nextDestination = {
@@ -399,7 +418,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
 
       return nextDestination;
     },
-    [removePrivateKey, testStatus.state]
+    [removePrivateKey, testStatus.state, s3TestStatus.state]
   );
 
   const isSftpConnectionReady = (() => {
@@ -474,6 +493,45 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     }
   };
 
+  const isS3ConnectionReady =
+    destinationType === "s3" && Boolean(endpoint && bucketName && accessKey && secretKey);
+
+  const handleTestS3Connection = async () => {
+    if (!isS3ConnectionReady) return;
+    setS3TestStatus({ state: "testing" });
+    try {
+      const values = watch();
+      const config: S3Config = {
+        endpoint: values.endpoint,
+        bucketName: values.bucketName,
+        region: values.region,
+        accessKey: values.accessKey,
+        secretKey: values.secretKey,
+        prefix: values.prefix,
+      };
+      const result = await testConnection({
+        id: destination?.id ?? 0,
+        name: values.name,
+        type: "s3",
+        config,
+        errorMsg: "",
+      });
+      if (result?.status === "connected") {
+        setS3TestStatus({ state: "success", message: "Connection successful." });
+        return;
+      }
+      setS3TestStatus({
+        state: "error",
+        message: result?.errorMsg || "Connection failed.",
+      });
+    } catch (error: any) {
+      setS3TestStatus({
+        state: "error",
+        message: error?.message || "Connection failed.",
+      });
+    }
+  };
+
   const handleClose = useCallback(() => {
     clearPrivateKeyInputs();
     setValue("passphrase", "");
@@ -481,6 +539,7 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
     setRemovePrivateKey(false);
     setHasVerifiedReplacementKey(false);
     setTestStatus({ state: "idle" });
+    setS3TestStatus({ state: "idle" });
     onClose();
   }, [clearPrivateKeyInputs, onClose, setValue]);
 
@@ -697,15 +756,29 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Secret key
                   </label>
-                  <Input
-                    type="password"
-                    placeholder="SECRET_KEY"
-                    {...register("secretKey", {
-                      required: "Secret key is required.",
-                    })}
-                    error={Boolean(errors.secretKey)}
-                    hint={errors.secretKey?.message}
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showSecretKey ? "text" : "password"}
+                      placeholder="SECRET_KEY"
+                      {...register("secretKey", {
+                        required: "Secret key is required.",
+                      })}
+                      error={Boolean(errors.secretKey)}
+                      hint={errors.secretKey?.message}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecretKey((prev) => !prev)}
+                      className="absolute right-4 top-1/2 z-30 -translate-y-1/2 text-gray-500"
+                      aria-label={showSecretKey ? "Hide secret key" : "Show secret key"}
+                    >
+                      {showSecretKey ? (
+                        <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
+                      ) : (
+                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -968,32 +1041,6 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
                         Use a dedicated SSH key. Do NOT use your personal SSH key.
                       </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                          onClick={handleTestConnection}
-                          disabled={!isSftpConnectionReady}
-                        >
-                          Test Connection
-                        </Button>
-                        {testStatus.state !== "idle" && (
-                          <span
-                            className={`text-xs font-semibold ${
-                              testStatus.state === "success"
-                                ? "text-success-600"
-                                : testStatus.state === "error"
-                                ? "text-error-500"
-                                : "text-gray-500 dark:text-gray-400"
-                            }`}
-                          >
-                            {testStatus.state === "testing"
-                              ? "Testing..."
-                              : testStatus.message}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 )}
@@ -1022,32 +1069,6 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
                         Password authentication is less secure and not recommended for
                         automated backups.
                       </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                          onClick={handleTestConnection}
-                          disabled={!isSftpConnectionReady}
-                        >
-                          Test Connection
-                        </Button>
-                        {testStatus.state !== "idle" && (
-                          <span
-                            className={`text-xs font-semibold ${
-                              testStatus.state === "success"
-                                ? "text-success-600"
-                                : testStatus.state === "error"
-                                ? "text-error-500"
-                                : "text-gray-500 dark:text-gray-400"
-                            }`}
-                          >
-                            {testStatus.state === "testing"
-                              ? "Testing..."
-                              : testStatus.message}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 )}
@@ -1057,12 +1078,71 @@ const UpsertDestinationModal: React.FC<UpsertDestinationModalProps> = ({
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-          <Button size="sm" variant="outline" type="button" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button size="sm" type="submit" disabled={!isValid}>
-            {destination?.id ? "Save Changes" : "Create Destination"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            {destinationType === "s3" && (
+              <>
+                <Button
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  onClick={handleTestS3Connection}
+                  disabled={!isS3ConnectionReady}
+                >
+                  Test Connection
+                </Button>
+                {s3TestStatus.state !== "idle" && (
+                  <span
+                    className={`text-xs font-semibold ${
+                      s3TestStatus.state === "success"
+                        ? "text-success-600"
+                        : s3TestStatus.state === "error"
+                        ? "text-error-500"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
+                    {s3TestStatus.state === "testing"
+                      ? "Testing..."
+                      : s3TestStatus.message}
+                  </span>
+                )}
+              </>
+            )}
+            {destinationType === "ssh" && (
+              <>
+                <Button
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  onClick={handleTestConnection}
+                  disabled={!isSftpConnectionReady}
+                >
+                  Test Connection
+                </Button>
+                {testStatus.state !== "idle" && (
+                  <span
+                    className={`text-xs font-semibold ${
+                      testStatus.state === "success"
+                        ? "text-success-600"
+                        : testStatus.state === "error"
+                        ? "text-error-500"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
+                    {testStatus.state === "testing"
+                      ? "Testing..."
+                      : testStatus.message}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          {((destinationType === "s3" && s3TestStatus.state === "success") ||
+            (destinationType === "ssh" && testStatus.state === "success") ||
+            destinationType === "local-storage") && (
+            <Button size="sm" type="submit" disabled={!isValid}>
+              {destination?.id ? "Save Changes" : "Create Destination"}
+            </Button>
+          )}
         </div>
       </form>
     </Modal>
