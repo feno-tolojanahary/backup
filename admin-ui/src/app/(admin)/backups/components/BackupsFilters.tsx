@@ -1,5 +1,6 @@
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
+import DateInput from "@/components/form/input/DateInput";
 import Select from "@/components/form/Select";
 
 type JobOption = {
@@ -80,32 +81,22 @@ export default function BackupsFilters({
             }}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Date from
-          </label>
-          <Input
-            type="date"
-            defaultValue={dateFrom}
-            onChange={(e) => {
-              setDateFrom(e.target.value);
-              onResetPage();
-            }}
-          />
-        </div>
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Date to
-          </label>
-          <Input
-            type="date"
-            defaultValue={dateTo}
-            onChange={(e) => {
-              setDateTo(e.target.value);
-              onResetPage();
-            }}
-          />
-        </div>
+        <DateInput
+          label="Date from"
+          defaultValue={dateFrom}
+          onChange={(value) => {
+            setDateFrom(value);
+            onResetPage();
+          }}
+        />
+        <DateInput
+          label="Date to"
+          defaultValue={dateTo}
+          onChange={(value) => {
+            setDateTo(value);
+            onResetPage();
+          }}
+        />
       </div>
       <Button size="sm" type="button" onClick={onRefresh}>
         Refresh

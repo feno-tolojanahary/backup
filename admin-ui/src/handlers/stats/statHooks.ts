@@ -1,7 +1,7 @@
 import useSWR from "swr";
 import { getData } from "../fetcher";
 import { useMemo } from "react";
-import { BackupActivityType, BackupStatusType, StatType, StorageUsedByDestType } from "./type";
+import { BackupActivityType, BackupStatusType, InfrastructureType, RecentJobRunType, StatType, StorageUsedByDestType } from "./type";
 import { formatBytes } from "../utils/utils";
 import type { ApexOptions } from "apexcharts";
 import moment from "moment";
@@ -12,14 +12,13 @@ export default function useStats() {
 
     const { data, error, isLoading } = useSWR<StatType>("/stats/dashboard", getData);
 
-    const metricCards = useMemo(() => {
+    const metricCards: { label: string; value: string | number; description: string; meta?: string[] }[] = useMemo(() => {
         const { totalTarget, totalBackupSize, totalBackups, totalJobs } = data?.totalData || {};
         return [
             {
                 label: "Total Targets",
                 value: totalTarget ?? 0,
                 description: "Number of configured backup targets.",
-                // meta: ["app1", "mongodb", "s3-wasabi"],
             },
             {
                 label: "Active Jobs",
@@ -108,22 +107,31 @@ export default function useStats() {
 
         const activityOptions: ApexOptions = {
             chart: {
-                type: "line",
-                height: 320,
+                type: "area",
+                height: 300,
                 fontFamily: "Outfit, sans-serif",
                 toolbar: { show: false },
             },
             colors: ["#22C55E", "#EF4444"],
+            fill: {
+                type: "gradient",
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100],
+                },
+            },
             stroke: {
                 curve: "smooth",
-                width: 3,
+                width: 2.5,
             },
             markers: {
-                size: 4,
+                size: 3,
                 strokeColors: "#fff",
                 strokeWidth: 2,
                 hover: {
-                    size: 6,
+                    size: 5,
                 },
             },
             xaxis: {
@@ -233,6 +241,9 @@ export default function useStats() {
         }
     }, [data])
 
+    const recentJobRuns: RecentJobRunType[] = data?.recentJobRuns ?? [];
+    const infrastructure: InfrastructureType = data?.infrastructure ?? { sources: [], destinations: [] };
+
     return {
         metricCards,
         statusOptions: statusData?.statusOptions ?? {},
@@ -243,6 +254,8 @@ export default function useStats() {
         activityOptions: activityData?.activityOptions ?? {},
         storageOptions: storageData?.storageOptions ?? {},
         storageSeries: storageData?.storageSeries ?? [],
+        recentJobRuns,
+        infrastructure,
         isLoading,
         error
     }

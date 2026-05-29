@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Input from "@/components/form/input/InputField";
+import DateInput from "@/components/form/input/DateInput";
 import Select from "@/components/form/Select";
 import {
   ActionDropdown,
@@ -209,26 +210,16 @@ export default function HistoryTab() {
             onChange={(value) => setHistoryStatus(value)}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            From
-          </label>
-          <Input
-            type="date"
-            defaultValue={historyFrom}
-            onChange={(e) => setHistoryFrom(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            To
-          </label>
-          <Input
-            type="date"
-            defaultValue={historyTo}
-            onChange={(e) => setHistoryTo(e.target.value)}
-          />
-        </div>
+        <DateInput
+          label="From"
+          defaultValue={historyFrom}
+          onChange={setHistoryFrom}
+        />
+        <DateInput
+          label="To"
+          defaultValue={historyTo}
+          onChange={setHistoryTo}
+        />
       </div>
 
       <DataTable

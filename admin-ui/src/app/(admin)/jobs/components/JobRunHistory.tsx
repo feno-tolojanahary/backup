@@ -3,6 +3,7 @@
 import Badge from "@/components/ui/badge/Badge";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
+import DateInput from "@/components/form/input/DateInput";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "@/icons";
@@ -196,26 +197,20 @@ export default function JobRunHistory({job}: { job: Job }) {
 
             {dateRangeFilter === "custom" && (
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Start date</label>
-                  <Input
-                    type="date"
-                    onChange={(event) => {
-                      setCustomStart(event.target.value);
-                      // setPage(1);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">End date</label>
-                  <Input
-                    type="date"
-                    onChange={(event) => {
-                      setCustomEnd(event.target.value);
-                      // setPage(1);
-                    }}
-                  />
-                </div>
+                <DateInput
+                  label="Start date"
+                  onChange={(value) => {
+                    setCustomStart(value);
+                    // setPage(1);
+                  }}
+                />
+                <DateInput
+                  label="End date"
+                  onChange={(value) => {
+                    setCustomEnd(value);
+                    // setPage(1);
+                  }}
+                />
               </div>
             )}
 

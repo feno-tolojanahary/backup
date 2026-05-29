@@ -21,9 +21,32 @@ export type StorageUsedByDestType = {
     storage: string;
 }
 
+export type RecentJobRunType = {
+    id: number;
+    jobId: number;
+    jobName: string;
+    status: string;
+    startedAt: number | null;
+    finishedAt: number | null;
+    errorMessage: string | null;
+}
+
+export type InfraNodeType = {
+    name: string;
+    type: string;
+    status: string | null;
+}
+
+export type InfrastructureType = {
+    sources: InfraNodeType[];
+    destinations: InfraNodeType[];
+}
+
 export type StatType = {
     totalData: TotalDataType,
     backupActivities: BackupActivityType[],
     backupStatus: BackupStatusType[],
-    storageUsedByDest: StorageUsedByDestType[]
+    storageUsedByDest: StorageUsedByDestType[],
+    recentJobRuns: RecentJobRunType[],
+    infrastructure: InfrastructureType
 }

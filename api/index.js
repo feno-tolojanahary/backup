@@ -1,5 +1,10 @@
+
 const express = require("express");
 const cookieParser = require("cookie-parser");
+// or: const { expressErrorHandler } = require("@appsignal/nodejs");
+
+// add this after all routes, but before any other error handlers
+
 require("dotenv").config();
 
 const app = express();

@@ -8,4 +8,5 @@ minio-data
 .env
 .lastIndex
 .claude
+.antigravitycli
 public

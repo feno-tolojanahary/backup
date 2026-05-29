@@ -58,6 +58,33 @@ class StatService {
         `).all();
         return storageUsedByDest;
     }
+
+    getRecentJobRuns(limit = 8) {
+        return db.prepare(`
+            SELECT
+                jr.id,
+                jr.job_id   AS jobId,
+                j.name      AS jobName,
+                jr.status,
+                jr.started_at  AS startedAt,
+                jr.finished_at AS finishedAt,
+                jr.error_message AS errorMessage
+            FROM job_runs jr
+            LEFT JOIN jobs j ON j.id = jr.job_id
+            ORDER BY jr.created_at DESC
+            LIMIT ?
+        `).all(limit);
+    }
+
+    getInfrastructureHealth() {
+        const sources = db.prepare(`
+            SELECT name, type, status FROM sources
+        `).all();
+        const destinations = db.prepare(`
+            SELECT name, type, status FROM destinations
+        `).all();
+        return { sources, destinations };
+    }
 }
 
 module.exports = new StatService();

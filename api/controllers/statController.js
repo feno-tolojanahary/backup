@@ -10,12 +10,16 @@ class StatController {
             const backupActivity = await statService.getBackupActivity();
             const backupStatus = await statService.getBackupStatus();
             const storageUsedByDest = await statService.getStorageUsedByDest();
-          
+            const recentJobRuns = statService.getRecentJobRuns();
+            const infrastructure = statService.getInfrastructureHealth();
+
             response.success(res, {
                 totalData,
                 backupActivity,
                 backupStatus,
-                storageUsedByDest
+                storageUsedByDest,
+                recentJobRuns,
+                infrastructure
             })
         } catch (error) {
             console.log(error);
